@@ -32,6 +32,7 @@ void DespawnAll(bool hard, const char *why);
 int HuntersAlive();
 Ped NearestHunterTo(const Vector3 &at, float maxD, float zoneR = 1e9f); // v11.1; v11.2: so os que estao a ate zoneR m do jogador
 Ped NearestCopTo(const Vector3 &at, float maxD);    // v11.1 (points.cpp)
+Ped NearestArmedCivTo(const Vector3 &at, float maxD); // v11.3 (points.cpp)
 
 // points.cpp: retaliadores nao dao pontos
 void PointsIgnorePed(Ped p);

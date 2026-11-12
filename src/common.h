@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "11.2"
+#define RETALIATION_VERSION "11.3"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -96,6 +96,9 @@ struct Config {
     // v11: [Disorder] modo 4 (Desordem)
     int disStartLevel = 3;     // nivel inicial sem nivel escolhido no menu
     int disHoldSeconds = 60;   // nada baixa no comeco (e ao escolher o nivel no menu)
+    // v11.3: policia propria da Desordem (sem estrelas): viaturas, SWAT e helicoptero criados pelo mod
+    bool disOwnPolice = true;
+    int disCopsPerLevel = 2, disMaxCops = 14, disCopHeliMinLevel = 6;
     float disFightRadius = 50.f; // v11.2: so se enfrentam ate essa distancia do jogador; mais longe, vem ate ele
     int disAggroSeconds = 60;  // quanto tempo um lado fica contra o jogador depois que ele ataca esse lado
     float disDeathRadius = 200.f; // mortes e destruicao de qualquer um ate essa distancia sobem a pressao
@@ -180,6 +183,11 @@ extern const char *kModeName[5];
 // v11: modo Desordem (points.cpp)
 bool DisorderCalm();      // modo 4 ativo e os retaliadores nao estao contra o jogador
 bool DisorderOn();        // modo 4 ativo (fora de missao)
+bool DisorderPoliceCalm(); // v11.3: Desordem e a policia nao esta contra o jogador
+// v11.3: nivel proprio da policia na Desordem (barra azul): 0..maxPoints, mesmos niveis da retaliacao
+int PolicePts();
+int PoliceLevel();
+void PolicePtsAdd(int n, const char *why);
 void DisorderProvoke(bool police); // o jogador atacou a policia (true) ou os retaliadores (false)
 void DisorderMenuLevel(); // nivel escolhido no menu: recomeca a espera sem baixar
 int UiLang(); // 0 portugues, 1 ingles, 2 espanhol (segue o idioma do jogo)

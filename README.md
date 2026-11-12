@@ -89,9 +89,12 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
   4. **Fim.** A retaliação acaba quando você despista (a pressão cai até zerar) ou **sobrevive aos 5 minutos
      acima de 350 pontos**. Morrer ou ser preso também zera. Livre, o ciclo recomeça.
 - **Desordem:** a polícia e os retaliadores entram em guerra, com você no meio.
-  - Começa no **nível 3 com 3 estrelas**, ou no nível escolhido no menu: nível N vale N estrelas (no máximo 5).
-    No **primeiro minuto** nada baixa; depois, a pressão e as estrelas baixam normalmente.
-  - **Ponto de encontro: você.** A polícia é chamada para a sua área e os retaliadores vêm para lá. A briga só
+  - **A polícia é do mod.** A polícia do jogo fica desligada (sem estrelas, sem viaturas do jogo). No lugar dela
+    vem a **polícia da barra azul**, com as viaturas, uniformes, armas e acessórios da própria polícia do jogo.
+  - **Duas barras:** a **vermelha** (retaliação) sobe um pouco e a **azul** (polícia) fica logo abaixo.
+  - Começa no **nível 3** nas duas barras, ou no nível escolhido no menu. No **primeiro minuto** nada baixa;
+    depois, as duas baixam normalmente.
+  - **Ponto de encontro: você.** A polícia e os retaliadores vêm para a sua área. A briga só
     acontece numa **zona de 50 m em volta de você**: quem está mais longe vem andando até ela sem brigar no
     caminho. Dentro da zona, cada retaliador vai atrás do **policial mais perto** dele, e cada policial vai atrás
     do **retaliador mais perto**, trocando de alvo quando o dele cai ou aparece outro mais perto.
@@ -99,13 +102,27 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
     passe colado neles: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
   - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe a retaliação (+2 por pessoa, +4 por
-    veículo). As estrelas acompanham o nível até o máximo.
+    veículo).
+  - **A força da polícia segue a barra azul**, que sobe com as mortes perto de você (+2 por civil, +4 por
+    policial, porque a polícia chama reforços):
+
+    | Nível da polícia | Quem vem |
+    |---|---|
+    | 1 a 4 | Patrulha: LSPD na cidade, xerife no interior (pistola, escopeta e, mais alto, carabina) |
+    | 3 a 6 | **Heavy da polícia**: 1.000 de vida, colete pesado e arma de cadência alta com carregador estendido |
+    | 5 | **SWAT** na van blindada |
+    | 6 | **FIB**, o **helicóptero da polícia** e o **Juggernaut da polícia** (traje pesado preto com a máscara azul e preta) |
+    | 7 | **IAA** |
+    | 8 | **Exército**: fuzileiros no Crusader ou no Barracks, **tanque Rhino** e **caça Lazer** (um de cada por vez) |
+
+  - Os policiais aparecem no minimapa com **blips azuis**, iguais aos dos retaliadores.
   - Os retaliadores **também atacam civis**, e 15% dos civis, a pé ou dirigindo, andam com **arma curta**
     (pistola, Micro SMG, Mini SMG ou Machine Pistol). Os **civis armados revidam**: não fogem, enfrentam a
     polícia e os retaliadores, e os dois lados atacam eles também. Com você, eles só brigam se você atacar.
   - Os carros dos retaliadores vêm até a sua área e a tropa desce para lutar.
-  - **Sem jatos, aviões perseguidores e tanques.** Dos helicópteros com mísseis ou canhão explosivo, só vem o
-    **Buzzard**.
+  - Os retaliadores também trazem os **tanques e o caça** deles, que miram a polícia e o Exército (nunca você, a não
+    ser que você ataque os retaliadores). Dos helicópteros com mísseis ou canhão explosivo, só vem o **Buzzard**,
+    até o Exército chegar (polícia no nível 8). Aviões perseguidores não vêm.
   - Morrer ou ser preso faz a Desordem recomeçar no nível 3, 10 s depois de você voltar.
 
 Os pontos são **separados por personagem** (Michael, Franklin e Trevor). Trocar de personagem remove os
@@ -227,13 +244,16 @@ Chega num **Insurgent** blindado e desce perto de você, com **Combat MG**, **es
 raro, **minigun** (com a rajada bem espalhada). No minimapa, ele aparece como uma **caveira vermelha** grande.
 Quando a vida fica baixa e na morte, o corpo cai normalmente (ragdoll).
 
-Ele usa o traje pesado do GTA Online, montado com as peças do próprio jogo, com variações sorteadas:
+Ele usa o traje pesado do GTA Online, montado com as peças do próprio jogo: **preto com vermelho**.
 
 | Peça | Opções |
 |---|---|
-| Camuflagem | Noturno (preto, a mais comum), Urbano, Aço, Tundra ou Floresta |
-| Máscara | Máscara de gás, balística carbono preta ou forças especiais carbono |
-| Capacete | O capacete do traje pesado (na mesma camuflagem) ou o balístico Merryweather |
+| Traje | Noturno (preto) |
+| Máscara | Balística **vermelha e preta** ou balística com óculos vermelhos |
+| Capacete | O capacete do traje pesado ou o balístico Merryweather |
+
+No modo Desordem, a polícia tem o seu próprio Juggernaut, com os mesmos números, em **preto com azul** (máscara
+balística azul e preta).
 
 ### Heavy (Juggernaut leve)
 
@@ -270,6 +290,8 @@ chão**, há 10% de chance de, no lugar da wave normal, um **Titan** passar bem 
   a hélice girando**, **jato** e **tanque**.
 - A **barra de retaliação** fica embaixo do minimapa, na largura das barras de vida e especial, no mesmo estilo
   delas. Nos últimos 30 s do timer de 5 minutos, ela pisca.
+- No modo **Desordem**, a barra vermelha sobe um pouco e a **barra azul** da polícia aparece logo abaixo. Os
+  policiais têm os mesmos blips dos retaliadores, só que **azuis**.
 
 ### Modo Diretor
 
@@ -293,7 +315,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v11.2.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v11.3.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -328,7 +350,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 | `[Heavy]` | Heavy (Juggernaut leve): níveis, chance, teto e vida |
 | `[VehicleGuns]` | Rajadas das armas de veículo: segundos atirando e parado |
 | `[Population]` | Civis e trânsito com estrelas, e % do limite de retaliadores com a polícia junto |
-| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, zona de combate, tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
+| `[Disorder]` | Modo Desordem: polícia do mod (liga/desliga, policiais por nível, limite, nível do helicóptero), nível inicial, minuto sem baixar, zona de combate, tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
 | `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
 | `[WeaponMods]` | Chance de acessórios nas armas |
 | `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
@@ -355,9 +377,24 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1` e `v11.2`).
+(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1`, `v11.2` e `v11.3`).
 
-### v11.2 — atual
+### v11.3 — atual
+
+Comparado à v11.2:
+- **Desordem com polícia própria:** a polícia do jogo fica desligada e o mod traz a dele, com as viaturas,
+  uniformes, armas e acessórios da polícia do jogo. Ela vai até a zona de combate e enfrenta os retaliadores e os
+  civis armados; só vai atrás de você se você atacar a polícia.
+- **Barra azul da polícia**, embaixo da vermelha (que subiu um pouco). O nível da polícia sobe com as mortes perto
+  de você e define quem vem: patrulha (LSPD ou xerife), **Heavy da polícia**, **SWAT**, **FIB**, helicóptero,
+  **Juggernaut da polícia**, **IAA** e, no topo, o **Exército** com tanque Rhino e caça Lazer.
+- **Blips azuis** para a polícia, iguais aos dos retaliadores.
+- **Juggernauts com cores:** o dos retaliadores em preto com vermelho e o da polícia em preto com azul.
+- Na Desordem, os **tanques e o caça dos retaliadores voltaram**, para enfrentar o Exército. Os helicópteros com
+  mísseis ou canhão explosivo voltam quando o Exército chega.
+- Novas chaves em `[Disorder]`: `OwnPolice`, `CopsPerLevel`, `MaxCops` e `CopHeliMinLevel`.
+
+### v11.2
 
 Comparado à v11.1:
 - **Desordem com a briga perto de você:** a polícia, os retaliadores e os civis armados só se enfrentam **a até

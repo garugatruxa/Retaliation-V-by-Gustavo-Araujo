@@ -203,6 +203,14 @@ static const char *kDefaultIni =
     "HoldSeconds=60\r\n"
     "; policia, retaliadores e civis armados so se enfrentam ate FightRadius m do jogador; mais longe, vem ate ele\r\n"
     "FightRadius=50\r\n"
+    "; 1 = a policia da Desordem e do mod, com nivel proprio (barra azul): patrulha (xerife no interior), SWAT no\r\n"
+    "; nivel 5, FIB no 6, IAA no 7 e o Exercito (com tanque e caca) no 8; helicoptero a partir de CopHeliMinLevel.\r\n"
+    "; Sem estrelas e fora do radar; as estrelas so aparecem se o jogador atacar a policia.\r\n"
+    "; 0 = a policia do jogo, com as estrelas seguindo o nivel da retaliacao\r\n"
+    "OwnPolice=1\r\n"
+    "CopsPerLevel=2\r\n"
+    "MaxCops=14\r\n"
+    "CopHeliMinLevel=6\r\n"
     "AggroSeconds=60\r\n"
     "; qualquer morte ou veiculo destruido ate DeathRadius m do jogador sobe a pressao (mesmo sem ser ele)\r\n"
     "DeathRadius=200\r\n"
@@ -494,6 +502,10 @@ void ConfigLoad() {
     c.disStartLevel = IniInt("Disorder", "StartLevel", c.disStartLevel);
     c.disHoldSeconds = IniInt("Disorder", "HoldSeconds", c.disHoldSeconds);
     c.disFightRadius = (float)IniInt("Disorder", "FightRadius", (int)c.disFightRadius);
+    c.disOwnPolice = IniInt("Disorder", "OwnPolice", 1) != 0;
+    c.disCopsPerLevel = IniInt("Disorder", "CopsPerLevel", c.disCopsPerLevel);
+    c.disMaxCops = IniInt("Disorder", "MaxCops", c.disMaxCops);
+    c.disCopHeliMinLevel = IniInt("Disorder", "CopHeliMinLevel", c.disCopHeliMinLevel);
     c.disAggroSeconds = IniInt("Disorder", "AggroSeconds", c.disAggroSeconds);
     c.disDeathRadius = (float)IniInt("Disorder", "DeathRadius", (int)c.disDeathRadius);
     c.disDeathPts = IniInt("Disorder", "DeathPoints", c.disDeathPts);

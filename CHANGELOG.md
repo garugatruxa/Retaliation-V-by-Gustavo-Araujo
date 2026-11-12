@@ -142,3 +142,13 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Polícia, retaliadores e civis armados só se enfrentam a até FightRadius (50 m) do jogador. Fora da zona, quem está a pé ignora o que vê (SET_BLOCKING_OF_NON_TEMPORARY_EVENTS) e anda até ~25 m do jogador; os alvos (policial, retaliador ou civil armado mais perto) só valem dentro da zona.
 - Nova chave [Disorder] FightRadius=50.
 - Saiu a regra de "muito perto" (NearDist=12): na Desordem, polícia e retaliadores só atacam o jogador se ele atacar aquele lado.
+
+## v11.3 — polícia própria da Desordem
+- Polícia do jogo desligada na Desordem (SET_MAX_WANTED_LEVEL 0, SET_DISPATCH_COPS_FOR_PLAYER e SET_CREATE_RANDOM_COPS desligados; volta ao sair do modo ou em missões).
+- Polícia do mod: viaturas com sirene e policiais do jogo (grupo COP; Exército no grupo ARMY), com acessórios nas armas pelo nível. Vai até a zona de combate, ataca o retaliador ou civil armado mais perto, e o jogador só se ele atacar a polícia.
+- Nível próprio da polícia (0–500, mesmos 8 níveis), barra azul embaixo da vermelha. Sobe com civil morto (+2) e policial morto (+4) perto do jogador; baixa −15 a cada 45 s sem violência; nada baixa no primeiro minuto.
+- Forças pelo nível da polícia: patrulha (LSPD/xerife), Heavy da polícia (3–6), SWAT na Riot (5), FIB (6), helicóptero Polmav com atiradores (CopHeliMinLevel=6), Juggernaut da polícia (nível do Juggernaut), IAA (7), Exército (8: fuzileiros no Crusader/Barracks, Rhino e Lazer, um de cada).
+- Blips azuis da polícia, iguais aos dos retaliadores.
+- Juggernaut dos retaliadores: traje preto com máscara balística vermelha e preta (1/125/15) ou óculos vermelhos (1/125/9). Juggernaut da polícia: máscara azul e preta (1/125/16).
+- Na Desordem voltaram os tanques e o caça dos retaliadores (o caça mira a polícia/Exército); helicópteros com mísseis voltam com a polícia no nível 8. Aviões perseguidores seguem fora.
+- Novas chaves [Disorder]: OwnPolice=1, CopsPerLevel=2, MaxCops=14, CopHeliMinLevel=6.

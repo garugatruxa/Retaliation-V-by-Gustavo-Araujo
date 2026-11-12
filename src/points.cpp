@@ -19,6 +19,7 @@ static int s_buf[kMaxEnt];
 static Hash H(const char *s) { return GAMEPLAY::GET_HASH_KEY((char *)s); }
 static void DisorderReset();
 static void UnblockAll();
+static void GamePoliceOff(bool off);
 static void DisorderOnDeath();
 static bool DisorderHold();
 
@@ -133,14 +134,17 @@ static void ScanKills(Ped player, Vehicle pveh, Vehicle plast) {
             if (DisorderOn() && Classify(p) != V_NONE) {
                 Vector3 a = ENTITY::GET_ENTITY_COORDS(p, FALSE), b = ENTITY::GET_ENTITY_COORDS(player, TRUE);
                 float dx = a.x - b.x, dy = a.y - b.y;
-                if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius)
+                if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius) {
                     AddPoints(g_cfg.disDeathPts, "morte na desordem");
+                    // v11.3: policial morto chama reforcos (sobe mais a policia); civil morto tambem sobe
+                    PolicePtsAdd(Classify(p) == V_COP ? g_cfg.disDeathPts * 2 : g_cfg.disDeathPts, "morte na desordem");
+                }
             }
             continue;
         }
         switch (Classify(p)) {
-        case V_CIV: AddPoints(g_cfg.killCivilian, "civil morto"); break;
-        case V_COP: AddPoints(g_cfg.killCop, "policial morto"); break;
+        case V_CIV: AddPoints(g_cfg.killCivilian, "civil morto"); PolicePtsAdd(g_cfg.disDeathPts, "civil morto"); break;
+        case V_COP: AddPoints(g_cfg.killCop, "policial morto"); PolicePtsAdd(g_cfg.disDeathPts * 2, "policial morto"); break;
         case V_GANG: AddPoints(g_cfg.killGang, "membro de gangue morto"); break;
         default: break;
         }
@@ -207,6 +211,7 @@ static void ClearWanted(Player pid) {
 }
 
 void PoliceRestore(Player pid) {
+    GamePoliceOff(false); // v11.3
     DisorderReset(); // v11
     RelationsDisorder(false, false);
     s_dmForce = false;
@@ -258,6 +263,7 @@ static Ped NearestIn(const std::vector<int> &list, const Vector3 &at, float maxD
     }
     return best;
 }
+Ped NearestArmedCivTo(const Vector3 &at, float maxD) { return NearestIn(s_armedCivs, at, maxD); }
 // alvo de um retaliador: o policial ou civil armado mais perto
 Ped NearestCopTo(const Vector3 &at, float maxD) {
     return NearestIn(s_armedCivs, at, maxD, NearestIn(s_cops, at, maxD));
@@ -266,6 +272,25 @@ Ped NearestCopTo(const Vector3 &at, float maxD) {
 static bool MissionPaused() { return g_st.paused && strcmp(g_st.pauseReason, "interior") != 0; }
 bool DisorderOn() { return g_cfg.mode == 4 && s_disOn && !MissionPaused(); }
 bool DisorderCalm() { return DisorderOn() && g_st.now >= s_hunAggro; }
+bool DisorderPoliceCalm() { return DisorderOn() && g_st.now >= s_polAggro; }
+// ---------- v11.3: nivel da policia (barra azul) ----------
+// Sobe com a violencia perto do jogador (civil morto, e mais ainda policial morto, que chama reforcos) e baixa
+// com o tempo, como a retaliacao. Define a forca da policia da Desordem: patrulha, SWAT, FIB, IAA e o Exercito.
+static int s_polPts = 0, s_polLastGain = 0, s_polLastDecay = 0;
+int PolicePts() { return s_polPts; }
+int PoliceLevel() { return LevelOf(s_polPts); }
+static void PoliceSet(int v, const char *why) {
+    if (v < 0) v = 0;
+    if (v > g_cfg.maxPoints) v = g_cfg.maxPoints;
+    int lb = LevelOf(s_polPts);
+    s_polPts = v;
+    if (LevelOf(v) != lb) Log("Policia: nivel %d -> %d (%s).", lb, LevelOf(v), why);
+}
+void PolicePtsAdd(int n, const char *why) {
+    if (!DisorderOn() || g_cfg.levelLock || n == 0) return;
+    if (n > 0) { s_polLastGain = s_polLastDecay = g_st.now; }
+    PoliceSet(s_polPts + n, why);
+}
 static bool DisorderHold() { return DisorderOn() && g_st.now < s_disHold; }
 void DisorderProvoke(bool police) {
     if (!DisorderOn()) return;
@@ -281,6 +306,8 @@ void DisorderMenuLevel() {
     s_disOn = true;
     s_disRestartAt = 0;
     s_disHold = g_st.now + g_cfg.disHoldSeconds * 1000;
+    PoliceSet(g_st.Pts(), "nivel escolhido no menu"); // v11.3: a policia comeca no mesmo nivel
+    s_polLastGain = s_polLastDecay = g_st.now;
     Log("Desordem: nivel %d escolhido no menu; nada baixa por %ds.", LevelOf(g_st.Pts()), g_cfg.disHoldSeconds);
 }
 static void UnblockAll() {
@@ -290,6 +317,7 @@ static void UnblockAll() {
 }
 static void DisorderReset() {
     UnblockAll(); // v11.2
+    s_polPts = 0; // v11.3
     s_disOn = false;
     s_disHold = s_disRestartAt = s_polAggro = s_hunAggro = 0;
     s_civChecked.clear(); s_copNear.clear(); s_copHp.clear(); s_copHunt.clear(); s_copTarget.clear(); s_cops.clear(); s_armedCivs.clear(); s_armedSet.clear();
@@ -422,11 +450,30 @@ static void DisorderScan(Ped player) {
     }
 }
 
+// v11.3: liga/desliga a policia do jogo (estrelas, despacho e policiais ambulantes)
+static bool s_gamePoliceOff = false;
+static void GamePoliceOff(bool off) {
+    if (off) { // reaplica todo frame: o jogo volta a criar se nao for avisado
+        PED::SET_CREATE_RANDOM_COPS(FALSE);
+        PED::SET_CREATE_RANDOM_COPS_NOT_ON_SCENARIOS(FALSE);
+        PED::SET_CREATE_RANDOM_COPS_ON_SCENARIOS(FALSE);
+        PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(PLAYER::PLAYER_ID(), FALSE);
+    } else if (s_gamePoliceOff) {
+        PED::SET_CREATE_RANDOM_COPS(TRUE);
+        PED::SET_CREATE_RANDOM_COPS_NOT_ON_SCENARIOS(TRUE);
+        PED::SET_CREATE_RANDOM_COPS_ON_SCENARIOS(TRUE);
+        PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(PLAYER::PLAYER_ID(), TRUE);
+        Log("Policia do jogo de volta ao normal.");
+    }
+    if (off && !s_gamePoliceOff) Log("Desordem: policia do jogo desligada; a policia da barra azul assume.");
+    s_gamePoliceOff = off;
+}
 static void DisorderTick(Player pid, bool missionPause) {
     State &s = g_st;
     s_jointUntil = 0;
     s.wantedMaxSince = -1;
     if (missionPause) { // missoes da historia: tudo normal
+        GamePoliceOff(false);
         RelationsDisorder(false, false);
         PoliceIgnore(pid, false);
         ApplyMaxWanted(5);
@@ -442,6 +489,8 @@ static void DisorderTick(Player pid, bool missionPause) {
                                                      ? (int)g_cfg.levelStart.size() : g_cfg.disStartLevel;
             int start = g_cfg.levelStart[lv - 1];
             if (s.Pts() < start) AddPointsForce(start - s.Pts(), "a Desordem comeca");
+            if (s_polPts < start || !g_cfg.levelLock) PoliceSet(g_cfg.levelLock ? s.Pts() : start, "a Desordem comeca"); // v11.3
+            s_polLastGain = s_polLastDecay = s.now;
             int l = LevelOf(s.Pts());
             Log("Desordem: comeca no nivel %d com %d estrela(s); nada baixa por %ds.", l, l > 5 ? 5 : l,
                 g_cfg.disHoldSeconds);
@@ -450,16 +499,27 @@ static void DisorderTick(Player pid, bool missionPause) {
     bool on = s_disOn;
     int lv = LevelOf(s.Pts());
     int stars = lv > 5 ? 5 : lv;
-    ApplyMaxWanted(5);
-    // as estrelas seguem o nivel (nivel N = N estrelas). Sem nivel, a policia age como no jogo normal
-    if (on && stars > 0 && PLAYER::GET_PLAYER_WANTED_LEVEL(pid) != stars) {
-        PLAYER::SET_PLAYER_WANTED_LEVEL(pid, stars, FALSE);
-        PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
-    }
-    // policia na area, mas ignorando o jogador (enfrenta os retaliadores), a nao ser que ele ataque a policia
     bool polCalm = on && stars > 0 && s.now >= s_polAggro;
-    PoliceIgnore(pid, polCalm);
-    if (polCalm && s.now >= s_disCentre) {
+    // v11.3: com a policia propria (OwnPolice=1), a policia do jogo fica desligada na Desordem: sem estrelas, sem
+    // viaturas do jogo. Quem age e a policia da barra azul (spawner.cpp), que vai atras do jogador se ele atacar.
+    GamePoliceOff(on && g_cfg.disOwnPolice);
+    if (g_cfg.disOwnPolice) {
+        ApplyMaxWanted(on ? 0 : 5);
+        if (on && PLAYER::GET_PLAYER_WANTED_LEVEL(pid) > 0) ClearWanted(pid);
+        PoliceIgnore(pid, false);
+    } else {
+        ApplyMaxWanted(5);
+        // as estrelas seguem o nivel (nivel N = N estrelas). Sem nivel, a policia age como no jogo normal.
+        // v11.3: com a policia propria, as estrelas (quando o jogador ataca a policia) seguem o nivel da policia
+        if (g_cfg.disOwnPolice) { int pl = PoliceLevel(); stars = pl < 1 ? 1 : pl > 5 ? 5 : pl; }
+        if (on && stars > 0 && PLAYER::GET_PLAYER_WANTED_LEVEL(pid) != stars) {
+            PLAYER::SET_PLAYER_WANTED_LEVEL(pid, stars, FALSE);
+            PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
+        }
+        // policia do jogo na area, ignorando o jogador (enfrenta os retaliadores), a nao ser que ele ataque a policia
+        PoliceIgnore(pid, polCalm);
+    }
+    if (polCalm && !g_cfg.disOwnPolice && s.now >= s_disCentre) {
         s_disCentre = s.now + 3000;
         // v11.1: ponto de encontro = o jogador. A policia e chamada para a area dele e, chegando, vai atras do
         // retaliador mais perto (DisorderScan); os retaliadores fazem o mesmo com os policiais.
@@ -471,6 +531,12 @@ static void DisorderTick(Player pid, bool missionPause) {
     if (s_wasActive && !active) DespawnAll(false, "jogador livre");
     s_wasActive = active;
     if (on) DisorderScan(PLAYER::PLAYER_PED_ID());
+    // v11.3: a policia baixa com o tempo sem violencia, como a retaliacao (nada baixa no primeiro minuto)
+    if (on && s_polPts > 0 && !g_cfg.levelLock && !DisorderHold() &&
+        s.now - s_polLastGain >= g_cfg.decayInterval * 1000 && s.now - s_polLastDecay >= g_cfg.decayInterval * 1000) {
+        s_polLastDecay = s.now;
+        PoliceSet(s_polPts - g_cfg.decayAmount, "tempo sem violencia");
+    }
 }
 
 void CycleTick(Player pid) {
