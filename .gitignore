@@ -1,0 +1,10 @@
+build/
+vendor/
+releases/
+sdk/lib/
+# arquivos do SDK do Script Hook V (nao podem ser redistribuidos): baixe em dev-c.com
+sdk/inc/natives.h
+sdk/inc/nativeCaller.h
+sdk/inc/types.h
+sdk/inc/enums.h
+sdk/inc/main_original.h
