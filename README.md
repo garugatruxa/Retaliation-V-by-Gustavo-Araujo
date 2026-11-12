@@ -144,12 +144,15 @@ Shores, Grapeseed, Paleto, deserto e montanhas). Cada facção fica bastante tem
 | **De carro devagar** | Só veículos. A partir do nível 3, **bloqueios de estrada** à frente, na sua mão da pista. |
 | **De carro rápido** (acima de 65 km/h) | **Perseguição:** carros nascem atrás de você, na sua mão, já na sua velocidade, e os bloqueios ficam bem mais frequentes. |
 | **De barco** | Lanchas e jet skis das facções que têm (nível 4+) e helicópteros. |
+| **Em mar aberto** (de barco, jet ski ou nadando, sem terra a 110 m) | Só **helicópteros de ataque** (o da facção ou um Buzzard, a partir do nível 3, sem rapel) e **barcos inimigos**. |
 | **De helicóptero** | Helicópteros (atiradores e armados) e só um veículo por terra. |
 | **De avião** (qualquer um) | Só **aviões armados perseguidores**: metralhadora nos níveis baixos (Ultraleve, Seabreeze, Rogue, Starling), mísseis nos altos (Nokota, Molotok, Pyro, Lazer, Hydra, B-11). 1 a 3 ao mesmo tempo. |
 
 - No máximo **30 inimigos ativos** ao mesmo tempo, somando tudo (10 no nível 1).
 - Tudo nasce **no chão e no mesmo nível do mapa** que você, e os inimigos **chegam aos poucos**, em fila.
 - Inimigos longe demais, ou que não chegam a tempo, são removidos.
+- **Civis e trânsito normais:** com estrelas ou retaliação, a cidade continua cheia de pedestres e carros. Com a
+  polícia também atrás de você, os retaliadores ficam em 75% do limite.
 
 ### Combate e IA
 
@@ -190,17 +193,19 @@ Annihilator, Valkyrie).
 
 - **Atiradores:** rondam você com a tropa atirando pelas portas.
 - **Rapel:** com você a pé, param no ar perto de você e a tropa desce de corda. É o tipo mais comum.
-- **Armados** (Buzzard, Savage, Hunter, Akula): só do **nível 7** em diante e raros. Vêm só com o piloto, que
-  ataca com as armas do helicóptero, alternando metralhadora/canhão e mísseis.
+- **Armados** (Buzzard, Savage, Hunter, Akula): só do **nível 7** em diante e raros (Savage, Hunter e Akula
+  mais raros que o Buzzard). Vêm só com o piloto, que ataca com as armas do helicóptero em **rajadas**: 3 s
+  atirando e 8 s parado. Em mar aberto, aparecem a partir do nível 3.
 - O helicóptero de rapel pode **pousar perto de você** para a tropa desembarcar.
 - Até **3 helicópteros** ao mesmo tempo, mas o 2º é pouco comum e o 3º é bem raro. Matar o piloto derruba o
   helicóptero.
 
 ### Juggernaut
 
-Mini-boss dos níveis 7 e 8, com **2.000 de vida**, imune a ataques corpo a corpo (a coronhada não mata ele).
+Mini-boss do **nível 6** em diante, com **2.000 de vida**, imune a ataques corpo a corpo (a coronhada não mata ele).
 Chega num **Insurgent** blindado e desce perto de você, com **Combat MG**, **escopeta automática** ou, mais
-raro, **minigun** (com a rajada bem espalhada). No minimapa, ele aparece como uma **caveira vermelha**.
+raro, **minigun** (com a rajada bem espalhada). No minimapa, ele aparece como uma **caveira vermelha** grande.
+Quando a vida fica baixa e na morte, o corpo cai normalmente (ragdoll).
 
 Ele usa o traje pesado do GTA Online, montado com as peças do próprio jogo, com variações sorteadas:
 
@@ -210,6 +215,13 @@ Ele usa o traje pesado do GTA Online, montado com as peças do próprio jogo, co
 | Máscara | Máscara de gás, balística carbono preta ou forças especiais carbono |
 | Capacete | O capacete do traje pesado (na mesma camuflagem) ou o balístico Merryweather |
 
+### Heavy (Juggernaut leve)
+
+Nos **níveis 3 a 6**, cada facção pode mandar o seu **Heavy**: o chefe da própria facção, com **1.000 de vida**,
+colete pesado, máscara ou bandana, chapéu e óculos sorteados, num carro da facção. Ele usa armas de cadência
+alta conforme a facção (submetralhadoras, escopeta bullpup, Gusenberg, fuzil) com carregador estendido e aparece
+como uma caveira menor no minimapa. No nível 6 vem o Heavy ou o Juggernaut.
+
 ### Tanques e caça
 
 Só no nível 8, um de cada por vez, cada um com **1 minuto de espera** depois de sair de combate:
@@ -217,11 +229,13 @@ Só no nível 8, um de cada por vez, cada um com **1 minuto de espera** depois d
 - **Rhino no Cargobob:** o Cargobob solta o tanque perto de você. Abater o Cargobob antes da entrega derruba o
   tanque junto. Se o Cargobob perder o motor (PEM) ou baixar demais, o tanque é solto e nunca fica dentro do
   chão.
-- **TM-02 Khanjali:** o tanque especial do Online, mais raro (3% por wave, a partir dos 440 pontos). Vem **por
-  terra**. As metralhadoras dele erram bastante.
-- Os dois disparam o canhão **no máximo a cada 10 segundos**, e só a até 130 m de você.
+- **TM-02 Khanjali:** o tanque especial do Online, mais raro (2% por wave, a partir dos 440 pontos). Vem **por
+  terra**. As metralhadoras dele erram bastante e todas as armas dele só disparam na janela de tiro.
+- O **Rhino** dispara **um tiro a cada 15 segundos**, e só a até 130 m de você.
+- Rhino, caça e helicópteros de ataque ficaram mais raros.
 - **Tanque roubado:** se você entrar num tanque dos retaliadores, todas as armas ficam liberadas para você.
 - **Caça:** um Lazer (ou Hydra, mais raro) alterna canhão e mísseis, ataca por 90 s e vai embora.
+- **Armas de veículo em rajadas:** helicópteros armados, aviões, caça e torretas atiram por 3 s e param por 8 s.
 
 ### Evento: Titan com paraquedistas
 
@@ -259,7 +273,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v10.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v10.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -290,7 +304,10 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 | `[Flow]` | Chegada aos poucos: pressão crescente, espaço entre unidades, teto de inimigos por perto |
 | `[Level1]`…`[Level8]` | Intervalo das waves, inimigos a pé, veículos, mira, vida, colete e limite de inimigos |
 | `[Roadblock]` | Bloqueios de estrada |
-| `[Juggernaut]` | Chance, teto, vida, modelo, ícone, chance e mira da minigun |
+| `[Juggernaut]` | Nível mínimo, chance, teto, vida, modelo, ícone, chance e mira da minigun |
+| `[Heavy]` | Heavy (Juggernaut leve): níveis, chance, teto e vida |
+| `[VehicleGuns]` | Rajadas das armas de veículo: segundos atirando e parado |
+| `[Population]` | Civis e trânsito com estrelas, e % do limite de retaliadores com a polícia junto |
 | `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
 | `[WeaponMods]` | Chance de acessórios nas armas |
 | `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
@@ -317,9 +334,29 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v10`, com as correções `v6.1`, `v7.1`, `v9.2` e `v9.3`).
+(`v1` a `v10`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3` e `v10.1`).
 
-### v10 — atual
+### v10.1 — atual
+
+Correções e ajustes da v10:
+- **Armas de veículo travadas de verdade:** na v10, a IA ignorava a trava e o Rhino atirava fora das janelas.
+  Agora o **Rhino** dá **1 tiro a cada 15 s**, o **Khanjali** só dispara na janela, e helicópteros armados,
+  aviões, caça e torretas atiram em **rajadas** (3 s atirando, 8 s parados). Se você assumir o veículo, as armas
+  ficam liberadas.
+- **Corpo do Juggernaut:** ele cai normalmente com a vida baixa e na morte, em vez de travar em pé.
+- **Juggernaut** a partir do **nível 6**, um pouco mais frequente, com a caveira maior no minimapa.
+- **Heavy (Juggernaut leve):** nos níveis 3 a 6, o chefe de cada facção, com 1.000 de vida, colete pesado e
+  armas de cadência alta da facção, num carro dela. No nível 6 vem o Heavy ou o Juggernaut.
+- **Menos veículos "apelões":** helicópteros de ataque, Rhino, Khanjali e caça mais raros. Savage, Hunter e
+  Akula mais raros que o Buzzard.
+- **Mar aberto:** de barco, jet ski ou nadando longe da costa, vêm só helicópteros de ataque (a partir do nível
+  3, sem rapel) e barcos inimigos.
+- **Civis e trânsito normais** com estrelas ou retaliação. Com a polícia junto, os retaliadores ficam em 75% do
+  limite.
+- Novas seções no `.ini`: `[Heavy]`, `[VehicleGuns]` e `[Population]`. **Atualizando da v10:** apague o
+  `Retaliation.ini` antigo para pegar os novos valores de Juggernaut, tanque, caça e helicópteros.
+
+### v10
 
 Comparado à v9.3:
 - **Escala de 0 a 500 pontos**, com os níveis bem mais largos (10, 80, 140, 200, 260, 320, 380, 440): cada facção

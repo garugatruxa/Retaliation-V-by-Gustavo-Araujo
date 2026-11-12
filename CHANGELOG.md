@@ -113,3 +113,12 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Modo Diretor: o modo do menu manda na polícia.
 - Mira "stormtrooper" em tudo que mata rápido. Inimigos comuns também arrastam feridos.
 - Novas seções/chaves no .ini: [Vehicles], [WeaponMods], [Paradrop], [Range] (Sniper, Rpg, Vehicle, Air, DragChance), [Tank] (ShotInterval, HangZ, KhanjaliChance, Cooldown), [Jet] Cooldown, [Heli] (AttackMinLevel, Accuracy), [Juggernaut] (Model, Blip, MinigunAccuracy), [General] LevelLock.
+
+## v10.1 — armas de veículo travadas, Heavy e mar aberto
+- Trava real das armas de veículo pela munição restrita (SET_VEHICLE_WEAPON_RESTRICTED_AMMO) e atributos de combate: Rhino 1 tiro a cada 15 s, Khanjali só na janela, helicópteros armados/aviões/caça/torretas em rajadas de 3 s com 8 s de pausa. Liberado ao soltar o veículo ou o jogador assumir.
+- Juggernaut: ragdoll liga com menos de 350 de vida e na morte (o corpo não trava mais). A partir do nível 6, chance 18 (teto 40), caveira maior (escala 1,4).
+- Heavy (Juggernaut leve), níveis 3–6: chefe da facção com 1000 de vida, colete 100, colete/máscara/chapéu/óculos sorteados, armas de cadência alta da facção com carregador estendido, num carro da facção. No nível 6 sorteia Heavy ou Juggernaut.
+- Menos veículos pesados: helicóptero de ataque 3 (teto 6), Rhino 3 (teto 6), Khanjali 2, caça 2 (teto 5). Savage, Hunter e Akula mais raros que o Buzzard.
+- Mar aberto (sem terra a 110 m): só helicóptero de ataque (nível 3+, sem rapel) e barcos inimigos.
+- Civis e trânsito normais com estrelas ou retaliação; com a polícia junto, retaliadores em 75% do limite.
+- Novas seções no .ini: [Heavy], [VehicleGuns] (FireSeconds, RestSeconds), [Population] (KeepCivilians, CiviliansPct, TrafficPct, WithPolicePct).

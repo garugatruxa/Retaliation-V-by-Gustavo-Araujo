@@ -1,6 +1,7 @@
 // Waves de retaliadores: grupos a pe, veiculos, barcos, Juggernaut no Insurgent e bloqueios de estrada.
 #include "spawn.h"
 #include <cmath>
+#include <algorithm>
 
 // ---------- utilidades ----------
 static unsigned s_rng = 0x9E3779B9u;
@@ -59,6 +60,8 @@ struct Hunter {
     int shootRate = -1;
     bool farOk = false; // jato e Cargobob voam longe: so sao removidos a 1500 m
     bool tankGunner = false; // v10: o canhao do tanque e controlado em UpdateTank
+    bool ragOk = false;      // v10.1: Juggernaut ja pode cair (ragdoll ligado perto da morte)
+    bool lightJug = false;   // v10.1: Juggernaut leve da faccao
     int nextArea = 0, nextGesture = 0;
     bool para = false; // v10: descendo de paraquedas (evento do Titan)
     int nextLos = 0, losLostAt = 0; bool seeking = false; // v10: sem visao do jogador: vai atras dele
@@ -115,6 +118,11 @@ static int s_activeSince = 0; // quando o Retaliation comecou (para a pressao cr
 static int MaxAlive() {
     int base = s_level >= 1 && s_level <= 8 ? g_cfg.lv[s_level - 1].maxAlive : 10;
     if (base > kHardCap) base = kHardCap; // v10: teto absoluto
+    // v10.1: com a policia tambem atras do jogador, menos retaliadores (sobra espaco para policia e civis)
+    if (PLAYER::GET_PLAYER_WANTED_LEVEL(PLAYER::PLAYER_ID()) > 0 && g_cfg.popWithPolicePct < 100) {
+        int b = base * g_cfg.popWithPolicePct / 100;
+        base = b < 4 ? 4 : b;
+    }
     if (g_cfg.flowRampSeconds <= 0 || !s_activeSince) return base;
     float k = (g_st.now - s_activeSince) / (g_cfg.flowRampSeconds * 1000.f);
     if (k >= 1.f) return base;
@@ -579,6 +587,22 @@ static bool WaterNearby() {
     return false;
 }
 
+// v10.1: jogador de barco ou nadando em mar aberto (agua em volta, sem terra perto)
+static bool PlayerAtSea() {
+    if (!PED::IS_PED_IN_ANY_BOAT(s_player) && !PED::IS_PED_SWIMMING(s_player)) return false;
+    for (int i = 0; i < 8; ++i) {
+        float dx, dy, wh;
+        Dir(i * 45.f, dx, dy);
+        for (float d : {50.f, 110.f}) {
+            float x = s_ppos.x + dx * d, y = s_ppos.y + dy * d, gz = 0.f;
+            if (!WATER::GET_WATER_HEIGHT(x, y, s_ppos.z, &wh)) return false;
+            // chao acima da agua = terra (ilha, praia, pier)
+            if (GAMEPLAY::GET_GROUND_Z_FOR_3D_COORD(x, y, wh + 60.f, &gz, FALSE) && gz > wh + 0.5f) return false;
+        }
+    }
+    return true;
+}
+
 static void SpawnBoat() {
     static std::vector<Hash> generic;
     if (generic.empty())
@@ -640,12 +664,119 @@ static void HeavyGuardLook(Ped j) {
     PED::CLEAR_ALL_PED_PROPS(j);
 }
 
+// ---------- v10.1: Heavy (Juggernaut leve), um por faccao ----------
+// Um membro "chefe" da propria faccao, com o colete mais pesado do modelo, bandana/mascara, chapeu e oculos
+// (o que o modelo tiver), 1000 de vida e armas de categoria menor com carregador estendido.
+struct LightJugDef { const char *fac; const char *models[2]; const char *weaps[4]; };
+static const LightJugDef kLightJug[] = {
+    {"MARABUNTA", {"g_m_y_salvaboss_01", "g_m_y_salvagoon_01"}, {"WEAPON_MICROSMG", "WEAPON_SAWNOFFSHOTGUN", "WEAPON_COMPACTRIFLE", nullptr}},
+    {"CAIPIRAS", {"a_m_m_hillbilly_01", "a_m_m_rurmeth_01"}, {"WEAPON_PUMPSHOTGUN", "WEAPON_COMPACTRIFLE", "WEAPON_MICROSMG", nullptr}},
+    {"VAGOS", {"g_m_y_mexgang_01", "g_m_y_mexgoon_03"}, {"WEAPON_MICROSMG", "WEAPON_MINISMG", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+    {"ONEIL", {"a_m_m_hillbilly_02", "a_m_m_farmer_01"}, {"WEAPON_PUMPSHOTGUN", "WEAPON_ASSAULTRIFLE", "WEAPON_DBSHOTGUN", nullptr}},
+    {"BALLAS", {"g_m_y_ballaorig_01", "g_m_y_ballaeast_01"}, {"WEAPON_MICROSMG", "WEAPON_MINISMG", "WEAPON_BULLPUPSHOTGUN", "WEAPON_ASSAULTRIFLE"}},
+    {"ALTRUISTAS", {"a_m_y_acult_02", "a_m_m_acult_01"}, {"WEAPON_BULLPUPSHOTGUN", "WEAPON_ASSAULTRIFLE", "WEAPON_COMPACTRIFLE", nullptr}},
+    {"KKANGPAE", {"g_m_m_korboss_01", "g_m_y_korlieut_01"}, {"WEAPON_ASSAULTSMG", "WEAPON_CARBINERIFLE", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+    {"LOST", {"g_m_y_lost_01", "g_m_y_lost_03"}, {"WEAPON_GUSENBERG", "WEAPON_BULLPUPSHOTGUN", "WEAPON_ASSAULTRIFLE", "WEAPON_MINISMG"}},
+    {"TRIADS", {"g_m_m_chiboss_01", "g_m_m_chicold_01"}, {"WEAPON_ASSAULTSMG", "WEAPON_MINISMG", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+    {"MADRAZO", {"g_m_m_mexboss_01", "g_m_m_mexboss_02"}, {"WEAPON_ASSAULTRIFLE", "WEAPON_COMPACTRIFLE", "WEAPON_BULLPUPSHOTGUN", "WEAPON_MICROSMG"}},
+    {"CAYO", {"g_m_m_cartelguards_02", "g_m_m_cartelguards_01"}, {"WEAPON_CARBINERIFLE", "WEAPON_ASSAULTSMG", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+    {"CACADORES", {"s_m_y_blackops_03", "ig_hunter"}, {"WEAPON_CARBINERIFLE", "WEAPON_BULLPUPSHOTGUN", "WEAPON_SMG", nullptr}},
+    {"BOGDAN", {"mp_m_bogdangoon", nullptr}, {"WEAPON_ASSAULTRIFLE", "WEAPON_ASSAULTSMG", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+    {"MERRYWEATHER", {nullptr, nullptr}, {"WEAPON_CARBINERIFLE", "WEAPON_ASSAULTSMG", "WEAPON_BULLPUPSHOTGUN", nullptr}},
+};
+static const LightJugDef *LightJugFor() {
+    for (const LightJugDef &d : kLightJug) if (!strcmp(d.fac, s_fac->id)) return &d;
+    return nullptr;
+}
+static Hash LightJugModel(const LightJugDef *d) {
+    if (d) {
+        int first = d->models[1] ? Rand(2) : 0;
+        for (int k = 0; k < 2; ++k) {
+            const char *n = d->models[(first + k) % 2];
+            if (n && STREAMING::IS_MODEL_IN_CDIMAGE(H(n))) return H(n);
+        }
+    }
+    return RandomPed();
+}
+static Hash LightJugWeapon(const LightJugDef *d, const char **name) {
+    static const char *kDef[] = {"WEAPON_ASSAULTSMG", "WEAPON_BULLPUPSHOTGUN", "WEAPON_CARBINERIFLE", nullptr};
+    const char *const *w = d ? d->weaps : kDef;
+    int n = 0;
+    while (n < 4 && w[n]) ++n;
+    for (int t = 0; t < 6; ++t) {
+        const char *c = w[Rand(n)];
+        if (WEAPON::IS_WEAPON_VALID(H(c))) { *name = c; return H(c); }
+    }
+    *name = "WEAPON_ASSAULTSMG";
+    return H("WEAPON_ASSAULTSMG");
+}
+// carregador estendido, se a arma tiver (COMPONENT_<arma>_CLIP_02)
+static void ExtendedClip(Ped p, Hash w, const char *wname) {
+    char comp[64];
+    snprintf(comp, sizeof comp, "COMPONENT_%s_CLIP_02", wname + 7); // pula o "WEAPON_"
+    Hash c = H(comp);
+    if (WEAPON::DOES_WEAPON_TAKE_WEAPON_COMPONENT(w, c)) WEAPON::GIVE_WEAPON_COMPONENT_TO_PED(p, w, c);
+}
+static void LightJugLook(Ped j) {
+    // colete: o desenho mais alto do componente 9 costuma ser o mais pesado
+    int vest = 0, nv = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(j, 9);
+    for (int d = nv - 1; d > 0; --d)
+        if (PED::IS_PED_COMPONENT_VARIATION_VALID(j, 9, d, 0)) { PED::SET_PED_COMPONENT_VARIATION(j, 9, d, 0, 0); vest = d; break; }
+    // bandana/mascara (componente 1), se o modelo tiver
+    int mask = 0, nm = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(j, 1);
+    if (nm > 1) {
+        int d = 1 + Rand(nm - 1);
+        if (PED::IS_PED_COMPONENT_VARIATION_VALID(j, 1, d, 0)) { PED::SET_PED_COMPONENT_VARIATION(j, 1, d, 0, 0); mask = d; }
+    }
+    // chapeu/bandana na cabeca (prop 0) e oculos escuros (prop 1)
+    PED::CLEAR_ALL_PED_PROPS(j);
+    int hat = -1, eyes = -1;
+    int nh = PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(j, 0), ne = PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(j, 1);
+    if (nh > 0) { hat = Rand(nh); PED::SET_PED_PROP_INDEX(j, 0, hat, 0, TRUE); }
+    if (ne > 0) { eyes = Rand(ne); PED::SET_PED_PROP_INDEX(j, 1, eyes, 0, TRUE); }
+    Log("  Heavy: colete %d/%d, mascara %d/%d, cabeca %d/%d, oculos %d/%d", vest, nv, mask, nm, hat, nh, eyes, ne);
+}
+static void SetupLightJug(Ped j) {
+    const LightJugDef *d = LightJugFor();
+    const char *wn = "";
+    Hash jw = LightJugWeapon(d, &wn);
+    SetupPed(j, s_level, jw);
+    LightJugLook(j); // depois do SetupPed, que pode trocar o colete
+    ExtendedClip(j, jw, wn);
+    PED::SET_PED_MAX_HEALTH(j, g_cfg.jugLightHealth);
+    ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugLightHealth);
+    PED::SET_PED_ARMOUR(j, 100);
+    PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
+    PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
+    PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C); // rajada continua
+    PED::SET_PED_COMBAT_MOVEMENT(j, 2);          // avanca
+    PED::SET_PED_COMBAT_RANGE(j, 1);
+    AI::TASK_COMBAT_PED(j, s_player, 0, 16);
+    Hunter &hj = AddHunter(j);
+    hj.juggernaut = true;
+    hj.lightJug = true;
+    Log("  HEAVY a caminho (%s, %s)", s_fac->name, wn + 7);
+}
+// v10.1: o leve so nos niveis dele; onde o pesado tambem pode vir, sorteia um dos dois
+static bool HeavyJugOk() { return s_level >= g_cfg.jugMinLevel || g_st.Pts() >= g_cfg.escStart; }
+static bool LightJugOk() {
+    return g_cfg.jugLightEnabled && s_level >= g_cfg.jugLightMinLevel && s_level <= g_cfg.jugLightMaxLevel;
+}
+
 // Juggernaut no Insurgent blindado, com motorista e tropa.
 // v10: so o Insurgent sem torreta (na torreta o jogador era expulso no modo historia).
 static void SpawnJuggernaut() {
+    bool light = LightJugOk() && (!HeavyJugOk() || Rand(2)); // v10.1
     Hash model = 0;
-    for (const char *n : {"insurgent2"})
-        if (STREAMING::IS_MODEL_IN_CDIMAGE(H(n))) { model = H(n); break; }
+    if (light) { // carro da faccao com pelo menos um banco de passageiro
+        for (int t = 0; t < 6 && !model; ++t) {
+            Hash c = RandomOf(s_fac->cars);
+            if (c && invoke<int>(0x2AD93716F184EDA4, c) >= 2) model = c;
+        }
+    } else {
+        for (const char *n : {"insurgent2"})
+            if (STREAMING::IS_MODEL_IN_CDIMAGE(H(n))) { model = H(n); break; }
+    }
     if (!model) model = RandomOf(s_fac->cars);
     Vector3 p; float h;
     if (!model || !FindRoadPos(g_cfg.vehMin, g_cfg.vehMax, p, h)) { Log("  Juggernaut: nenhuma rua encontrada."); return; }
@@ -684,7 +815,10 @@ static void SpawnJuggernaut() {
     }
 
     // o Juggernaut
-    if (jugSeat != -2) {
+    if (jugSeat != -2 && light) {
+        Ped j = NewPedIn(v, LightJugModel(LightJugFor()), jugSeat);
+        if (j) SetupLightJug(j);
+    } else if (jugSeat != -2) {
         // v10: o NPC Juggernaut blindado do jogo (todo preto), o mesmo para todos.
         // O modelo vem do .ini ([Juggernaut] Model); se nao existir, tenta os outros Juggernauts do jogo.
         Hash jm = 0;
@@ -900,11 +1034,16 @@ static int NextHeliPct(int n) {
     return 0;
 }
 
-static void SpawnHeli(bool air) {
+static void SpawnHeli(bool air, bool sea = false) {
     const std::vector<Hash> &transport = !s_fac->helis.empty() ? s_fac->helis : s_genericHelis;
     HeliType type = HT_SHOOTERS;
     Hash model = 0;
-    if (!s_fac->attackHelis.empty() && s_level >= g_cfg.heliAttackMinLevel && // v10: armados so do nivel 7 em diante
+    if (sea) { // v10.1: jogador em mar aberto: so helicoptero de ataque (o da faccao ou um Buzzard)
+        static const Hash buzzard = H("buzzard");
+        type = HT_ATTACK;
+        model = !s_fac->attackHelis.empty() ? RandomOf(s_fac->attackHelis) : buzzard;
+        if (!STREAMING::IS_MODEL_IN_CDIMAGE(model)) return;
+    } else if (!s_fac->attackHelis.empty() && s_level >= g_cfg.heliAttackMinLevel && // v10: armados so do nivel 7 em diante
         Rand(100) < Pct(g_cfg.heliAttackPct, EscBonus() * 0.25f, g_cfg.heliAttackMax) + (air ? 10 : 0)) {
         type = HT_ATTACK;
         model = RandomOf(s_fac->attackHelis);
@@ -1088,6 +1227,29 @@ static void UpdateHelis() {
 struct TankSt { Vehicle cargo = 0, rhino = 0; Ped pilot = 0, driver = 0; int state = -1, at = 0; Vector3 drop{}; bool planB = false;
                 int nextShot = 0, openAt = 0; bool gunOpen = false, chasing = false; };
 static TankSt s_tank;
+
+// v10.1: trava de verdade das armas de veiculo. O DISABLE_VEHICLE_WEAPON e o SHOOT_RATE 0 nao seguram a IA
+// (o log da v10 mostrava toda janela do Rhino "sem tiro": ele atirava fora delas). A municao restrita do
+// veiculo segura: 0 = nao atira, 1 = um tiro, -1 = ilimitada (normal do jogo). Indices 0-3 das armas.
+static std::vector<Vehicle> s_ammoTouched; // veiculos com a municao mexida (devolvidos ao normal depois)
+static void VehAmmo(Vehicle v, int idx, int n) {
+    invoke<Void>(0x44CD1F493DB2A0A6, v, idx, n); // SET_VEHICLE_WEAPON_RESTRICTED_AMMO
+    if (n != -1 && std::find(s_ammoTouched.begin(), s_ammoTouched.end(), v) == s_ammoTouched.end()) s_ammoTouched.push_back(v);
+}
+static int VehAmmoGet(Vehicle v, int idx) { return invoke<int>(0x8181CE2F25CB9BB7, v, idx); }
+static void VehAmmoAll(Vehicle v, int n) { for (int i = 0; i < 4; ++i) VehAmmo(v, i, n); }
+// devolve a municao normal (veiculo liberado pelo mod ou tomado pelo jogador)
+static void VehAmmoRestore(Vehicle v) {
+    auto it = std::find(s_ammoTouched.begin(), s_ammoTouched.end(), v);
+    if (it == s_ammoTouched.end()) return;
+    if (ENTITY::DOES_ENTITY_EXIST(v)) for (int i = 0; i < 4; ++i) invoke<Void>(0x44CD1F493DB2A0A6, v, i, -1);
+    s_ammoTouched.erase(it);
+}
+// usar (ou nao) as armas montadas do veiculo no combate
+static void VehAttack(Ped p, bool on) {
+    PED::SET_PED_COMBAT_ATTRIBUTES(p, 52, on);
+    PED::SET_PED_COMBAT_ATTRIBUTES(p, 53, on);
+}
 // v10: espera depois que um tanque sai de combate (abatido, motorista morto ou roubado pelo jogador)
 static int s_tankCdUntil = 0, s_khanCdUntil = 0;
 static void TankCooldown(int &until, const char *name) {
@@ -1148,6 +1310,8 @@ static void SpawnTank() {
         PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, TRUE);
         PED::SET_PED_SHOOT_RATE(t.driver, 0);
         VEHICLE::DISABLE_VEHICLE_WEAPON(TRUE, H("VEHICLE_WEAPON_TANK"), t.rhino, t.driver);
+        VehAmmo(t.rhino, 0, 0); // v10.1: sem municao ate a primeira janela
+        VehAttack(t.driver, false);
         AddCrew(t.driver).tankGunner = true;
     }
     VEHICLE::SET_VEHICLE_FORWARD_SPEED(t.cargo, 20.f);
@@ -1241,6 +1405,8 @@ static void UpdateTank() {
         bool inRange = D2(ENTITY::GET_ENTITY_COORDS(t.rhino, TRUE), s_ppos) <= g_cfg.rangeRpg + 20.f; // v10
         if (!t.gunOpen && inRange && g_st.now >= t.nextShot) {
             VEHICLE::DISABLE_VEHICLE_WEAPON(FALSE, tankGun, t.rhino, t.driver);
+            VehAmmo(t.rhino, 0, 1); // v10.1: exatamente um tiro nesta janela
+            VehAttack(t.driver, true);
             PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 2, TRUE);
             PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
             PED::SET_PED_SHOOT_RATE(t.driver, 100);
@@ -1248,8 +1414,8 @@ static void UpdateTank() {
             t.gunOpen = true;
             t.openAt = g_st.now;
         } else if (t.gunOpen) {
-            bool shot = PED::IS_PED_SHOOTING(t.driver);
-            if (shot || !inRange || g_st.now - t.openAt > 1500) {
+            bool shot = PED::IS_PED_SHOOTING(t.driver) || VehAmmoGet(t.rhino, 0) == 0; // v10.1: gastou o tiro
+            if (shot || !inRange || g_st.now - t.openAt > 2500) {
                 t.gunOpen = false;
                 t.nextShot = g_st.now + g_cfg.tankShotInterval * 1000;
                 t.chasing = false;
@@ -1260,6 +1426,8 @@ static void UpdateTank() {
         if (!t.gunOpen) {
             // travado: reaplica sempre, porque a IA de combate tenta religar o canhao
             VEHICLE::DISABLE_VEHICLE_WEAPON(TRUE, tankGun, t.rhino, t.driver);
+            VehAmmo(t.rhino, 0, 0); // v10.1: a trava que a IA respeita
+            VehAttack(t.driver, false);
             PED::SET_PED_SHOOT_RATE(t.driver, 0);
             PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 2, FALSE);
             if (!t.chasing) { // so persegue, sem combate, ate a proxima janela
@@ -1287,6 +1455,9 @@ static const char *kKhanGuns[] = {"VEHICLE_WEAPON_KHANJALI_CANNON", "VEHICLE_WEA
                                   "VEHICLE_WEAPON_KHANJALI_GL"};
 static void KhanGuns(bool disable) {
     for (const char *g : kKhanGuns) VEHICLE::DISABLE_VEHICLE_WEAPON(disable, H(g), s_khan.v, s_khan.driver);
+    // v10.1: metralhadora tambem so na janela (municao restrita em todas as armas)
+    VehAmmoAll(s_khan.v, disable ? 0 : -1);
+    VehAttack(s_khan.driver, !disable);
 }
 static void SpawnKhanjali() {
     Hash m = H("khanjali");
@@ -1346,7 +1517,7 @@ static void UpdateKhanjali() {
     }
     if (!k.gunOpen) {
         KhanGuns(true);
-        PED::SET_PED_SHOOT_RATE(k.driver, 40); // metralhadora: atira menos e espalhado
+        PED::SET_PED_SHOOT_RATE(k.driver, 0); // v10.1: fora da janela nada atira
         if (!k.chasing) {
             PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(k.driver, TRUE);
             AI::TASK_VEHICLE_CHASE(k.driver, s_player);
@@ -1623,6 +1794,18 @@ static void BuildWave() {
     }
     int heliCap = HeliLimit(air) - (int)s_helis.size() - HelisQueued();
 
+    // v10.1: em mar aberto (de barco ou nadando): so helicopteros de ataque e barcos inimigos
+    if (PlayerAtSea()) {
+        Log("  jogador em mar aberto: so helicopteros de ataque e barcos.");
+        if (s_level >= 3 && heliCap > 0 && free >= 4 && Rand(100) < NextHeliPct(HelisNow()) + 15) {
+            Queue(3000, P_HELI, 0, 2);
+            free -= 4;
+        }
+        if (free >= 2) { Queue(1000, P_BOAT); free -= 2; }
+        if (free >= 2 && L.vehicles >= 2) Queue(6000, P_BOAT);
+        return;
+    }
+
     // v6: jato (so no ultimo nivel, um por vez; mais chance se o jogador estiver voando)
     if (g_cfg.jetEnabled && s_level >= g_cfg.jetMinLevel && !JetActive() && g_st.now >= s_jetCooldownUntil && free >= 1 &&
         Rand(100) < Pct(g_cfg.jetChance, (bonus + EscBonus() * 0.5f) * 0.3f, g_cfg.jetMax) + (air ? 5 : 0)) {
@@ -1694,8 +1877,11 @@ static void BuildWave() {
         return;
     }
 
-    if (g_cfg.jugEnabled && (s_level >= g_cfg.jugMinLevel || g_st.Pts() >= g_cfg.escStart) && !JuggAlive() &&
-        free >= 4 && Rand(100) < Pct(g_cfg.jugChance, (bonus + EscBonus()) * 0.4f, g_cfg.jugMax)) {
+    // v10.1: o pesado (nivel 6+) ou o leve da faccao (niveis 3-6)
+    bool jugHeavy = g_cfg.jugEnabled && HeavyJugOk();
+    int jugPct = jugHeavy ? Pct(g_cfg.jugChance, (bonus + EscBonus()) * 0.4f, g_cfg.jugMax)
+                          : Pct(g_cfg.jugLightChance, (bonus + EscBonus()) * 0.4f, g_cfg.jugLightMax);
+    if ((jugHeavy || LightJugOk()) && !JuggAlive() && free >= 4 && Rand(100) < jugPct) {
         Queue(2500, P_JUGG);
         free -= 4;
     }
@@ -1750,7 +1936,7 @@ static void RunQueue() {
         case P_VEH: SpawnVehicle(p.bicycleOk); break;
         case P_BOAT: SpawnBoat(); break;
         case P_JUGG: SpawnJuggernaut(); break;
-        case P_HELI: SpawnHeli(p.role == 1); break;
+        case P_HELI: SpawnHeli(p.role == 1, p.role == 2); break;
         case P_TANK: if (s_tank.state < 0) SpawnTank(); break;
         case P_KHAN: if (!s_khan.v) SpawnKhanjali(); break;
         case P_JET: if (!s_jet.v) SpawnJet(); break;
@@ -1810,6 +1996,7 @@ static void ReleasePed(Hunter &h, bool del) {
 
 static void ReleaseVeh(SquadVeh &s, bool del) {
     if (s.blip) { UI::REMOVE_BLIP(&s.blip); s.blip = 0; }
+    if (!del) VehAmmoRestore(s.veh);
     PointsIgnoreVeh(s.veh);
     if (del) VEHICLE::DELETE_VEHICLE(&s.veh);
     else ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&s.veh);
@@ -1895,7 +2082,12 @@ static void UpdateHunters() {
         Hunter &h = s_h[i];
         if (!ENTITY::DOES_ENTITY_EXIST(h.ped)) { RemoveBlip(h); s_h.erase(s_h.begin() + i); continue; }
         if (PED::IS_PED_DEAD_OR_DYING(h.ped, TRUE)) {
-            if (h.juggernaut) Log("Juggernaut abatido!");
+            if (h.juggernaut) {
+                Log(h.lightJug ? "Heavy abatido!" : "Juggernaut abatido!");
+                // v10.1: com o ragdoll desligado o corpo ficava travado/duro; liga e deixa cair
+                PED::SET_PED_CAN_RAGDOLL(h.ped, TRUE);
+                PED::SET_PED_TO_RAGDOLL(h.ped, 3000, 5000, 0, TRUE, TRUE, FALSE);
+            }
             // v7: retaliador morto pelo jogador da pontos
             Entity k = PED::_GET_PED_KILLER(h.ped);
             Vehicle pv = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
@@ -1903,6 +2095,11 @@ static void UpdateHunters() {
             ReleasePed(h, false);
             s_h.erase(s_h.begin() + i);
             continue;
+        }
+        // v10.1: Juggernaut quase morto ja pode cair, para a morte sair natural
+        if (h.juggernaut && !h.lightJug && !h.ragOk && ENTITY::GET_ENTITY_HEALTH(h.ped) < 350) {
+            PED::SET_PED_CAN_RAGDOLL(h.ped, TRUE);
+            h.ragOk = true;
         }
         Vector3 hp = ENTITY::GET_ENTITY_COORDS(h.ped, TRUE);
         float d = D2(hp, s_ppos);
@@ -1914,7 +2111,8 @@ static void UpdateHunters() {
             h.blip = UI::ADD_BLIP_FOR_ENTITY(h.ped);
             if (h.juggernaut && g_cfg.jugBlip > 0) UI::SET_BLIP_SPRITE(h.blip, g_cfg.jugBlip); // v10: caveira
             UI::SET_BLIP_COLOUR(h.blip, 1);
-            UI::SET_BLIP_SCALE(h.blip, h.juggernaut ? 1.0f : 0.7f);
+            // v10.1: Heavy com a caveira do tamanho antigo; o Juggernaut com a caveira maior
+            UI::SET_BLIP_SCALE(h.blip, h.lightJug ? 1.0f : h.juggernaut ? 1.4f : 0.7f);
         } else if (h.blip && d > br + 15.f) {
             RemoveBlip(h);
         }
@@ -1974,7 +2172,7 @@ static void UpdateHunters() {
             h.leftAt = g_st.now;
         } else if (h.leaving && (!inVeh || g_st.now - h.leftAt > 4000)) {
             h.leaving = false;
-            if (h.juggernaut) ApplyJuggernautWalk(h.ped);
+            if (h.juggernaut && !h.lightJug) ApplyJuggernautWalk(h.ped);
             AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
         }
 
@@ -2089,12 +2287,63 @@ static void PlayerTankGuard() {
     static const char *kAll[] = {"VEHICLE_WEAPON_TANK", "VEHICLE_WEAPON_KHANJALI_CANNON", "VEHICLE_WEAPON_KHANJALI_CANNON_HEAVY",
                                  "VEHICLE_WEAPON_KHANJALI_MG", "VEHICLE_WEAPON_KHANJALI_GL"};
     for (const char *g : kAll) VEHICLE::DISABLE_VEHICLE_WEAPON(FALSE, H(g), pv, s_player);
+    VehAmmoRestore(pv);
     if (pv != last) {
         last = pv;
         Log("Jogador entrou num tanque (%s): armas liberadas.", m == rhino ? "Rhino" : "Khanjali");
         if (pv == s_tank.rhino && s_tank.state >= 0) { s_tank.state = -1; TankCooldown(s_tankCdUntil, "tanque no Cargobob"); }
         if (pv == s_khan.v) { s_khan = KhanSt{}; TankCooldown(s_khanCdUntil, "Khanjali"); }
     }
+}
+
+// ---------- v10.1: armas de veiculo em rajadas ----------
+// Helicopteros armados, avioes, caca e torretas dos retaliadores: FireSeconds liberadas, RestSeconds travadas
+// (municao restrita 0). Os tanques do mod tem o controle proprio (UpdateTank/UpdateKhanjali).
+struct GunGate { Vehicle v; int next; bool open; };
+static std::vector<GunGate> s_gates;
+static void UpdateVehGuns() {
+    Vehicle pv = PED::IS_PED_IN_ANY_VEHICLE(s_player, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(s_player, FALSE) : 0;
+    for (SquadVeh &s : s_v) {
+        if (s.veh == pv || (s.veh == s_tank.rhino && s_tank.state >= 0) || s.veh == s_khan.v) continue;
+        bool known = false;
+        for (GunGate &g : s_gates) if (g.v == s.veh) { known = true; break; }
+        if (known || !ENTITY::DOES_ENTITY_EXIST(s.veh) || !VEHICLE::DOES_VEHICLE_HAVE_WEAPONS(s.veh)) continue;
+        // comeca travado, com espera sorteada para os veiculos nao atirarem todos juntos
+        s_gates.push_back({s.veh, g_st.now + 1000 + Rand(std::max(1, g_cfg.vehGunRest) * 1000), false});
+        Log("  armas de veiculo em rajadas (modelo %u): %ds atirando, %ds parado.",
+            (unsigned)ENTITY::GET_ENTITY_MODEL(s.veh), g_cfg.vehGunFire, g_cfg.vehGunRest);
+    }
+    for (size_t i = 0; i < s_gates.size();) {
+        GunGate &g = s_gates[i];
+        bool tracked = false;
+        for (SquadVeh &s : s_v) if (s.veh == g.v) { tracked = true; break; }
+        if (!tracked || !ENTITY::DOES_ENTITY_EXIST(g.v) || g.v == pv) {
+            VehAmmoRestore(g.v);
+            s_gates.erase(s_gates.begin() + i);
+            continue;
+        }
+        if (g_st.now >= g.next) {
+            g.open = !g.open;
+            g.next = g_st.now + (g.open ? g_cfg.vehGunFire : g_cfg.vehGunRest) * 1000;
+        }
+        VehAmmoAll(g.v, g.open ? -1 : 0);
+        ++i;
+    }
+}
+
+// ---------- v10.1: civis e transito com o jogador procurado ----------
+// Procurado, o jogo esvazia as ruas (a policia e os retaliadores ocupam o orcamento de pedestres).
+// Todo frame, enquanto houver estrelas ou retaliacao: orcamento maximo e densidade normal de civis e carros.
+static void PopulationTick() {
+    if (!g_cfg.popKeep) return;
+    if (PLAYER::GET_PLAYER_WANTED_LEVEL(PLAYER::PLAYER_ID()) <= 0 && s_level < 1) return;
+    invoke<Void>(0x8C95333CFC3340F3, 3); // SET_PED_POPULATION_BUDGET (3 = maximo)
+    invoke<Void>(0xCB9E1EB3BE2AF4E9, 3); // SET_VEHICLE_POPULATION_BUDGET
+    PED::SET_PED_DENSITY_MULTIPLIER_THIS_FRAME(g_cfg.popPeds);
+    PED::SET_SCENARIO_PED_DENSITY_MULTIPLIER_THIS_FRAME(g_cfg.popPeds, g_cfg.popPeds);
+    VEHICLE::SET_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME(g_cfg.popTraffic);
+    VEHICLE::SET_RANDOM_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME(g_cfg.popTraffic);
+    VEHICLE::SET_PARKED_VEHICLE_DENSITY_MULTIPLIER_THIS_FRAME(g_cfg.popTraffic);
 }
 
 // ---------- v10: jogador na torreta ----------
@@ -2177,12 +2426,14 @@ void SpawnerTick(Ped player) {
 
     PlayerTurretGuard(); // v10: todo frame, mesmo com o mod pausado
     PlayerTankGuard();
+    PopulationTick(); // v10.1
     if (g_st.now - s_lastUpdate >= 200) {
         s_lastUpdate = g_st.now;
         UpdateHunters();
         UpdateHelis();
         UpdateTank();
         UpdateKhanjali();
+        UpdateVehGuns(); // v10.1
         UpdateJet();
         UpdateAir();
         UpdateParadrop();

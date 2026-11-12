@@ -156,10 +156,10 @@ static const char *kDefaultIni =
     "[Juggernaut]\r\n"
     "; mini-boss blindado, chega no Insurgent (chance por wave, %)\r\n"
     "Enabled=1\r\n"
-    "MinLevel=7\r\n"
+    "MinLevel=6\r\n"
     "; chance por wave: base e teto (sobe com os pontos ate o teto)\r\n"
-    "Chance=10\r\n"
-    "Max=30\r\n"
+    "Chance=18\r\n"
+    "Max=40\r\n"
     "Health=2000\r\n"
     "; modelo do NPC. mp_m_freemode_01 = personagem do Online com o traje Noturno pesado e mascara de gas\r\n"
     "Model=mp_m_freemode_01\r\n"
@@ -170,6 +170,30 @@ static const char *kDefaultIni =
     "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara: base e teto)\r\n"
     "MinigunChance=10\r\n"
     "MinigunMax=25\r\n"
+    "\r\n"
+    "[Heavy]\r\n"
+    "; Heavy: Juggernaut leve, um de cada faccao (membro da faccao com colete pesado), num carro da faccao.\r\n"
+    "; So entre MinLevel e MaxLevel. No nivel em que o pesado tambem pode vir, sai um ou outro\r\n"
+    "Enabled=1\r\n"
+    "MinLevel=3\r\n"
+    "MaxLevel=6\r\n"
+    "Chance=12\r\n"
+    "Max=25\r\n"
+    "Health=1000\r\n"
+    "\r\n"
+    "[VehicleGuns]\r\n"
+    "; armas dos veiculos inimigos (helicopteros armados, avioes, torretas) atiram em rajadas:\r\n"
+    "; FireSeconds segundos liberadas e RestSeconds segundos travadas\r\n"
+    "FireSeconds=3\r\n"
+    "RestSeconds=8\r\n"
+    "\r\n"
+    "[Population]\r\n"
+    "; civis e transito continuam aparecendo com o jogador procurado (100 = normal do jogo)\r\n"
+    "KeepCivilians=1\r\n"
+    "CiviliansPct=100\r\n"
+    "TrafficPct=100\r\n"
+    "; % do limite de retaliadores quando a policia tambem esta atras do jogador\r\n"
+    "WithPolicePct=75\r\n"
     "\r\n"
     "[Vehicles]\r\n"
     "; 1 = a elite e o cartel usam veiculos com torreta (Technical, Insurgent, Halftrack...). Quando o jogador\r\n"
@@ -233,8 +257,8 @@ static const char *kDefaultIni =
     "; % de ser helicoptero de ataque (Buzzard/Savage/Hunter, base e teto) e % de rapel (jogador no chao)\r\n"
     "; helicopteros armados (Buzzard, Savage, Hunter, Akula) so a partir de AttackMinLevel\r\n"
     "AttackMinLevel=7\r\n"
-    "AttackChance=6\r\n"
-    "AttackMax=12\r\n"
+    "AttackChance=3\r\n"
+    "AttackMax=6\r\n"
     "RappelChance=50\r\n"
     "; % de o helicoptero de ataque ou de rapel pousar perto do jogador a pe e a tropa descer\r\n"
     "LandChance=30\r\n"
@@ -246,14 +270,14 @@ static const char *kDefaultIni =
     "; Rhino entregue pelo Cargobob (um por vez). Chance por wave (%)\r\n"
     "Enabled=1\r\n"
     "MinLevel=8\r\n"
-    "Chance=5\r\n"
-    "Max=10\r\n"
+    "Chance=3\r\n"
+    "Max=6\r\n"
     "; segundos sem o mesmo tipo de tanque depois que um sai de combate (abatido ou roubado)\r\n"
     "Cooldown=60\r\n"
     "; segundos entre um tiro e outro do canhao do tanque\r\n"
-    "ShotInterval=10\r\n"
+    "ShotInterval=15\r\n"
     "; % fixa por wave de vir o tanque especial TM-02 Khanjali, por terra (so no nivel 8, um por vez)\r\n"
-    "KhanjaliChance=3\r\n"
+    "KhanjaliChance=2\r\n"
     "; altura do tanque preso embaixo do Cargobob (metros, negativo = abaixo)\r\n"
     "HangZ=-4.6\r\n"
     "\r\n"
@@ -261,8 +285,8 @@ static const char *kDefaultIni =
     "; caca Lazer (ou Hydra, HydraChance %) que ataca por Duration segundos e vai embora. Um por vez\r\n"
     "Enabled=1\r\n"
     "MinLevel=8\r\n"
-    "Chance=3\r\n"
-    "Max=8\r\n"
+    "Chance=2\r\n"
+    "Max=5\r\n"
     "; segundos sem caca depois que um for abatido ou for embora\r\n"
     "Cooldown=60\r\n"
     "Duration=90\r\n"
@@ -436,6 +460,18 @@ void ConfigLoad() {
     c.heavyMax = IniInt("Weapons", "HeavyMax", c.heavyMax);
     c.explosiveAcc = IniInt("Weapons", "ExplosiveAccuracy", c.explosiveAcc);
     c.jugMax = IniInt("Juggernaut", "Max", c.jugMax);
+    c.jugLightEnabled = IniInt("Heavy", "Enabled", 1) != 0;
+    c.jugLightMinLevel = IniInt("Heavy", "MinLevel", c.jugLightMinLevel);
+    c.jugLightMaxLevel = IniInt("Heavy", "MaxLevel", c.jugLightMaxLevel);
+    c.jugLightChance = IniInt("Heavy", "Chance", c.jugLightChance);
+    c.jugLightMax = IniInt("Heavy", "Max", c.jugLightMax);
+    c.jugLightHealth = IniInt("Heavy", "Health", c.jugLightHealth);
+    c.vehGunFire = IniInt("VehicleGuns", "FireSeconds", c.vehGunFire);
+    c.popKeep = IniInt("Population", "KeepCivilians", 1) != 0;
+    c.popPeds = IniInt("Population", "CiviliansPct", (int)(c.popPeds * 100)) / 100.f;
+    c.popTraffic = IniInt("Population", "TrafficPct", (int)(c.popTraffic * 100)) / 100.f;
+    c.popWithPolicePct = IniInt("Population", "WithPolicePct", c.popWithPolicePct);
+    c.vehGunRest = IniInt("VehicleGuns", "RestSeconds", c.vehGunRest);
     c.jugMinigunMax = IniInt("Juggernaut", "MinigunMax", c.jugMinigunMax);
     c.tankMax = IniInt("Tank", "Max", c.tankMax);
     c.jetMax = IniInt("Jet", "Max", c.jetMax);

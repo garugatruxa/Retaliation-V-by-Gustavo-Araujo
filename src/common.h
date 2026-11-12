@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "10"
+#define RETALIATION_VERSION "10.1"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -66,7 +66,11 @@ struct Config {
     // [JuggernautOutfit] v8: roupa copiada do jogo (armadura do assalto de Paleto Bay vestida por um protagonista)
     struct Outfit { bool valid = false; unsigned model = 0; int comp[12][3] = {}; int prop[8][2] = {}; };
     Outfit jugOutfits[4]; // v9.3: 0 = antiga (v8), 1 = Michael, 2 = Franklin, 3 = Trevor
-    int jugMinLevel = 7, jugChance = 10, jugHealth = 2000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
+    // v10.1: o pesado vem mais (nivel 6+, chance 18 ate 40)
+    int jugMinLevel = 6, jugChance = 18, jugHealth = 2000, jugMinigunPct = 10, jugMax = 40, jugMinigunMax = 25;
+    // v10.1: [Heavy] Juggernaut leve de cada faccao (niveis 3-6), 1000 de vida, armas menores
+    bool jugLightEnabled = true;
+    int jugLightMinLevel = 3, jugLightMaxLevel = 6, jugLightChance = 12, jugLightMax = 25, jugLightHealth = 1000;
     // v10: modelo do Juggernaut (NPC blindado do Online, todo preto) e icone de caveira vermelha no mapa
     std::string jugModel = "mp_m_freemode_01"; // v10: personagem do Online com o traje pesado "Noturno pesado"
     int jugBlip = 303;
@@ -74,11 +78,20 @@ struct Config {
     // v10: mira dos helicopteros (atiradores, torretas e piloto) - "stormtrooper"
     int heliAccuracy = 2;
     // v10: tanque: segundos entre tiros do canhao e altura do tanque preso no Cargobob
-    int tankShotInterval = 10;
-    int khanChance = 3; // v10: % fixa por wave do tanque especial Khanjali (nivel 8 ate o maximo)
+    int tankShotInterval = 15; // v10.1: era 10
+    int khanChance = 2; // v10: % fixa por wave do tanque especial Khanjali (nivel 8 ate o maximo)
     float tankHangZ = -4.6f;
     // v10: [Vehicles] veiculos com torreta (com a protecao contra o jogador ser tirado da torreta)
     bool turretVehicles = true;
+    // v10.1: [VehicleGuns] armas de veiculo (helicopteros armados, avioes, torretas) em rajadas:
+    // FireSeconds liberadas e RestSeconds travadas
+    int vehGunFire = 3, vehGunRest = 8;
+    // v10.1: [Population] civis e transito continuam normais com o jogador procurado ou com a retaliacao ativa
+    // (multiplicadores por frame; 1.0 = normal do jogo). WithPolicePct: % do limite de retaliadores quando a
+    // policia tambem esta em cima do jogador, para sobrar espaco para civis e policia
+    bool popKeep = true;
+    float popPeds = 1.0f, popTraffic = 1.0f;
+    int popWithPolicePct = 75;
     // v10: [WeaponMods] chance (%) de a arma vir com acessorios: Base no nivel 1 + PerLevel por nivel acima
     bool modsEnabled = true;
     int modsBase = 10, modsPerLevel = 10;
@@ -94,16 +107,16 @@ struct Config {
     int dragPct = 60; // v10: % dos inimigos comuns que arrastam companheiros feridos (a elite sempre arrasta)
     // [Heli] v5: chance (%) de helicoptero por wave em cada nivel, e limite ao mesmo tempo
     int heliChance[8] = {0, 0, 8, 12, 16, 22, 28, 35};
-    int heliMax = 1, heliMaxTop = 3, heliMaxAir = 3, heliAttackPct = 6, heliRappelPct = 50, heliLandPct = 30;
+    int heliMax = 1, heliMaxTop = 3, heliMaxAir = 3, heliAttackPct = 3, heliRappelPct = 50, heliLandPct = 30;
     int heliAttackMinLevel = 7; // v10: helicopteros armados so a partir deste nivel
-    int heliAttackMax = 12, heliSecondPct = 10, heliSecondMax = 20, heliThirdPct = 3, heliThirdMax = 8;
+    int heliAttackMax = 6, heliSecondPct = 10, heliSecondMax = 20, heliThirdPct = 3, heliThirdMax = 8;
     // [Weapons] chance (%) por wave de vir um sniper e de vir alguem com RPG/lanca-granadas (com teto)
     int sniperPct = 50, heavyPct = 12, heavyMax = 20;
     int explosiveAcc = 1; // v10: era 8. mira (0-100) de quem usa explosivos: RPG, lanca-granadas, tanque, jato, helicoptero de ataque
     // [Escalation] v5: a partir desses pontos, mais especiais (Juggernaut, minigun, ataque)
     // [Tank] / [Jet] v6: so no ultimo nivel, um de cada por vez
     bool tankEnabled = true, jetEnabled = true;
-    int tankMinLevel = 8, tankChance = 5, tankMax = 10, tankCooldown = 60, jetMinLevel = 8, jetChance = 3, jetMax = 8, jetDuration = 90, jetCooldown = 60,
+    int tankMinLevel = 8, tankChance = 3, tankMax = 6, tankCooldown = 60, jetMinLevel = 8, jetChance = 2, jetMax = 5, jetDuration = 90, jetCooldown = 60,
         jetHydraPct = 25;
     int escStart = 350;
     float escPerPoint = 0.2f;

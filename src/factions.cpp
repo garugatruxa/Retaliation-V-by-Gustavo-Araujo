@@ -165,9 +165,9 @@ static const std::vector<HeliDef> kHelis = {
     {"MADRAZO", {"maverick", "frogger"}, {}},
     {"CAYO", {"annihilator2", "maverick"}, {}},
     {"CACADORES", {"maverick", "frogger"}, {"buzzard"}},
-    {"BOGDAN", {"maverick", "valkyrie"}, {"akula", "buzzard"}},
+    {"BOGDAN", {"maverick", "valkyrie"}, {"buzzard", "buzzard", "buzzard", "akula"}}, // v10.1: Akula mais rara
     {"MERRYWEATHER", {"annihilator", "maverick", "valkyrie", "annihilator2"},
-     {"buzzard", "buzzard", "buzzard", "savage", "hunter"}}, // Buzzard mais comum
+     {"buzzard", "buzzard", "buzzard", "buzzard", "buzzard", "buzzard", "savage", "hunter"}}, // v10.1: Savage/Hunter mais raros
 };
 
 // ---------- estado resolvido ----------
