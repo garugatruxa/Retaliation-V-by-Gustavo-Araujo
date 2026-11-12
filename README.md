@@ -101,14 +101,13 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
   - A polícia e os retaliadores **brigam entre si** e **só atacam você se você atacar primeiro**, mesmo que você
     passe colado neles: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
-  - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe a retaliação (+2 por pessoa, +4 por
-    veículo).
-  - **A força da polícia segue a barra azul**, que sobe com as mortes perto de você (+2 por civil, +4 por
-    policial, porque a polícia chama reforços):
+  - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe **as duas barras igualmente**
+    (+2 por pessoa, +4 por veículo; as suas mortes e explosões valem os pontos normais, também nas duas).
+  - **A força da polícia segue a barra azul**:
 
     | Nível da polícia | Quem vem |
     |---|---|
-    | 1 a 4 | Patrulha: LSPD na cidade, xerife no interior (pistola, escopeta e, mais alto, carabina) |
+    | 1 a 4 | Patrulha: LSPD na cidade, xerife no interior (pistola, escopeta, a partir do nível 3 a **submetralhadora da NOOSE** e, mais alto, carabina) |
     | 3 a 6 | **Heavy da polícia**: 1.000 de vida, colete pesado e arma de cadência alta com carregador estendido |
     | 5 | **SWAT** na van blindada |
     | 6 | **FIB**, o **helicóptero da polícia** e o **Juggernaut da polícia** (traje pesado preto com a máscara azul e preta) |
@@ -260,7 +259,9 @@ balística azul e preta).
 Nos **níveis 3 a 6**, cada facção pode mandar o seu **Heavy**: o chefe da própria facção, com **1.000 de vida**,
 colete pesado, máscara ou bandana, chapéu e óculos sorteados, num carro da facção. Ele usa armas de cadência
 alta conforme a facção (submetralhadoras, escopeta bullpup, Gusenberg, fuzil) com carregador estendido e aparece
-como uma caveira menor no minimapa. No nível 6 vem o Heavy ou o Juggernaut.
+no minimapa com a **caveira das missões de matança do Trevor** (vermelha; a do Heavy da polícia é azul). No
+nível 6 vem o Heavy ou o Juggernaut. Com você a pé, os dois também podem chegar num **Annihilator**, que pousa
+perto de você e desembarca o Heavy ou o Juggernaut com mais dois.
 
 ### Tanques e caça
 
@@ -286,7 +287,7 @@ chão**, há 10% de chance de, no lugar da wave normal, um **Titan** passar bem 
 ### Minimapa e barra
 
 - Os blips só aparecem quando o inimigo está a até **180 m** (aeronaves a até 450 m). Cada tipo tem o seu
-  ícone: **bolinha vermelha** (a pé), **caveira** (Juggernaut), **carro**, **moto**, **barco**, **helicóptero com
+  ícone: **bolinha vermelha** (a pé), **caveira** (Juggernaut), **caveira das matanças do Trevor** (Heavy), **carro**, **moto**, **barco**, **helicóptero com
   a hélice girando**, **jato** e **tanque**.
 - A **barra de retaliação** fica embaixo do minimapa, na largura das barras de vida e especial, no mesmo estilo
   delas. Nos últimos 30 s do timer de 5 minutos, ela pisca.
@@ -315,7 +316,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v11.3.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v11.4.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -368,6 +369,7 @@ Com `DebugKeys=1` (padrão), dá para mudar a pressão sem cometer crimes (tamb�
 
 - **Subir um nível:** segure **PageDown** e aperte **PageUp**.
 - **Descer um nível:** segure **PageUp** e aperte **PageDown**.
+- Na **Desordem**, as teclas sobem ou descem **as duas barras** (vermelha e azul) um nível cada.
 
 O `Retaliation.log` registra cada crime, cada nível, cada wave e cada especial, além dos modelos e armas que o
 jogo não reconheceu.
@@ -377,9 +379,22 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1`, `v11.2` e `v11.3`).
+(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1`, `v11.2`, `v11.3` e `v11.4`).
 
-### v11.3 — atual
+### v11.4 — atual
+
+Comparado à v11.3:
+- **Desordem calibrada:** toda morte ou destruição sobe **as duas barras igualmente** (vermelha e azul). As
+  viaturas e aeronaves da polícia destruídas agora também contam.
+- Na Desordem, as **teclas de teste** (PageUp/PageDown) sobem ou descem as duas barras juntas, um nível cada.
+- A polícia da Desordem usa a **submetralhadora da NOOSE** a partir do nível 3.
+- Em todos os modos, o **Heavy** aparece no minimapa com a **caveira das missões de matança do Trevor**: vermelha
+  nos retaliadores e azul na polícia. Nova chave `[Heavy] Blip=84`.
+- O **Heavy** e o **Juggernaut** (dos retaliadores e da polícia) também podem chegar num **helicóptero
+  Annihilator**, com mais dois. Ele **pousa** no chão perto de você (sem rapel), a equipe desce e ele decola e fica
+  rondando. Só com você a pé no chão. Novas chaves `[Heavy] HeliChance=30` e `[Juggernaut] HeliChance=30`.
+
+### v11.3
 
 Comparado à v11.2:
 - **Desordem com polícia própria:** a polícia do jogo fica desligada e o mod traz a dele, com as viaturas,

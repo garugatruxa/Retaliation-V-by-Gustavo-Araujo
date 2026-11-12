@@ -39,9 +39,11 @@ static void DebugKeys() {
     if (up && holdDn) { // sobe um nivel
         int to = lv < (int)ls.size() ? ls[lv] : g_cfg.maxPoints;
         if (to > pts) AddPointsForce(to - pts, "(teste) segurar PageDown + PageUp: sobe nivel");
+        PoliceStepLevel(1); // v11.4: na Desordem, as duas barras sobem juntas
     } else if (dn && holdUp) { // desce um nivel
         int to = lv >= 2 ? ls[lv - 2] : 0;
         if (pts > to) AddPointsForce(to - pts, "(teste) segurar PageUp + PageDown: desce nivel");
+        PoliceStepLevel(-1); // v11.4: na Desordem, as duas barras descem juntas
     }
 }
 

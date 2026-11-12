@@ -170,6 +170,8 @@ static const char *kDefaultIni =
     "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara: base e teto)\r\n"
     "MinigunChance=10\r\n"
     "MinigunMax=25\r\n"
+    "; chance (%) de chegar num helicoptero Annihilator que pousa perto (com o jogador a pe)\r\n"
+    "HeliChance=30\r\n"
     "\r\n"
     "[Heavy]\r\n"
     "; Heavy: Juggernaut leve, um de cada faccao (membro da faccao com colete pesado), num carro da faccao.\r\n"
@@ -180,6 +182,10 @@ static const char *kDefaultIni =
     "Chance=12\r\n"
     "Max=25\r\n"
     "Health=1000\r\n"
+    "; icone do Heavy no mapa: 84 = caveira das missoes de matanca do Trevor (vermelha nos retaliadores, azul na policia)\r\n"
+    "Blip=84\r\n"
+    "; chance (%) de chegar num helicoptero Annihilator que pousa perto (com o jogador a pe)\r\n"
+    "HeliChance=30\r\n"
     "\r\n"
     "[VehicleGuns]\r\n"
     "; armas dos veiculos inimigos (helicopteros armados, avioes, torretas) atiram em rajadas:\r\n"
@@ -493,6 +499,9 @@ void ConfigLoad() {
     c.jugLightChance = IniInt("Heavy", "Chance", c.jugLightChance);
     c.jugLightMax = IniInt("Heavy", "Max", c.jugLightMax);
     c.jugLightHealth = IniInt("Heavy", "Health", c.jugLightHealth);
+    c.heavyBlip = IniInt("Heavy", "Blip", c.heavyBlip); // v11.4
+    c.heavyHeliPct = IniInt("Heavy", "HeliChance", c.heavyHeliPct);
+    c.jugHeliPct = IniInt("Juggernaut", "HeliChance", c.jugHeliPct);
     c.vehGunFire = IniInt("VehicleGuns", "FireSeconds", c.vehGunFire);
     c.popKeep = IniInt("Population", "KeepCivilians", 1) != 0;
     c.popPeds = IniInt("Population", "CiviliansPct", (int)(c.popPeds * 100)) / 100.f;

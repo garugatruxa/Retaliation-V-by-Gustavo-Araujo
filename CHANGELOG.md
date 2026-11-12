@@ -143,6 +143,14 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Nova chave [Disorder] FightRadius=50.
 - Saiu a regra de "muito perto" (NearDist=12): na Desordem, polícia e retaliadores só atacam o jogador se ele atacar aquele lado.
 
+## v11.4 — Desordem calibrada
+- Na Desordem, todo ganho de pontos da barra vermelha vale igual para a azul (mesma escala decrescente): mortes e destruição de qualquer um a até DeathRadius, e as do jogador. Saiu o bônus separado da polícia (+4 por policial morto).
+- Viaturas e aeronaves da polícia do mod destruídas contam: +4 na desordem, ou os pontos normais de explosão se foi o jogador.
+- Teclas de teste na Desordem: PageDown+PageUp / PageUp+PageDown sobem/descem as duas barras um nível cada.
+- Polícia da Desordem: WEAPON_SMG (a da NOOSE) a partir do nível 3 da polícia.
+- Heavy (retaliadores e polícia) com o blip 84 (radar_rampage, caveira das matanças do Trevor), vermelho/azul. Nova chave [Heavy] Blip=84.
+- Heavy e Juggernaut (retaliadores e polícia da Desordem) podem chegar no Annihilator com mais dois: pousa num ponto do chão a 28–50 m do jogador (troca de ponto se não conseguir pousar em 20 s; até 3 tentativas), a tropa desce e ele decola e ronda. Só com o jogador a pé no chão. Novas chaves [Heavy] HeliChance=30 e [Juggernaut] HeliChance=30.
+
 ## v11.3 — polícia própria da Desordem
 - Polícia do jogo desligada na Desordem (SET_MAX_WANTED_LEVEL 0, SET_DISPATCH_COPS_FOR_PLAYER e SET_CREATE_RANDOM_COPS desligados; volta ao sair do modo ou em missões).
 - Polícia do mod: viaturas com sirene e policiais do jogo (grupo COP; Exército no grupo ARMY), com acessórios nas armas pelo nível. Vai até a zona de combate, ataca o retaliador ou civil armado mais perto, e o jogador só se ele atacar a polícia.

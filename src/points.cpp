@@ -91,6 +91,8 @@ void AddPoints(int amount, const char *why) {
     if (amount > 0) { s.lastCrime = s.now; s.lastDecay = s.now; }
     int lv = LevelOf(v);
     Log("%+d %s -> %d pontos (nivel %d) [%s]", amount, why, v, lv, kCharName[s.ch]);
+    // v11.4: na Desordem, toda morte ou destruicao sobe as duas barras igualmente (mesmo ganho da vermelha)
+    if (amount > 0 && !s_force && DisorderOn()) PolicePtsAdd(amount, why);
     if (lv != lvBefore) Log("Nivel %d -> %d", lvBefore, lv); // v4: sem aviso na tela, so a barra
 }
 
@@ -134,17 +136,14 @@ static void ScanKills(Ped player, Vehicle pveh, Vehicle plast) {
             if (DisorderOn() && Classify(p) != V_NONE) {
                 Vector3 a = ENTITY::GET_ENTITY_COORDS(p, FALSE), b = ENTITY::GET_ENTITY_COORDS(player, TRUE);
                 float dx = a.x - b.x, dy = a.y - b.y;
-                if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius) {
-                    AddPoints(g_cfg.disDeathPts, "morte na desordem");
-                    // v11.3: policial morto chama reforcos (sobe mais a policia); civil morto tambem sobe
-                    PolicePtsAdd(Classify(p) == V_COP ? g_cfg.disDeathPts * 2 : g_cfg.disDeathPts, "morte na desordem");
-                }
+                if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius)
+                    AddPoints(g_cfg.disDeathPts, "morte na desordem"); // v11.4: sobe as duas barras igualmente
             }
             continue;
         }
         switch (Classify(p)) {
-        case V_CIV: AddPoints(g_cfg.killCivilian, "civil morto"); PolicePtsAdd(g_cfg.disDeathPts, "civil morto"); break;
-        case V_COP: AddPoints(g_cfg.killCop, "policial morto"); PolicePtsAdd(g_cfg.disDeathPts * 2, "policial morto"); break;
+        case V_CIV: AddPoints(g_cfg.killCivilian, "civil morto"); break;
+        case V_COP: AddPoints(g_cfg.killCop, "policial morto"); break;
         case V_GANG: AddPoints(g_cfg.killGang, "membro de gangue morto"); break;
         default: break;
         }
@@ -285,6 +284,15 @@ static void PoliceSet(int v, const char *why) {
     int lb = LevelOf(s_polPts);
     s_polPts = v;
     if (LevelOf(v) != lb) Log("Policia: nivel %d -> %d (%s).", lb, LevelOf(v), why);
+}
+// v11.4: teclas de teste: a barra azul sobe/desce um nivel junto com a vermelha (ignora a trava de nivel)
+void PoliceStepLevel(int delta) {
+    if (!DisorderOn()) return;
+    const auto &ls = g_cfg.levelStart;
+    int lv = LevelOf(s_polPts);
+    int to = delta > 0 ? (lv < (int)ls.size() ? ls[lv] : g_cfg.maxPoints) : (lv >= 2 ? ls[lv - 2] : 0);
+    PoliceSet(to, delta > 0 ? "(teste) sobe nivel" : "(teste) desce nivel");
+    s_polLastGain = s_polLastDecay = g_st.now;
 }
 void PolicePtsAdd(int n, const char *why) {
     if (!DisorderOn() || g_cfg.levelLock || n == 0) return;

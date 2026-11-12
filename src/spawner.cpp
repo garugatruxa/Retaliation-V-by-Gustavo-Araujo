@@ -64,6 +64,7 @@ struct Hunter {
     bool tankGunner = false; // v10: o canhao do tanque e controlado em UpdateTank
     bool ragOk = false;      // v10.1: Juggernaut ja pode cair (ragdoll ligado perto da morte)
     bool lightJug = false;   // v10.1: Juggernaut leve da faccao
+    bool heliRide = false;   // v11.4: dentro do Annihilator que vai pousar (desce so no chao)
     int nextArea = 0, nextGesture = 0;
     bool para = false; // v10: descendo de paraquedas (evento do Titan)
     int nextLos = 0, losLostAt = 0; bool seeking = false; // v10: sem visao do jogador: vai atras dele
@@ -820,10 +821,62 @@ static bool LightJugOk() {
     return g_cfg.jugLightEnabled && s_level >= g_cfg.jugLightMinLevel && s_level <= g_cfg.jugLightMaxLevel;
 }
 
+// v11.4: cria o Juggernaut (pesado) ou o Heavy (leve) no assento do veiculo
+static Ped MakeRetJug(Vehicle v, int jugSeat, bool light, const Vector3 &p) {
+    if (light) {
+        Ped j = NewPedIn(v, LightJugModel(LightJugFor()), jugSeat);
+        if (j) SetupLightJug(j);
+        return j;
+    }
+    // v10: o NPC Juggernaut blindado do jogo (todo preto), o mesmo para todos.
+    // O modelo vem do .ini ([Juggernaut] Model); se nao existir, tenta os outros Juggernauts do jogo.
+    Hash jm = 0;
+    bool suit = false;
+    for (const char *n : {g_cfg.jugModel.c_str(), "mp_m_freemode_01", "s_m_y_blackops_01"})
+        if (*n && STREAMING::IS_MODEL_IN_CDIMAGE(H(n))) { jm = H(n); suit = true; break; }
+    if (!jm) { jm = H("s_m_y_blackops_01"); Log("  Juggernaut: modelo %s nao encontrado no jogo.", g_cfg.jugModel.c_str()); }
+    if (!STREAMING::IS_MODEL_IN_CDIMAGE(jm)) jm = RandomPed();
+    Ped j = NewPedIn(v, jm, jugSeat);
+    if (!j) return 0;
+    if (suit) {
+        HeavyGuardLook(j);
+    } else {
+        int n = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(j, 9);
+        if (n > 1) PED::SET_PED_COMPONENT_VARIATION(j, 9, n - 1, 0, 0);
+        if (PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(j, 0) > 0) PED::SET_PED_PROP_INDEX(j, 0, 0, 0, TRUE);
+    }
+    Hash jw = JuggWeapon();
+    SetupPed(j, s_level, jw);
+    if (suit) HeavyGuardLook(j); // SetupPed pode ter trocado o colete
+    PED::SET_PED_MAX_HEALTH(j, g_cfg.jugHealth);
+    ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugHealth);
+    PED::SET_PED_ARMOUR(j, 100);
+    PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
+    // v10: imune a corpo a corpo (bloqueia a coronhada que mata na hora); tiros e explosoes funcionam
+    ENTITY::SET_ENTITY_PROOFS(j, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE);
+    PED::SET_PED_CAN_RAGDOLL(j, FALSE);
+    PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
+    PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C); // rajada continua
+    if (jw == H("WEAPON_MINIGUN")) PED::SET_PED_ACCURACY(j, g_cfg.jugMinigunAcc); // v10: minigun bem imprecisa
+    PED::SET_PED_COMBAT_MOVEMENT(j, 2);           // avanca
+    PED::SET_PED_COMBAT_ATTRIBUTES(j, 0, FALSE);  // nao usa cobertura
+    PED::SET_PED_COMBAT_RANGE(j, 1);
+    Engage(j);
+    Hunter &hj = AddHunter(j);
+    hj.juggernaut = true;
+    Log("  JUGGERNAUT a caminho (%s, %s) a %.0fm", s_fac->name,
+        jw == H("WEAPON_MINIGUN") ? "minigun" : jw == H("WEAPON_ASSAULTSHOTGUN") ? "escopeta automatica" : "Combat MG",
+        D2(p, s_ppos));
+    return j;
+}
+static bool SpawnJugHeli(bool light); // v11.4: entrega no Annihilator (mais abaixo)
+
 // Juggernaut no Insurgent blindado, com motorista e tropa.
 // v10: so o Insurgent sem torreta (na torreta o jogador era expulso no modo historia).
 static void SpawnJuggernaut() {
     bool light = LightJugOk() && (!HeavyJugOk() || Rand(2)); // v10.1
+    // v11.4: o Juggernaut e o Heavy tambem podem chegar no Annihilator, que pousa perto (so com o jogador no chao)
+    if (PlayerOnFootGround() && Rand(100) < (light ? g_cfg.heavyHeliPct : g_cfg.jugHeliPct) && SpawnJugHeli(light)) return;
     Hash model = 0;
     if (light) { // carro da faccao com pelo menos um banco de passageiro
         for (int t = 0; t < 6 && !model; ++t) {
@@ -871,52 +924,8 @@ static void SpawnJuggernaut() {
         AddHunter(ped).stayInVeh = true;
     }
 
-    // o Juggernaut
-    if (jugSeat != -2 && light) {
-        Ped j = NewPedIn(v, LightJugModel(LightJugFor()), jugSeat);
-        if (j) SetupLightJug(j);
-    } else if (jugSeat != -2) {
-        // v10: o NPC Juggernaut blindado do jogo (todo preto), o mesmo para todos.
-        // O modelo vem do .ini ([Juggernaut] Model); se nao existir, tenta os outros Juggernauts do jogo.
-        Hash jm = 0;
-        bool suit = false;
-        for (const char *n : {g_cfg.jugModel.c_str(), "mp_m_freemode_01", "s_m_y_blackops_01"})
-            if (*n && STREAMING::IS_MODEL_IN_CDIMAGE(H(n))) { jm = H(n); suit = true; break; }
-        if (!jm) { jm = H("s_m_y_blackops_01"); Log("  Juggernaut: modelo %s nao encontrado no jogo.", g_cfg.jugModel.c_str()); }
-        if (!STREAMING::IS_MODEL_IN_CDIMAGE(jm)) jm = RandomPed();
-        Ped j = NewPedIn(v, jm, jugSeat);
-        if (j) {
-            if (suit) {
-                HeavyGuardLook(j);
-            } else {
-                int n = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(j, 9);
-                if (n > 1) PED::SET_PED_COMPONENT_VARIATION(j, 9, n - 1, 0, 0);
-                if (PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(j, 0) > 0) PED::SET_PED_PROP_INDEX(j, 0, 0, 0, TRUE);
-            }
-            Hash jw = JuggWeapon();
-            SetupPed(j, s_level, jw);
-            if (suit) HeavyGuardLook(j); // SetupPed pode ter trocado o colete
-            PED::SET_PED_MAX_HEALTH(j, g_cfg.jugHealth);
-            ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugHealth);
-            PED::SET_PED_ARMOUR(j, 100);
-            PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
-            // v10: imune a corpo a corpo (bloqueia a coronhada que mata na hora); tiros e explosoes funcionam
-            ENTITY::SET_ENTITY_PROOFS(j, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE);
-            PED::SET_PED_CAN_RAGDOLL(j, FALSE);
-            PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
-            PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C); // rajada continua
-            if (jw == H("WEAPON_MINIGUN")) PED::SET_PED_ACCURACY(j, g_cfg.jugMinigunAcc); // v10: minigun bem imprecisa
-            PED::SET_PED_COMBAT_MOVEMENT(j, 2);           // avanca
-            PED::SET_PED_COMBAT_ATTRIBUTES(j, 0, FALSE);  // nao usa cobertura
-            PED::SET_PED_COMBAT_RANGE(j, 1);
-            Engage(j);
-            Hunter &hj = AddHunter(j);
-            hj.juggernaut = true;
-            Log("  JUGGERNAUT a caminho (%s, %s) a %.0fm", s_fac->name,
-                jw == H("WEAPON_MINIGUN") ? "minigun" : jw == H("WEAPON_ASSAULTSHOTGUN") ? "escopeta automatica" : "Combat MG",
-                D2(p, s_ppos));
-        }
-    }
+    // o Juggernaut (v11.4: MakeRetJug)
+    if (jugSeat != -2) MakeRetJug(v, jugSeat, light, p);
 
     // o resto dos assentos com a tropa
     for (int s = 0; s < maxP && Budget() > 0; ++s) {
@@ -2103,6 +2112,7 @@ struct CopU {
     bool tank = false, jet = false, army = false; // v11.3: Exercito (tanque e caca ficam no veiculo)
     bool jug = false, jugWalk = false, jugRag = false; // v11.3: Juggernaut da policia
     bool heavy = false;                                // v11.3: Heavy da policia
+    bool heliWait = false;                             // v11.4: no Annihilator, espera o pouso
 };
 static std::vector<CopU> s_pol;
 static std::vector<Vehicle> s_polVeh;
@@ -2147,7 +2157,8 @@ static void SetupCop(Ped p, bool swat, PolTier tier = PT_PATROL) {
     else if (tier == PT_IAA) main = Rand(2) ? H("WEAPON_ADVANCEDRIFLE") : H("WEAPON_CARBINERIFLE");
     else if (tier == PT_FIB) main = Rand(2) ? H("WEAPON_CARBINERIFLE") : H("WEAPON_SMG");
     else if (swat) main = Rand(2) ? H("WEAPON_CARBINERIFLE") : H("WEAPON_SMG");
-    else if (pl >= 4 && Rand(100) < 50) main = H("WEAPON_CARBINERIFLE");
+    else if (pl >= 4 && Rand(100) < 40) main = H("WEAPON_CARBINERIFLE");
+    else if (pl >= 3 && Rand(100) < 45) main = H("WEAPON_SMG"); // v11.4: a submetralhadora da NOOSE, do nivel 3
     else if (pl >= 2 && Rand(100) < 50) main = H("WEAPON_PUMPSHOTGUN");
     if (main) {
         WEAPON::GIVE_WEAPON_TO_PED(p, main, 400, FALSE, TRUE);
@@ -2308,7 +2319,62 @@ static bool PolJugAlive() {
     for (const CopU &u : s_pol) if (u.jug && ENTITY::DOES_ENTITY_EXIST(u.ped) && !PED::IS_PED_DEAD_OR_DYING(u.ped, TRUE)) return true;
     return false;
 }
+// v11.4: Juggernaut da policia no assento do veiculo
+static Ped MakePolJug(Vehicle v, int seat) {
+    Ped j = NewCopIn(v, H("mp_m_freemode_01"), seat);
+    if (!j) return 0;
+    HeavyGuardLook(j, 1);
+    Hash jw = JuggWeapon();
+    SetupCop(j, true, PT_SWAT);
+    WEAPON::REMOVE_ALL_PED_WEAPONS(j, TRUE);
+    WEAPON::GIVE_WEAPON_TO_PED(j, jw, 9999, FALSE, TRUE);
+    HeavyGuardLook(j, 1);
+    PED::SET_PED_MAX_HEALTH(j, g_cfg.jugHealth);
+    ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugHealth);
+    PED::SET_PED_ARMOUR(j, 100);
+    PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
+    ENTITY::SET_ENTITY_PROOFS(j, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE); // imune a corpo a corpo
+    PED::SET_PED_CAN_RAGDOLL(j, FALSE);
+    PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
+    PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C);
+    if (jw == H("WEAPON_MINIGUN")) PED::SET_PED_ACCURACY(j, g_cfg.jugMinigunAcc);
+    PED::SET_PED_COMBAT_MOVEMENT(j, 2);
+    PED::SET_PED_COMBAT_ATTRIBUTES(j, 0, FALSE);
+    PED::SET_PED_COMBAT_RANGE(j, 1);
+    CopU uj{j, v, g_st.now};
+    uj.jug = true;
+    s_pol.push_back(uj);
+    return j;
+}
+// v11.4: Heavy da policia no assento do veiculo
+static Ped MakePolHeavy(Vehicle v, int seat, Hash pm, bool swat) {
+    Ped j = NewCopIn(v, pm, seat);
+    if (!j) return 0;
+    static const char *kW[] = {"WEAPON_SMG", "WEAPON_CARBINERIFLE", "WEAPON_PUMPSHOTGUN", "WEAPON_ASSAULTSMG"};
+    const char *wn = kW[Rand(4)];
+    Hash jw = H(wn);
+    SetupCop(j, swat, swat ? PT_SWAT : PT_PATROL);
+    WEAPON::GIVE_WEAPON_TO_PED(j, jw, 600, FALSE, TRUE);
+    ExtendedClip(j, jw, wn);
+    LightJugLook(j);
+    PED::SET_PED_MAX_HEALTH(j, g_cfg.jugLightHealth);
+    ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugLightHealth);
+    PED::SET_PED_ARMOUR(j, 100);
+    PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
+    PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
+    PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C);
+    PED::SET_PED_COMBAT_MOVEMENT(j, 2);
+    PED::SET_PED_COMBAT_RANGE(j, 1);
+    CopU uj{j, v, g_st.now};
+    uj.heavy = true;
+    s_pol.push_back(uj);
+    Log("Desordem: HEAVY da policia a caminho (%s, %s).", swat ? "SWAT" : "patrulha", wn + 7);
+    return j;
+}
+static bool SpawnPolJugHeli(bool jug); // v11.4: entrega no Annihilator (mais abaixo)
 static void SpawnPoliceJug() {
+    // v11.4: tambem pode chegar no Annihilator, que pousa perto (so com o jogador no chao)
+    if (PlayerOnFootGround() && Rand(100) < g_cfg.jugHeliPct && SpawnPolJugHeli(true)) return;
     Hash car = FirstModel({"riot", "policet", "fbi2"});
     Vector3 p; float h;
     if (!car || !FindRoadPos(170.f, 260.f, p, h)) return;
@@ -2322,30 +2388,7 @@ static void SpawnPoliceJug() {
     ud.driver = true;
     s_pol.push_back(ud);
     PolDriveIn(d, v);
-    Ped j = NewCopIn(v, H("mp_m_freemode_01"), 0);
-    if (j) {
-        HeavyGuardLook(j, 1);
-        Hash jw = JuggWeapon();
-        SetupCop(j, true, PT_SWAT);
-        WEAPON::REMOVE_ALL_PED_WEAPONS(j, TRUE);
-        WEAPON::GIVE_WEAPON_TO_PED(j, jw, 9999, FALSE, TRUE);
-        HeavyGuardLook(j, 1);
-        PED::SET_PED_MAX_HEALTH(j, g_cfg.jugHealth);
-        ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugHealth);
-        PED::SET_PED_ARMOUR(j, 100);
-        PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
-        ENTITY::SET_ENTITY_PROOFS(j, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE); // imune a corpo a corpo
-        PED::SET_PED_CAN_RAGDOLL(j, FALSE);
-        PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
-        PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C);
-        if (jw == H("WEAPON_MINIGUN")) PED::SET_PED_ACCURACY(j, g_cfg.jugMinigunAcc);
-        PED::SET_PED_COMBAT_MOVEMENT(j, 2);
-        PED::SET_PED_COMBAT_ATTRIBUTES(j, 0, FALSE);
-        PED::SET_PED_COMBAT_RANGE(j, 1);
-        CopU uj{j, v, g_st.now};
-        uj.jug = true;
-        s_pol.push_back(uj);
-    }
+    MakePolJug(v, 0);
     s_polVeh.push_back(v);
     Log("Desordem: JUGGERNAUT da policia a caminho (%.0f m).", D2(p, s_ppos));
 }
@@ -2357,6 +2400,8 @@ static bool PolHeavyAlive() {
     return false;
 }
 static void SpawnPoliceHeavy() {
+    // v11.4: tambem pode chegar no Annihilator, que pousa perto (so com o jogador no chao)
+    if (PlayerOnFootGround() && Rand(100) < g_cfg.heavyHeliPct && SpawnPolJugHeli(false)) return;
     bool country = RegionAt(s_ppos.x, s_ppos.y) == RG_COUNTRY;
     bool swat = PoliceLevel() >= 5;
     Hash car = swat ? FirstModel({"riot", "policet"}) : H(country ? "sheriff" : "police3");
@@ -2373,28 +2418,7 @@ static void SpawnPoliceHeavy() {
     ud.driver = true;
     s_pol.push_back(ud);
     PolDriveIn(d, v);
-    Ped j = NewCopIn(v, pm, 0);
-    if (j) {
-        static const char *kW[] = {"WEAPON_SMG", "WEAPON_CARBINERIFLE", "WEAPON_PUMPSHOTGUN", "WEAPON_ASSAULTSMG"};
-        const char *wn = kW[Rand(4)];
-        Hash jw = H(wn);
-        SetupCop(j, swat, swat ? PT_SWAT : PT_PATROL);
-        WEAPON::GIVE_WEAPON_TO_PED(j, jw, 600, FALSE, TRUE);
-        ExtendedClip(j, jw, wn);
-        LightJugLook(j);
-        PED::SET_PED_MAX_HEALTH(j, g_cfg.jugLightHealth);
-        ENTITY::SET_ENTITY_HEALTH(j, g_cfg.jugLightHealth);
-        PED::SET_PED_ARMOUR(j, 100);
-        PED::SET_PED_SUFFERS_CRITICAL_HITS(j, FALSE);
-        PED::SET_PED_RAGDOLL_ON_COLLISION(j, FALSE);
-        PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C);
-        PED::SET_PED_COMBAT_MOVEMENT(j, 2);
-        PED::SET_PED_COMBAT_RANGE(j, 1);
-        CopU uj{j, v, g_st.now};
-        uj.heavy = true;
-        s_pol.push_back(uj);
-        Log("Desordem: HEAVY da policia a caminho (%s, %s).", swat ? "SWAT" : country ? "xerife" : "LSPD", wn + 7);
-    }
+    MakePolHeavy(v, 0, pm, swat);
     s_polVeh.push_back(v);
 }
 
@@ -2410,6 +2434,7 @@ static Ped PolAnyTarget() {
     return best;
 }
 static void PolBlipsClear(); // v11.3
+static void DropsClear(bool police); // v11.4
 static void PolRelease(Ped &p, bool del) {
     PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(p, FALSE);
     PointsIgnorePed(p);
@@ -2426,6 +2451,7 @@ static void PolDespawn(bool hard) {
         else ENTITY::SET_VEHICLE_AS_NO_LONGER_NEEDED(&v);
     }
     PolBlipsClear(); // v11.3
+    DropsClear(true); // v11.4
     s_pol.clear();
     s_polVeh.clear();
     if (n) Log("Policia da Desordem removida: %d.", n);
@@ -2459,7 +2485,7 @@ static void PolBlipsTick() {
         if (!ENTITY::DOES_ENTITY_EXIST(u.ped) || PED::IS_PED_DEAD_OR_DYING(u.ped, TRUE)) continue;
         bool inVeh = PED::IS_PED_IN_ANY_VEHICLE(u.ped, FALSE) != 0;
         bool show = !inVeh && DistP(u.ped, s_ppos) < br;
-        PolBlip(u.ped, show, (u.jug || u.heavy) && g_cfg.jugBlip > 0 ? g_cfg.jugBlip : 0, u.jug ? 1.4f : u.heavy ? 1.0f : 0.7f, false);
+        PolBlip(u.ped, show, u.heavy && g_cfg.heavyBlip > 0 ? g_cfg.heavyBlip : u.jug && g_cfg.jugBlip > 0 ? g_cfg.jugBlip : 0, u.jug ? 1.4f : u.heavy ? 1.0f : 0.7f, false);
         if (show) live.insert(u.ped);
     }
     for (Vehicle v : s_polVeh) {
@@ -2493,7 +2519,6 @@ static void UpdateOwnPolice() {
             Entity k = PED::_GET_PED_KILLER(u.ped);
             if (k && (k == s_player || (pv0 && k == pv0))) AddPoints(g_cfg.killCop, "policial morto");
             else if (d < g_cfg.disDeathRadius) AddPoints(g_cfg.disDeathPts, "policial morto na desordem");
-            PolicePtsAdd(g_cfg.disDeathPts * 2, "policial morto: reforcos"); // v11.3: a policia chama reforcos
             if (u.jug || u.heavy) {
                 Log(u.jug ? "Juggernaut da policia abatido!" : "Heavy da policia abatido!");
                 PED::SET_PED_CAN_RAGDOLL(u.ped, TRUE);
@@ -2537,7 +2562,7 @@ static void UpdateOwnPolice() {
                 else if (!u.pilot) AI::TASK_COMBAT_PED(u.ped, s_player, 0, 16);
             }
         }
-        if (mode == 1 || u.pilot) { ++i; continue; }
+        if (mode == 1 || u.pilot || u.heliWait) { ++i; continue; } // v11.4: no Annihilator, espera o pouso
         if (u.tank || u.jet) { // v11.3: Exercito pesado vai atras do retaliador mais perto do jogador
             if (g_st.now >= u.nextAct) {
                 u.nextAct = g_st.now + (u.jet ? 6000 : 3000);
@@ -2599,6 +2624,18 @@ static void UpdateOwnPolice() {
     for (size_t i = 0; i < s_polVeh.size();) {
         Vehicle v = s_polVeh[i];
         if (!ENTITY::DOES_ENTITY_EXIST(v)) { s_polVeh.erase(s_polVeh.begin() + i); continue; }
+        // v11.4: viatura/aeronave da policia destruida conta como destruicao (sobe as duas barras igualmente)
+        static std::unordered_set<int> s_polVehScored;
+        if (ENTITY::IS_ENTITY_DEAD(v) && s_polVehScored.insert(v).second) {
+            if (s_polVehScored.size() > 400) s_polVehScored.clear();
+            Hash m = ENTITY::GET_ENTITY_MODEL(v);
+            bool air = VEHICLE::IS_THIS_MODEL_A_HELI(m) || VEHICLE::IS_THIS_MODEL_A_PLANE(m);
+            bool byPl = ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, s_player, TRUE) ||
+                        (pv0 && pv0 != v && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, pv0, TRUE));
+            if (byPl) AddPoints(air ? g_cfg.blowAircraft : g_cfg.blowVehicle, air ? "aeronave da policia destruida" : "viatura destruida");
+            else if (D2(ENTITY::GET_ENTITY_COORDS(v, FALSE), s_ppos) < g_cfg.disDeathRadius)
+                AddPoints(g_cfg.disVehPts, "viatura destruida na desordem");
+        }
         if (calm && !ENTITY::IS_ENTITY_DEAD(v) && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, s_player, TRUE)) {
             DisorderProvoke(true);
             ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(v);
@@ -2629,6 +2666,178 @@ static void UpdateOwnPolice() {
     else SpawnCopCar();
 }
 
+// ---------- v11.4: Juggernaut e Heavy no Annihilator ----------
+// O Annihilator chega com o Juggernaut (ou o Heavy) e mais dois, pousa num ponto do chao perto do jogador
+// (nada de rapel), a tropa desce e ele decola e fica rondando. Vale para os retaliadores e para a policia.
+struct JugDrop { Vehicle v; Ped pilot; Vector3 lp; bool police; int born, nearSince = 0, tries = 0, state = 0, at = 0; };
+static std::vector<JugDrop> s_drops;
+static Vector3 LandPoint() {
+    for (int i = 0; i < 14; ++i) { // mais longe que o rapel: o rotor do Annihilator e grande
+        float dx, dy, d = RandF(28.f, 50.f), gz;
+        Dir(RandF(0.f, 360.f), dx, dy);
+        float x = s_ppos.x + dx * d, y = s_ppos.y + dy * d;
+        if (SameLevel(x, y, gz, true)) return V3(x, y, gz);
+    }
+    return DropPoint();
+}
+static Vehicle NewAnnihilator(float dmin, float dmax) {
+    static const Hash m = H("annihilator");
+    if (!STREAMING::IS_MODEL_IN_CDIMAGE(m)) return 0;
+    float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z, dx, dy, d = RandF(dmin, dmax);
+    Dir(camH + 180.f + RandF(-100.f, 100.f), dx, dy);
+    Vector3 p = V3(s_ppos.x + dx * d, s_ppos.y + dy * d, s_pgz + 70.f);
+    Vehicle v = NewVehicle(m, p, HeadingTo(p, s_ppos), false);
+    if (!v) return 0;
+    VEHICLE::SET_VEHICLE_ENGINE_ON(v, TRUE, TRUE, FALSE);
+    VEHICLE::SET_HELI_BLADES_FULL_SPEED(v);
+    VEHICLE::SET_VEHICLE_FORWARD_SPEED(v, 25.f);
+    return v;
+}
+static void DropStart(Vehicle v, Ped pilot, bool police) {
+    JugDrop dr{v, pilot, LandPoint(), police, g_st.now};
+    PilotLand(pilot, v, dr.lp);
+    s_drops.push_back(dr);
+}
+static bool SpawnJugHeli(bool light) {
+    Vehicle v = NewAnnihilator(330.f, 430.f);
+    if (!v) return false;
+    Ped pilot = NewPedIn(v, RandomPed(), -1);
+    if (!pilot) { VEHICLE::DELETE_VEHICLE(&v); return false; }
+    SetupPed(pilot, s_level, WeaponFor(s_level, BetterPct()));
+    PED::SET_PED_ACCURACY(pilot, g_cfg.heliAccuracy);
+    PED::SET_PED_COMBAT_ATTRIBUTES(pilot, 3, FALSE);
+    Hunter &hp = AddHunter(pilot);
+    hp.stayInVeh = true;
+    hp.rangeExempt = true;
+    int maxP = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v);
+    int jugSeat = maxP > 1 ? 1 : 0; // porta de tras
+    Ped j = MakeRetJug(v, jugSeat, light, ENTITY::GET_ENTITY_COORDS(v, TRUE));
+    if (!j) { ReleasePed(s_h.back(), true); s_h.pop_back(); VEHICLE::DELETE_VEHICLE(&v); return false; }
+    std::vector<Ped> crew{j};
+    for (int s = jugSeat + 1; s < maxP && s <= jugSeat + 2 && Budget() > 0; ++s) {
+        Ped ped = NewPedIn(v, RandomPed(), s);
+        if (!ped) continue;
+        SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
+        Engage(ped);
+        AddHunter(ped);
+        crew.push_back(ped);
+    }
+    for (Ped c : crew) {
+        PED::SET_PED_COMBAT_ATTRIBUTES(c, 3, FALSE); // nao pula do helicoptero no ar
+        for (Hunter &h : s_h) if (h.ped == c) { h.stayInVeh = true; h.heliRide = true; }
+    }
+    DropStart(v, pilot, false);
+    s_v.push_back({v, g_st.now, false});
+    Log("  %s no ANNIHILATOR (%s): vai pousar perto do jogador.", light ? "HEAVY" : "JUGGERNAUT", s_fac->name);
+    return true;
+}
+static bool SpawnPolJugHeli(bool jug) {
+    Vehicle v = NewAnnihilator(280.f, 360.f);
+    if (!v) return false;
+    Ped pilot = NewCopIn(v, H("s_m_y_pilot_01"), -1);
+    if (!pilot) pilot = NewCopIn(v, H("s_m_y_swat_01"), -1);
+    if (!pilot) { VEHICLE::DELETE_VEHICLE(&v); return false; }
+    SetupCop(pilot, true, PT_SWAT);
+    PED::SET_PED_COMBAT_ATTRIBUTES(pilot, 3, FALSE);
+    CopU up{pilot, v, g_st.now};
+    up.pilot = true;
+    s_pol.push_back(up);
+    int maxP = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v);
+    int jugSeat = maxP > 1 ? 1 : 0;
+    bool swat = PoliceLevel() >= 5;
+    Ped j = jug ? MakePolJug(v, jugSeat) : MakePolHeavy(v, jugSeat, H("s_m_y_swat_01"), true);
+    if (!j) { PolRelease(s_pol[s_pol.size() - 1].ped, true); s_pol.pop_back(); VEHICLE::DELETE_VEHICLE(&v); return false; }
+    for (int s = jugSeat + 1; s < maxP && s <= jugSeat + 2; ++s) {
+        Ped g = NewCopIn(v, H("s_m_y_swat_01"), s);
+        if (!g) continue;
+        SetupCop(g, true, swat ? PT_SWAT : PT_PATROL);
+        CopU ug{g, v, g_st.now};
+        s_pol.push_back(ug);
+    }
+    for (CopU &u : s_pol)
+        if (u.veh == v && u.ped != pilot) { u.heliWait = true; PED::SET_PED_COMBAT_ATTRIBUTES(u.ped, 3, FALSE); }
+    DropStart(v, pilot, true);
+    s_polVeh.push_back(v);
+    Log("Desordem: %s da policia no ANNIHILATOR: vai pousar perto do jogador.", jug ? "JUGGERNAUT" : "HEAVY");
+    return true;
+}
+static void DropUnload(JugDrop &dr) {
+    if (dr.police) {
+        for (CopU &u : s_pol)
+            if (u.heliWait && PED::IS_PED_IN_VEHICLE(u.ped, dr.v, FALSE)) {
+                u.heliWait = false;
+                u.leaving = true;
+                u.nextAct = g_st.now + 3000;
+                PED::SET_PED_COMBAT_ATTRIBUTES(u.ped, 3, TRUE);
+                AI::TASK_LEAVE_VEHICLE(u.ped, dr.v, 0);
+            }
+    } else {
+        for (Hunter &h : s_h)
+            if (h.ped != dr.pilot && PED::IS_PED_IN_VEHICLE(h.ped, dr.v, FALSE)) {
+                h.stayInVeh = false;
+                h.heliRide = false;
+                h.leaving = true;
+                h.leftAt = g_st.now;
+                if (!h.juggernaut) NormalAim(h.ped);
+                PED::SET_PED_COMBAT_ATTRIBUTES(h.ped, 3, TRUE);
+                AI::TASK_LEAVE_VEHICLE(h.ped, dr.v, 0);
+            }
+    }
+}
+// a tropa saiu (ou caiu/morreu): o Annihilator decola e fica rondando
+static void DropTakeOff(JugDrop &dr) {
+    if (dr.police) {
+        AI::TASK_HELI_MISSION(dr.pilot, dr.v, 0, s_player, 0.f, 0.f, 0.f, 9, 35.f, 45.f, -1.f, 40, 25, -1.f, 0);
+    } else {
+        PilotCircle(dr.pilot, dr.v, 55.f);
+        HeliSt st{dr.v, dr.pilot, HT_SHOOTERS, 2, g_st.now, dr.lp, false};
+        s_helis.push_back(st); // daqui em diante e um helicoptero comum dos retaliadores
+    }
+}
+static void UpdateJugDrops() {
+    for (size_t i = 0; i < s_drops.size();) {
+        JugDrop &dr = s_drops[i];
+        bool alive = ENTITY::DOES_ENTITY_EXIST(dr.v) && !ENTITY::IS_ENTITY_DEAD(dr.v) &&
+                     ENTITY::DOES_ENTITY_EXIST(dr.pilot) && !PED::IS_PED_DEAD_OR_DYING(dr.pilot, TRUE);
+        if (!alive) { DropUnload(dr); s_drops.erase(s_drops.begin() + i); continue; } // caiu: quem sobrar sai
+        Vector3 hp = ENTITY::GET_ENTITY_COORDS(dr.v, TRUE);
+        float agl = ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(dr.v);
+        Vector3 vel = ENTITY::GET_ENTITY_VELOCITY(dr.v);
+        float spd = std::hypot(vel.x, vel.y);
+        if (dr.state == 0) {
+            bool down = agl < 3.f && spd < 3.f;
+            // o jogador se afastou do ponto: escolhe outro (so enquanto o helicoptero ainda esta longe dele)
+            if (!down && D2(dr.lp, s_ppos) > 70.f && D2(hp, dr.lp) > 60.f && g_st.now - dr.at > 5000) {
+                dr.lp = LandPoint(); dr.at = g_st.now; dr.nearSince = 0;
+                PilotLand(dr.pilot, dr.v, dr.lp);
+            }
+            if (D2(hp, dr.lp) < 60.f) { if (!dr.nearSince) dr.nearSince = g_st.now; }
+            else dr.nearSince = 0;
+            // perto do ponto e sem conseguir pousar (arvore, predio, rampa): tenta outro ponto
+            if (!down && dr.nearSince && g_st.now - dr.nearSince > 20000) {
+                ++dr.tries;
+                dr.lp = LandPoint(); dr.at = g_st.now; dr.nearSince = 0;
+                PilotLand(dr.pilot, dr.v, dr.lp);
+                Log("  Annihilator: nao conseguiu pousar, tenta outro ponto (%d).", dr.tries);
+            }
+            bool give = (dr.tries >= 3 && agl < 8.f) || g_st.now - dr.born > 150000; // ultimo recurso
+            if (down || give) {
+                DropUnload(dr);
+                dr.state = 1;
+                dr.at = g_st.now;
+                Log("  Annihilator pousou: %s desembarcando.", dr.police ? "policia" : "tropa");
+            }
+        } else if (dr.state == 1) {
+            if (g_st.now - dr.at > 7000) { DropTakeOff(dr); s_drops.erase(s_drops.begin() + i); continue; }
+        }
+        ++i;
+    }
+}
+static void DropsClear(bool police) {
+    for (size_t i = 0; i < s_drops.size();)
+        if (s_drops[i].police == police) s_drops.erase(s_drops.begin() + i); else ++i;
+}
+
 void DespawnAll(bool hard, const char *why) {
     int n = (int)s_h.size();
     for (Hunter &h : s_h) {
@@ -2640,6 +2849,7 @@ void DespawnAll(bool hard, const char *why) {
         ReleaseVeh(s, hard || !ENTITY::IS_ENTITY_ON_SCREEN(s.veh));
     }
     s_h.clear(); s_v.clear(); s_q.clear(); s_helis.clear();
+    DropsClear(false); // v11.4
     s_tank = TankSt{};
     s_khan = KhanSt{};
     s_jet = JetSt{};
@@ -2751,7 +2961,8 @@ static void UpdateHunters() {
         if (h.blip && pedInVeh) RemoveBlip(h);
         if (!h.blip && d < br && !pedInVeh) {
             h.blip = UI::ADD_BLIP_FOR_ENTITY(h.ped);
-            if (h.juggernaut && g_cfg.jugBlip > 0) UI::SET_BLIP_SPRITE(h.blip, g_cfg.jugBlip); // v10: caveira
+            if (h.lightJug && g_cfg.heavyBlip > 0) UI::SET_BLIP_SPRITE(h.blip, g_cfg.heavyBlip); // v11.4: caveira do Trevor
+            else if (h.juggernaut && g_cfg.jugBlip > 0) UI::SET_BLIP_SPRITE(h.blip, g_cfg.jugBlip); // v10: caveira
             UI::SET_BLIP_COLOUR(h.blip, 1);
             // v10.1: Heavy com a caveira do tamanho antigo; o Juggernaut com a caveira maior
             UI::SET_BLIP_SCALE(h.blip, h.lightJug ? 1.0f : h.juggernaut ? 1.4f : 0.7f);
@@ -2769,7 +2980,7 @@ static void UpdateHunters() {
         }
         if (d < 70.f) h.reached = true;
         // v11: Desordem - escolhe o alvo de novo quando muda a situacao (perto/longe do jogador, ou ele atacou)
-        if (DisorderOn() && !h.walking && !h.leaving && !h.heliRappel && !h.tankGunner) {
+        if (DisorderOn() && !h.walking && !h.leaving && !h.heliRappel && !h.tankGunner && !h.heliRide) {
             Vehicle hv0 = PED::GET_VEHICLE_PED_IS_IN(h.ped, FALSE);
             Hash hm0 = hv0 ? ENTITY::GET_ENTITY_MODEL(hv0) : 0;
             bool air0 = hv0 && (VEHICLE::IS_THIS_MODEL_A_HELI(hm0) || VEHICLE::IS_THIS_MODEL_A_PLANE(hm0));
@@ -3130,6 +3341,7 @@ void SpawnerTick(Ped player) {
         UpdateKhanjali();
         UpdateVehGuns(); // v10.1
         UpdateOwnPolice(); // v11.3
+        UpdateJugDrops(); // v11.4
         UpdateJet();
         UpdateAir();
         UpdateParadrop();

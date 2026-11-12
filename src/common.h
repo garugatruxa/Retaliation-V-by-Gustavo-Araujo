@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "11.3"
+#define RETALIATION_VERSION "11.4"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -75,6 +75,8 @@ struct Config {
     // v10: modelo do Juggernaut (NPC blindado do Online, todo preto) e icone de caveira vermelha no mapa
     std::string jugModel = "mp_m_freemode_01"; // v10: personagem do Online com o traje pesado "Noturno pesado"
     int jugBlip = 303;
+    int jugHeliPct = 30, heavyHeliPct = 30; // v11.4: chance do Juggernaut/Heavy chegar no Annihilator (pousando)
+    int heavyBlip = 84; // v11.4: Heavy com a caveira das missoes de matanca do Trevor (radar_rampage)
     int jugMinigunAcc = 0; // v10: minigun do Juggernaut: mira minima = rajada bem espalhada
     // v10: mira dos helicopteros (atiradores, torretas e piloto) - "stormtrooper"
     int heliAccuracy = 2;
@@ -188,6 +190,7 @@ bool DisorderPoliceCalm(); // v11.3: Desordem e a policia nao esta contra o joga
 int PolicePts();
 int PoliceLevel();
 void PolicePtsAdd(int n, const char *why);
+void PoliceStepLevel(int delta); // v11.4: teclas de teste na Desordem (sobe/desce um nivel da barra azul)
 void DisorderProvoke(bool police); // o jogador atacou a policia (true) ou os retaliadores (false)
 void DisorderMenuLevel(); // nivel escolhido no menu: recomeca a espera sem baixar
 int UiLang(); // 0 portugues, 1 ingles, 2 espanhol (segue o idioma do jogo)
