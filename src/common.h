@@ -1,10 +1,10 @@
-﻿#pragma once
+#pragma once
 // Retaliation V - cabecalho comum (log, config, utilidades).
 #include "../sdk/inc/natives.h"
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.1"
+#define RETALIATION_VERSION "0.2"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -34,6 +34,7 @@ struct Config {
     int maxAlive = 16;
     float footMin = 60, footMax = 100, vehMin = 170, vehMax = 240, despawnDist = 350;
     int arriveTimeout = 150, firstWaveDelay = 8;
+    float blipRadius = 120; // blips vermelhos so aparecem nesse raio
     // [LevelN] 1..8
     struct Lv { int interval, foot, vehicles, accuracy, health, armor; };
     Lv lv[8] = {{50, 2, 1, 15, 150, 0},  {45, 3, 1, 20, 175, 0},  {45, 3, 2, 25, 200, 10},

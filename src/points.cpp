@@ -5,6 +5,10 @@
 static std::unordered_set<int> s_deadPeds;   // peds mortos ja avaliados
 static std::unordered_set<int> s_deadVehs;   // veiculos destruidos ja avaliados
 static std::unordered_set<int> s_stolen;     // veiculos ja contados como roubo
+static std::unordered_set<int> s_ignoreVeh;  // veiculos dos retaliadores (nao dao pontos)
+
+void PointsIgnorePed(int p) { s_deadPeds.insert(p); }
+void PointsIgnoreVeh(int v) { s_ignoreVeh.insert(v); }
 static int s_lastPrune = 0;
 static bool s_wasDead = false;
 
@@ -112,7 +116,7 @@ static void ScanVehicles(Ped player, Vehicle pveh, Vehicle plast) {
         Vehicle v = s_buf[i];
         if (!ENTITY::IS_ENTITY_DEAD(v)) continue;
         if (!s_deadVehs.insert(v).second) continue;
-        if (ENTITY::IS_ENTITY_A_MISSION_ENTITY(v)) continue;
+        if (ENTITY::IS_ENTITY_A_MISSION_ENTITY(v) || s_ignoreVeh.count(v)) continue;
         bool byPlayer = ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, player, TRUE) ||
                         (pveh && pveh != v && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, pveh, TRUE)) ||
                         (plast && plast != v && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, plast, TRUE));
@@ -149,6 +153,7 @@ void PointsTick(Ped player, Player pid) {
         Prune(s_deadPeds, true);
         Prune(s_deadVehs, true);
         Prune(s_stolen, false);
+        Prune(s_ignoreVeh, false);
     }
 
     // decaimento

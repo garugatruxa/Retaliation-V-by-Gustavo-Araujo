@@ -1,5 +1,5 @@
 ﻿// Retaliation V - ponto de entrada (ScriptHookV).
-#include "common.h"
+#include "spawn.h"
 
 State g_st;
 const char *kCharName[CH_COUNT] = {"Michael", "Franklin", "Trevor", "Outro"};
@@ -52,6 +52,7 @@ static void ScriptMain() {
     g_st = State{};
     g_st.now = (int)GAMEPLAY::GET_GAME_TIMER();
     PointsReset();
+    SpawnerInit();
     int lastNow = g_st.now, lastIniCheck = g_st.now;
 
     while (true) {
@@ -60,6 +61,7 @@ static void ScriptMain() {
         // jogo carregado (o relogio voltou): estado zerado, como no SA
         if (g_st.now + 1000 < lastNow) {
             Log("Jogo carregado: estado reiniciado.");
+            DespawnAll(true, "jogo carregado");
             PointsReset();
             g_st.lastCrime = g_st.lastDecay = g_st.now;
         }
@@ -78,7 +80,10 @@ static void ScriptMain() {
 
         Ped player = PLAYER::PLAYER_PED_ID();
         Player pid = PLAYER::PLAYER_ID();
-        if (!g_cfg.enabled || !ENTITY::DOES_ENTITY_EXIST(player) || STREAMING::IS_PLAYER_SWITCH_IN_PROGRESS()) {
+        bool switching = STREAMING::IS_PLAYER_SWITCH_IN_PROGRESS();
+        if (switching && HuntersAlive()) DespawnAll(true, "troca de personagem");
+        if (!g_cfg.enabled && HuntersAlive()) DespawnAll(false, "mod desligado no .ini");
+        if (!g_cfg.enabled || !ENTITY::DOES_ENTITY_EXIST(player) || switching) {
             WAIT(0);
             continue;
         }
@@ -89,7 +94,7 @@ static void ScriptMain() {
             g_st.ch = ch;
             g_st.maxHeatSince = -1;
             g_st.lastCrime = g_st.lastDecay = g_st.now;
-            // (proxima etapa) remover os retaliadores do personagem anterior
+            DespawnAll(true, "troca de personagem");
         }
 
         const char *why = PauseReason(player);
@@ -101,6 +106,7 @@ static void ScriptMain() {
         }
 
         PointsTick(player, pid);
+        SpawnerTick(player);
         DebugKeys();
         HudTick();
         WAIT(0);

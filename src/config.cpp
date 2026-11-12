@@ -87,6 +87,8 @@ static const char *kDefaultIni =
     "ArriveTimeout=150\r\n"
     "; segundos ate a primeira wave depois de entrar no nivel 1\r\n"
     "FirstWaveDelay=8\r\n"
+    "; distancia (m) em que o inimigo aparece no minimapa\r\n"
+    "BlipRadius=120\r\n"
     "\r\n"
     "; Por nivel: Interval (s entre waves), Foot (inimigos a pe), Vehicles, Accuracy (0-100),\r\n"
     "; Health (200 = normal), Armor (0-100)\r\n"
@@ -192,6 +194,7 @@ void ConfigLoad() {
     c.despawnDist = IniFloat("Spawn", "DespawnDist", c.despawnDist);
     c.arriveTimeout = IniInt("Spawn", "ArriveTimeout", c.arriveTimeout);
     c.firstWaveDelay = IniInt("Spawn", "FirstWaveDelay", c.firstWaveDelay);
+    c.blipRadius = IniFloat("Spawn", "BlipRadius", c.blipRadius);
     for (int i = 0; i < 8; ++i) {
         char sec[16];
         snprintf(sec, sizeof sec, "Level%d", i + 1);
