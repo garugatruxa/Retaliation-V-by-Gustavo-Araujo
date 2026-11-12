@@ -51,6 +51,7 @@ struct Hunter {
     Ped ped;
     Blip blip = 0;
     int born = 0, leftAt = 0;
+    bool walking = false; // v9: veio a pe da estrada mais proxima, andando ate o jogador
     bool reached = false, stayInVeh = false, leaving = false, juggernaut = false, roadblock = false, sniper = false;
     bool tactical = false; // IA estilo NOOSE (so Merryweather e Cacadores)
     bool rangeExempt = false; // pilotos e torretas: armas do veiculo, sem limite de alcance
@@ -82,7 +83,32 @@ static int Queued() {
     for (auto &p : s_q) n += p.k == P_FOOT ? p.n : (p.k == P_ROADBLOCK || p.k == P_JUGG || p.k == P_HELI) ? 4 : 2;
     return n;
 }
-static int MaxAlive() { return s_level >= 1 && s_level <= 8 ? g_cfg.lv[s_level - 1].maxAlive : 10; }
+// ---------- fluxo (v9) ----------
+// Os inimigos chegam aos poucos: uma fila com espacamento entre unidades, um limite que cresce com o tempo
+// desde que o Retaliation comecou e um teto de quantos podem estar perto do jogador ao mesmo tempo.
+static int s_flowNext = 0;    // quando a proxima unidade da fila pode sair
+static int s_activeSince = 0; // quando o Retaliation comecou (para a pressao crescente)
+
+static int MaxAlive() {
+    int base = s_level >= 1 && s_level <= 8 ? g_cfg.lv[s_level - 1].maxAlive : 10;
+    if (g_cfg.flowRampSeconds <= 0 || !s_activeSince) return base;
+    float k = (g_st.now - s_activeSince) / (g_cfg.flowRampSeconds * 1000.f);
+    if (k >= 1.f) return base;
+    int start = g_cfg.flowRampStart < base ? g_cfg.flowRampStart : base;
+    return start + (int)((base - start) * k);
+}
+static int FlowGapMs() {
+    float lv = (float)(s_level < 1 ? 1 : s_level > 8 ? 8 : s_level);
+    float gmin = 7.f - (lv - 1.f) * 0.5f, gmax = 12.f - (lv - 1.f) * 0.714f; // 7-12 s no nivel 1, 3.5-7 s no 8
+    return (int)(RandF(gmin, gmax) * 1000.f * g_cfg.flowGapScale);
+}
+static int NearMax() { return g_cfg.flowNearBase + s_level; }
+static int NearCount() {
+    int n = 0;
+    for (const auto &h : s_h)
+        if (ENTITY::DOES_ENTITY_EXIST(h.ped) && D2(ENTITY::GET_ENTITY_COORDS(h.ped, TRUE), s_ppos) < 60.f) ++n;
+    return n;
+}
 static int Budget() { return MaxAlive() - HuntersAlive(); }
 static bool JuggAlive() {
     for (auto &h : s_h) if (h.juggernaut) return true;
@@ -247,7 +273,8 @@ static bool SameLevel(float x1, float y1, float &outZ, bool strict) {
     float x0 = s_ppos.x, y0 = s_ppos.y, z = s_pgz;
     float d = std::hypot(x1 - x0, y1 - y0);
     int steps = (int)(d / 15.f) + 1;
-    const float maxStep = 4.5f;
+    // no mato e nas montanhas o chao e irregular: degrau maior; na cidade, pequeno (viadutos)
+    const float maxStep = RegionAt(s_ppos.x, s_ppos.y) == RG_COUNTRY ? 9.f : 4.5f;
     for (int k = 1; k <= steps; ++k) {
         float t = (float)k / steps, g;
         if (!GroundBelow(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, z + 3.5f, g)) {
@@ -269,8 +296,8 @@ static void UpdatePlayerGround() {
 // Ponto a pe a media distancia, no chao, no mesmo nivel, de preferencia atras da camera e fora da tela.
 static bool FindFootPos(float dmin, float dmax, Vector3 &out) {
     float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z;
-    for (int i = 0; i < 18; ++i) {
-        float ang = i < 11 ? camH + 180.f + RandF(-80.f, 80.f) : RandF(0.f, 360.f);
+    for (int i = 0; i < 30; ++i) {
+        float ang = i < 15 ? camH + 180.f + RandF(-80.f, 80.f) : RandF(0.f, 360.f);
         float d = RandF(dmin, dmax), dx, dy;
         Dir(ang, dx, dy);
         float x = s_ppos.x + dx * d, y = s_ppos.y + dy * d, gz = 0.f;
@@ -331,8 +358,15 @@ static bool FindWaterPos(Vector3 &out) {
 static void SpawnFoot(int n, int role) {
     float dmin = g_cfg.footMin, dmax = g_cfg.footMax;
     if (role == 1) { dmin = dmax; dmax += 40.f; } // sniper fica mais longe
+    else if (Rand(100) < g_cfg.flowFarFootPct) { dmin = dmax; dmax += 70.f; } // v9: alguns grupos vem de mais longe
     Vector3 p;
-    if (!FindFootPos(dmin, dmax, p)) { Log("  a pe: nenhum ponto seguro encontrado."); return; }
+    bool fromRoad = false;
+    if (!FindFootPos(dmin, dmax, p)) {
+        // v9: longe de tudo (mato, montanha): o grupo nasce na rua mais proxima e vem correndo ate o jogador
+        float rh;
+        if (!FindRoadPos(120.f, 380.f, p, rh)) { Log("  a pe: nenhum ponto seguro nem rua por perto."); return; }
+        fromRoad = true;
+    }
     for (int i = 0; i < n && Budget() > 0; ++i) {
         Vector3 q = V3(p.x + RandF(-2.f, 2.f), p.y + RandF(-2.f, 2.f), p.z);
         Ped ped = NewPedAt(RandomPed(), q, HeadingTo(q, s_ppos));
@@ -344,9 +378,16 @@ static void SpawnFoot(int n, int role) {
         if (i == 0 && role == 2) PED::SET_PED_ACCURACY(ped, g_cfg.explosiveAcc); // RPG/lanca-granadas: mira cinematografica
         bool sn = i == 0 && role == 1;
         if (sn) { PED::SET_PED_COMBAT_MOVEMENT(ped, 0); PED::SET_PED_COMBAT_RANGE(ped, 2); }
-        AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
-        AddHunter(ped).sniper = sn;
+        Hunter &hh = AddHunter(ped);
+        hh.sniper = sn;
+        if (fromRoad) {
+            AI::TASK_GO_TO_ENTITY(ped, s_player, -1, 25.f, 2.0f, 0, 0); // corre da rua ate o jogador
+            hh.walking = true;
+        } else {
+            AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+        }
     }
+    if (fromRoad) Log("  a pe: %d saindo da estrada mais proxima, a %.0fm", n, D2(p, s_ppos));
     Log("  a pe: %d (%s)%s a %.0fm", n, s_fac->name, role == 1 ? " com sniper" : role == 2 ? " com explosivo" : "",
         D2(p, s_ppos));
 }
@@ -412,8 +453,29 @@ static void SpawnVehicle(bool bicycleOk) {
     Log("  %s com %d%s (%s) a %.0fm", kind, seats, gunners ? " + atirador na torreta" : "", s_fac->name, D2(p, s_ppos));
 }
 
+// v9: jogador longe de qualquer estrada?
+static bool FarFromRoad() {
+    Vector3 n;
+    if (!PATHFIND::GET_CLOSEST_VEHICLE_NODE(s_ppos.x, s_ppos.y, s_pgz, &n, 1, 3.0f, 0.f)) return true;
+    return D2(n, s_ppos) > g_cfg.remoteRoadDist;
+}
+// v9: tem agua (mar, lago, rio) a ate ~220 m?
+static bool WaterNearby() {
+    for (int i = 0; i < 12; ++i) {
+        float dx, dy, wh;
+        Dir(i * 30.f, dx, dy);
+        for (float d : {90.f, 160.f, 220.f})
+            if (WATER::GET_WATER_HEIGHT(s_ppos.x + dx * d, s_ppos.y + dy * d, s_ppos.z, &wh)) return true;
+    }
+    return false;
+}
+
 static void SpawnBoat() {
-    Hash model = RandomOf(s_fac->boats);
+    static std::vector<Hash> generic;
+    if (generic.empty())
+        for (const char *m : {"dinghy", "seashark", "tropic"})
+            if (STREAMING::IS_MODEL_IN_CDIMAGE(H(m))) generic.push_back(H(m));
+    Hash model = RandomOf(!s_fac->boats.empty() ? s_fac->boats : generic);
     Vector3 p;
     if (!model || !FindWaterPos(p)) { Log("  barco: sem agua por perto."); return; }
     Vehicle v = NewVehicle(model, p, HeadingTo(p, s_ppos));
@@ -857,7 +919,7 @@ static void SpawnTank() {
         SetupPed(t.driver, s_level, WeaponFor(s_level));
         PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 3, FALSE);
         PED::SET_PED_ACCURACY(t.driver, g_cfg.explosiveAcc); // canhao do tanque impreciso
-        // pendurado no Cargobob o tanque nao atira; o canhao so libera depois de tocar o chao
+        // v9: pendurado no Cargobob o tanque nao atira; o canhao so libera depois de tocar o chao
         PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, TRUE);
         PED::SET_PED_SHOOT_RATE(t.driver, 0);
         VEHICLE::DISABLE_VEHICLE_WEAPON(TRUE, H("VEHICLE_WEAPON_TANK"), t.rhino, t.driver);
@@ -911,7 +973,7 @@ static void UpdateTank() {
         if (ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.rhino) < 1.5f || g_st.now - t.at > 8000) {
             ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, FALSE);
             if (t.driver && !PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE)) {
-                // no chao: libera o canhao e comeca a cacar
+                // v9: no chao, libera o canhao e comeca a cacar
                 VEHICLE::DISABLE_VEHICLE_WEAPON(FALSE, H("VEHICLE_WEAPON_TANK"), t.rhino, t.driver);
                 PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
                 PED::SET_PED_SHOOT_RATE(t.driver, 100);
@@ -991,7 +1053,11 @@ static void UpdateJet() {
 }
 // ---------- waves ----------
 static void Queue(int delayMs, PKind k, int n = 0, int role = 0, bool bicycleOk = false) {
-    s_q.push_back({g_st.now + delayMs, k, n, role, bicycleOk});
+    // v9: cada unidade sai da fila com espacamento da anterior, em fluxo continuo entre as waves
+    int at = g_st.now + delayMs;
+    if (at < s_flowNext) at = s_flowNext;
+    s_flowNext = at + FlowGapMs();
+    s_q.push_back({at, k, n, role, bicycleOk});
 }
 
 static void BuildWave() {
@@ -1030,11 +1096,20 @@ static void BuildWave() {
     }
 
     // helicoptero na wave (no chao ou de barco)
-    bool hasHeli = !s_fac->helis.empty() || !s_fac->attackHelis.empty();
+    // v9: longe de qualquer estrada (mato, montanha) -> mais helicopteros, e qualquer faccao pode usar um
+    bool remote = FarFromRoad();
+    bool hasHeli = !s_fac->helis.empty() || !s_fac->attackHelis.empty() || (remote && s_level >= 2);
+    if (remote) Log("  jogador longe das estradas: mais chance de helicoptero.");
+    // v9: agua por perto -> barcos tambem vem pela agua (ate quem nao tem barco usa um bote)
+    if (!boat && s_level >= 3 && free >= 2 && Rand(100) < g_cfg.waterBoatPct && WaterNearby()) {
+        Queue(2000, P_BOAT);
+        free -= 2;
+        Log("  agua por perto: barco a caminho.");
+    }
     // cada helicoptero a mais no ar tem a sua chance: 1o normal, 2o baixa, 3o bem rara (so no nivel 8)
     if (hasHeli && heliCap > 0 && free >= 4) {
         int n = HelisNow();
-        if (Rand(100) < NextHeliPct(n)) {
+        if (Rand(100) < NextHeliPct(n) + (remote && n == 0 ? g_cfg.remoteHeliBonus : 0)) {
             Queue(4000, P_HELI);
             free -= 4;
             if (n == 0 && heliCap > 1 && free >= 4 && Rand(100) < NextHeliPct(1)) { Queue(12000, P_HELI); free -= 4; }
@@ -1086,6 +1161,12 @@ static void BuildWave() {
 static void RunQueue() {
     for (size_t i = 0; i < s_q.size(); ++i) {
         if (s_q[i].at > g_st.now) continue;
+        // v9: muita gente perto do jogador? os proximos esperam na fila (helicopteros, caca, tanque e bloqueio nao)
+        PKind kk = s_q[i].k;
+        if ((kk == P_FOOT || kk == P_VEH || kk == P_BOAT || kk == P_JUGG) && NearCount() >= NearMax()) {
+            s_q[i].at = g_st.now + 3000;
+            return;
+        }
         Pending p = s_q[i];
         s_q.erase(s_q.begin() + i);
         if (Budget() <= 0) return;
@@ -1201,6 +1282,10 @@ static void UpdateHunters() {
         }
 
         if (d < 70.f) h.reached = true;
+        if (h.walking && (d < 80.f || g_st.now - h.born > 90000)) { // chegou perto: comeca a lutar
+            h.walking = false;
+            AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+        }
 
         // v5: so atira dentro do alcance da arma
         if (!h.rangeExempt) {
@@ -1308,11 +1393,13 @@ void SpawnerTick(Ped player) {
 
     s_level = LevelOf(g_st.Pts());
     bool active = s_level >= 1 && !g_st.paused && g_st.now >= g_st.cooldownUntil;
+    if (s_level < 1) s_activeSince = 0;
     if (!active) {
         s_q.clear();
         if (s_level < 1) s_nextWave = 0;
         return;
     }
+    if (!s_activeSince) { s_activeSince = g_st.now; s_flowNext = g_st.now; } // v9: comeca a pressao crescente
     s_fac = FactionFor(s_level, RegionAt(s_ppos.x, s_ppos.y));
     if (!s_fac || s_fac->peds.empty()) return;
 

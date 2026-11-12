@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.8"
+#define RETALIATION_VERSION "0.9"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -31,9 +31,18 @@ struct Config {
     int hudR = 200, hudG = 25, hudB = 25;
     bool hudShowLevel = false;
     // [Spawn]
-    float footMin = 80, footMax = 125, vehMin = 260, vehMax = 350, despawnDist = 480;
+    float footMin = 110, footMax = 170, vehMin = 320, vehMax = 450, despawnDist = 600; // v9: mais longe
+    // v9: longe de estrada (> RemoteRoadDist m) = +RemoteHeliBonus % de helicoptero; agua perto = WaterBoatChance % de barco
+    float remoteRoadDist = 150;
+    int remoteHeliBonus = 30, waterBoatPct = 35;
     int arriveTimeout = 150, firstWaveDelay = 8;
     float blipRadius = 120; // blips vermelhos so aparecem nesse raio
+    // [Scaling] v9: a partir de Start pontos, cada Step pontos acima tiram PerStep de cada ganho (minimo MinGain)
+    int scaleStart = 50, scaleStep = 5;
+    float scalePerStep = 0.2f, scaleMinGain = 0.2f;
+    // [Flow] v9: chegada aos poucos
+    int flowRampSeconds = 180, flowRampStart = 4, flowNearBase = 3, flowFarFootPct = 35;
+    float flowGapScale = 1.0f;
     // [LevelN] 1..8
     // maxAlive = limite de retaliadores vivos no nivel (a pe + em veiculos), 28 no nivel maximo
     struct Lv { int interval, foot, vehicles, accuracy, health, armor, maxAlive; };

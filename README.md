@@ -95,6 +95,9 @@ e interiores**, e durante as missões a polícia funciona normalmente.
 | Morrer ou ser preso | zera |
 
 - O máximo é 100. Fora do ciclo, os crimes não dão pontos.
+- **Escala decrescente:** a partir de 50 pontos, cada 5 pontos acima tiram **0,2** de cada ganho. Com 70 pontos,
+  um NPC vale 1,2 e um veículo vale 3,2. Cada ação vale no mínimo 0,2, e as frações se acumulam. Chegar a 100 é
+  bem mais difícil.
 - NPCs de missão não contam. Os veículos e aeronaves dos retaliadores contam.
 
 ### Níveis e facções
@@ -133,6 +136,8 @@ Shores, Grapeseed, Paleto, deserto e montanhas). Cada facção aparece em um ún
 - Até **28 inimigos** ao mesmo tempo no nível máximo (10 no nível 1).
 - Tudo nasce **no chão e no mesmo nível do mapa** que você: ninguém aparece em cima de um viaduto quando você
   está embaixo, nem cai do céu.
+- Os inimigos **chegam aos poucos**: saem de uma fila com espaçamento, o limite cresce com o tempo e só uma
+  parte pode ficar perto de você ao mesmo tempo. O resto vem a caminho.
 - Inimigos longe demais, ou que não chegam a tempo, são removidos.
 - Os **blips vermelhos** só aparecem no minimapa quando o inimigo está a até 120 m.
 
@@ -181,8 +186,8 @@ Até a roupa ser copiada, o Juggernaut é um mercenário da Merryweather com cap
 
 Só no nível 8, um de cada por vez:
 
-- **Tanque:** um Cargobob chega com o Rhino pendurado no gancho e solta o tanque perto de você. Se você
-  **abater o Cargobob antes da entrega**, o tanque cai junto.
+- **Tanque:** um Cargobob chega com o Rhino pendurado no gancho e solta o tanque perto de você. Ele só
+  começa a atirar depois de tocar o chão. Se você **abater o Cargobob antes da entrega**, o tanque cai junto.
 - **Caça:** um Lazer (ou Hydra, mais raro) alterna canhão e mísseis, ataca por 90 s e vai embora.
 
 As chances dos especiais crescem a partir dos 70 pontos, sempre com um teto.
@@ -214,7 +219,7 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v8.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v9.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
 5. **Atualizando de outra versão:** substitua o `.asi` e apague o `Retaliation.ini` antigo, para o mod criar um
@@ -230,11 +235,13 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 |---|---|
 | `[General]` | Liga/desliga, modo (1, 2 ou 3, também pelo menu), ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
 | `[Points]` | Pontos de cada crime e decaimento |
+| `[Scaling]` | Escala decrescente dos ganhos acima de 50 pontos |
 | `[Levels]` | Em que pontos cada nível começa |
 | `[HotTimer]` | Timer de 5 min acima de 70 pontos |
 | `[Cycle]` | Estrelas e tempo para o Retaliation assumir, nível inicial e duração da fase conjunta |
 | `[Hud]` | Posição, tamanho e cor da barra |
 | `[Spawn]` | Distâncias de spawn e remoção, raio dos blips |
+| `[Flow]` | Chegada aos poucos: pressão crescente, espaço entre unidades, teto de inimigos por perto |
 | `[Level1]`…`[Level8]` | Intervalo das waves, inimigos a pé, veículos, mira, vida, colete e limite de inimigos |
 | `[Roadblock]` | Bloqueios de estrada |
 | `[Juggernaut]` | Chance, teto, vida e chance de minigun |
@@ -262,11 +269,34 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v8`).
+(`v1` a `v9`, com as correções `v6.1` e `v7.1`).
 
-### v8 — atual
+### v9 — atual
 
-Comparado à v7:
+Comparado à v8:
+- **Chegada aos poucos, como no Retaliation original:**
+  - **Fila com espaçamento:** os inimigos saem da fila um de cada vez, com 7–12 s entre um e outro no nível 1 e
+    3,5–7 s no nível 8. As waves viram um fluxo contínuo, e não um bolo.
+  - **Pressão crescente:** quando o Retaliation começa, o limite de inimigos vivos parte de 4 e sobe até o
+    máximo do nível em cerca de 3 minutos.
+  - **Teto de inimigos por perto:** no máximo 3 + o nível a menos de 60 m do jogador. O resto espera na fila
+    (helicópteros, caça, tanque e bloqueios não entram nessa conta).
+  - **Distâncias variadas:** 35% dos grupos a pé nascem mais longe e chegam depois.
+- **Funciona longe da cidade:**
+  - Spawns mais longe: a pé a 110–170 m e veículos a 320–450 m. A remoção passou para 600 m.
+  - No mato e nas montanhas o mod aceita terreno irregular. Se não achar chão por perto, o grupo nasce
+    **na estrada mais próxima e vem correndo** até o jogador.
+  - **Longe de qualquer estrada:** +30% de chance de helicóptero, e qualquer facção pode mandar um.
+  - **Água por perto** (mar, lago, rio): 35% de chance de vir um **barco** na wave, mesmo com o jogador em terra.
+- **O tanque só atira no chão:** pendurado no Cargobob, o canhão fica desligado e só libera depois que o
+  tanque toca o solo.
+- **Escala decrescente de pontos:** a partir de 50 pontos, cada 5 pontos acima tiram 0,2 de cada ganho (matar,
+  explodir, roubar), com mínimo de 0,2 por ação. Chegar a 100 ficou bem mais difícil.
+- Tudo ajustável nas novas seções `[Flow]` e `[Scaling]` do `.ini`.
+
+### v8
+
+Comparado à v7 (já inclui a correção do tanque da v7.1):
 - **Menu do mod na tecla Insert**, no canto esquerdo, com texto branco e detalhes no vermelho da barra. As setas
   escolhem e mudam as opções, e a escolha fica salva no `.ini`.
 - **Mod ativado/desativado** direto pelo menu, sem precisar mexer no `.ini`.
@@ -278,7 +308,9 @@ Comparado à v7:
 - **Juggernaut humano:** a armadura pesada do assalto de Paleto Bay no lugar do robô do Online. A roupa é
   copiada do jogo (segure PageDown e aperte End com o personagem de armadura).
 
-### v7
+### v7 (e v7.1)
+
+**v7.1:** correção. O tanque do Cargobob só atira depois de tocar o chão.
 
 Comparado à v6:
 
@@ -303,7 +335,9 @@ Comparado à v6:
 - Versão única, sem presets de desempenho: como a polícia e os mercenários não ficam juntos o tempo todo, há
   menos NPCs ao mesmo tempo.
 
-### v6
+### v6 (e v6.1)
+
+**v6.1:** correção. O tanque do Cargobob só atira depois de tocar o chão.
 
 Comparado à v5:
 - **Armas do GTA Online:** SNS Pistol Mk II, WM 29, AP Pistol, Tactical SMG, Revolver Mk II, Perico Pistol,

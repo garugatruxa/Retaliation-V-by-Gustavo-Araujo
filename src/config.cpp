@@ -96,17 +96,41 @@ static const char *kDefaultIni =
     "\r\n"
     "[Spawn]\r\n"
     "; distancias (metros): grupos a pe, veiculos, remocao\r\n"
-    "FootMin=80\r\n"
-    "FootMax=125\r\n"
-    "VehMin=260\r\n"
-    "VehMax=350\r\n"
-    "DespawnDist=480\r\n"
+    "FootMin=110\r\n"
+    "FootMax=170\r\n"
+    "VehMin=320\r\n"
+    "VehMax=450\r\n"
+    "DespawnDist=600\r\n"
     "; segundos para chegar perto do jogador antes de ser removido\r\n"
     "ArriveTimeout=150\r\n"
     "; segundos ate a primeira wave depois de entrar no nivel 1\r\n"
     "FirstWaveDelay=8\r\n"
     "; distancia (m) em que o inimigo aparece no minimapa\r\n"
     "BlipRadius=120\r\n"
+    "\r\n"
+    "[Scaling]\r\n"
+    "; mais dificil chegar a 100: a partir de Start pontos, cada Step pontos acima tiram PerStep de cada ganho\r\n"
+    "; (matar, explodir, roubar). Cada acao vale no minimo MinGain. As fracoes se acumulam\r\n"
+    "Start=50\r\n"
+    "Step=5\r\n"
+    "PerStep=0.2\r\n"
+    "MinGain=0.2\r\n"
+    "\r\n"
+    "[Flow]\r\n"
+    "; chegada aos poucos: o limite de inimigos comeca em RampStart e sobe ate o do nivel em RampSeconds\r\n"
+    "RampSeconds=180\r\n"
+    "RampStart=4\r\n"
+    "; espaco entre uma unidade e a proxima (1.0 = 7-12 s no nivel 1, 3.5-7 s no nivel 8; maior = mais espacado)\r\n"
+    "GapScale=1.0\r\n"
+    "; no maximo NearBase + nivel inimigos a menos de 60 m do jogador; o resto espera\r\n"
+    "NearBase=3\r\n"
+    "; % dos grupos a pe que nascem mais longe (chegam depois)\r\n"
+    "FarFootChance=35\r\n"
+    "; longe de estrada (metros ate a rua mais proxima): helicopteros ficam mais comuns (+%)\r\n"
+    "RemoteRoadDist=150\r\n"
+    "RemoteHeliBonus=30\r\n"
+    "; agua (mar, lago, rio) por perto: chance (%) de vir um barco na wave, nivel 3+\r\n"
+    "WaterBoatChance=35\r\n"
     "\r\n"
     "; Por nivel: Interval (s entre waves), Foot (inimigos a pe), Vehicles, Accuracy (0-100),\r\n"
     "; Health (200 = normal), Armor (0-100), MaxAlive (limite de inimigos vivos, contando os dos veiculos)\r\n"
@@ -285,6 +309,18 @@ void ConfigLoad() {
     c.arriveTimeout = IniInt("Spawn", "ArriveTimeout", c.arriveTimeout);
     c.firstWaveDelay = IniInt("Spawn", "FirstWaveDelay", c.firstWaveDelay);
     c.blipRadius = IniFloat("Spawn", "BlipRadius", c.blipRadius);
+    c.scaleStart = IniInt("Scaling", "Start", c.scaleStart);
+    c.scaleStep = IniInt("Scaling", "Step", c.scaleStep);
+    c.scalePerStep = IniFloat("Scaling", "PerStep", c.scalePerStep);
+    c.scaleMinGain = IniFloat("Scaling", "MinGain", c.scaleMinGain);
+    c.flowRampSeconds = IniInt("Flow", "RampSeconds", c.flowRampSeconds);
+    c.flowRampStart = IniInt("Flow", "RampStart", c.flowRampStart);
+    c.flowGapScale = IniFloat("Flow", "GapScale", c.flowGapScale);
+    c.flowNearBase = IniInt("Flow", "NearBase", c.flowNearBase);
+    c.flowFarFootPct = IniInt("Flow", "FarFootChance", c.flowFarFootPct);
+    c.remoteRoadDist = IniFloat("Flow", "RemoteRoadDist", c.remoteRoadDist);
+    c.remoteHeliBonus = IniInt("Flow", "RemoteHeliBonus", c.remoteHeliBonus);
+    c.waterBoatPct = IniInt("Flow", "WaterBoatChance", c.waterBoatPct);
     for (int i = 0; i < 8; ++i) {
         char sec[16];
         snprintf(sec, sizeof sec, "Level%d", i + 1);

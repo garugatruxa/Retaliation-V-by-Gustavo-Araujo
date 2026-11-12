@@ -55,6 +55,27 @@ void AddPoints(int amount, const char *why) {
     }
     int before = s.Pts();
     int lvBefore = LevelOf(before);
+
+    // v9: escala decrescente - a partir de 50 pontos, cada 5 pontos acima tiram 0,2 de cada ganho (minimo 0,2).
+    // As fracoes se acumulam por personagem ate completar um ponto. Nao vale para teclas de teste nem o ciclo.
+    static float frac[CH_COUNT] = {};
+    if (amount > 0 && !s_force && g_cfg.scaleStep > 0 && before >= g_cfg.scaleStart) {
+        int steps = (before - g_cfg.scaleStart) / g_cfg.scaleStep;
+        float gain = amount - steps * g_cfg.scalePerStep;
+        if (gain < g_cfg.scaleMinGain) gain = g_cfg.scaleMinGain;
+        frac[s.ch] += gain;
+        int whole = (int)frac[s.ch];
+        frac[s.ch] -= whole;
+        if (whole <= 0) {
+            s.lastCrime = s.now; s.lastDecay = s.now;
+            Log("+%.1f %s (acumulando %.1f) -> %d pontos [%s]", gain, why, frac[s.ch], before, kCharName[s.ch]);
+            return;
+        }
+        if (gain != (float)amount) Log("  ganho reduzido pela escala: +%d vira +%.1f", amount, gain);
+        amount = whole;
+    }
+    if (before <= 0) frac[s.ch] = 0.f;
+
     int v = before + amount;
     if (v < 0) v = 0;
     if (v > g_cfg.maxPoints) v = g_cfg.maxPoints;

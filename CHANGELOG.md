@@ -71,3 +71,13 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Três modos: junto com a polícia (o original), substitui a polícia, ou o ciclo da v7.
 - Trocar de modo ou desligar limpa tudo e devolve a polícia ao normal.
 - Juggernaut humano com a armadura de Paleto Bay, copiada do jogo (segure PageDown e aperte End com o personagem de armadura). Sem a cópia, vem um mercenário com capacete e colete. O robô do Online saiu.
+
+## v9 — chegada aos poucos
+- Fila com espaçamento entre unidades (7–12 s no nível 1, 3,5–7 s no nível 8): fluxo contínuo em vez de bolo.
+- Pressão crescente: o limite de inimigos parte de 4 e sobe até o do nível em cerca de 3 minutos.
+- No máximo 3 + o nível de inimigos a menos de 60 m do jogador; o resto espera.
+- 35% dos grupos a pé nascem mais longe.
+- O tanque do Cargobob só atira depois de tocar o chão.
+- Escala decrescente: a partir de 50 pontos, cada 5 pontos acima tiram 0,2 de cada ganho (mínimo de 0,2).
+- Novas seções [Flow] e [Scaling] no .ini.
+- Funciona longe da cidade: spawns mais longe, terreno irregular aceito no interior, grupos saindo da estrada mais próxima, mais helicópteros longe das estradas e barcos quando há água por perto.
