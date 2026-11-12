@@ -179,9 +179,11 @@ Insurgent**, com motorista e um atirador na torreta .50, e desce perto de você.
 O Juggernaut é um **humano com a armadura pesada do modo história** (a da missão The Paleto Score), e não o
 robô do Online. Essa armadura só existe nas roupas dos protagonistas, então o mod copia a roupa direto do jogo:
 
-1. Repita a missão **The Paleto Score** pelo replay de missões.
+1. Repita a missão **The Paleto Score** pelo replay de missões. Durante a missão, o mod mostra um aviso na tela.
 2. Quando o personagem estiver com a armadura pesada, **segure PageDown e aperte End**.
-3. O mod salva a roupa no `Retaliation.ini`, em `[JuggernautOutfit]`, e os próximos Juggernauts já vêm com ela.
+3. O mod salva a armadura **daquele protagonista** no `Retaliation.ini` (`[JuggernautOutfit_Michael]`,
+   `_Trevor` ou `_Franklin`). Copie com mais de um para ter variedade: cada Juggernaut sorteia uma das armaduras
+   salvas.
 
 Até a roupa ser copiada, o Juggernaut é um mercenário da Merryweather com capacete e colete pesado.
 
@@ -222,7 +224,7 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v9.2.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v9.3.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: aperte **Insert** e ative pelo menu.
@@ -273,9 +275,17 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v9`, com as correções `v6.1`, `v7.1` e `v9.2`).
+(`v1` a `v9`, com as correções `v6.1`, `v7.1`, `v9.2` e `v9.3`).
 
-### v9 — atual (v9.2)
+### v9 — atual (v9.3)
+
+**v9.3:**
+- **Armas dos helicópteros:** o Annihilator, o Valkyrie e os helicópteros de ataque usam as metralhadoras, os
+  canhões e os mísseis deles. Quem senta numa torreta do helicóptero atira com ela.
+- **Rapel sem bug:** o helicóptero só joga as cordas quando está parado no ar e **fica fixo no mesmo lugar** até
+  todos descerem. As cordas não esticam mais.
+- **Juggernaut:** a armadura de Paleto é guardada por protagonista (Michael, Trevor, Franklin), e cada
+  Juggernaut sorteia uma. Durante a missão The Paleto Score, um aviso lembra como copiar.
 
 **v9.2:**
 - O mod **vem desligado** e o modo padrão é **Junto com a polícia**. Para começar, aperte Insert e ative.

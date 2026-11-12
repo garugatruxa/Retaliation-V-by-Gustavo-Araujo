@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.9.2"
+#define RETALIATION_VERSION "0.9.3"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -62,7 +62,8 @@ struct Config {
     // [Juggernaut]
     bool jugEnabled = true;
     // [JuggernautOutfit] v8: roupa copiada do jogo (armadura do assalto de Paleto Bay vestida por um protagonista)
-    struct Outfit { bool valid = false; unsigned model = 0; int comp[12][3] = {}; int prop[8][2] = {}; } jugOutfit;
+    struct Outfit { bool valid = false; unsigned model = 0; int comp[12][3] = {}; int prop[8][2] = {}; };
+    Outfit jugOutfits[4]; // v9.3: 0 = antiga (v8), 1 = Michael, 2 = Franklin, 3 = Trevor
     int jugMinLevel = 7, jugChance = 10, jugHealth = 3000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
     float topBonusPerPoint = 1.5f;
@@ -121,6 +122,7 @@ void AddPointsForce(int amount, const char *why); // ignora o bloqueio de fora d
 void CycleTick(Player pid);
 void PoliceRestore(Player pid); // devolve a policia ao normal (mod desligado ou troca de modo)
 void ConfigSetInt(const char *sec, const char *key, int v); // grava no .ini
+extern const char *kOutfitSection[4];
 void OutfitCapture(Ped p);  // salva a roupa atual do jogador como roupa do Juggernaut
 void OutfitApply(Ped p, const Config::Outfit &o);
 void MenuTick(); // menu do Insert (v8)

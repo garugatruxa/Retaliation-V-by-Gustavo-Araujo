@@ -379,19 +379,21 @@ void ConfigLoad() {
     c.escPerPoint = IniFloat("Escalation", "PerPoint", c.escPerPoint);
     c.topBonusPerPoint = IniFloat("TopBonus", "PerPoint", c.topBonusPerPoint);
     c.gearStart = IniInt("Gear", "Start", c.gearStart);
-    {   // roupa do Juggernaut copiada do jogo (ver OutfitCapture)
-        Config::Outfit &o = c.jugOutfit;
-        std::string m = IniStr("JuggernautOutfit", "Model", "");
+    // roupas do Juggernaut copiadas do jogo (ver OutfitCapture): uma por protagonista + a antiga da v8
+    for (int s = 0; s < 4; ++s) {
+        const char *sec = kOutfitSection[s];
+        Config::Outfit &o = c.jugOutfits[s];
+        std::string m = IniStr(sec, "Model", "");
         o.model = (unsigned)strtoul(m.c_str(), nullptr, 10);
         o.valid = o.model != 0;
         for (int i = 0; i < 12; ++i) {
             char k[8]; snprintf(k, sizeof k, "C%d", i);
-            std::vector<int> v = IniInts("JuggernautOutfit", k, {-1, 0, 0});
+            std::vector<int> v = IniInts(sec, k, {-1, 0, 0});
             for (int j = 0; j < 3; ++j) o.comp[i][j] = j < (int)v.size() ? v[j] : 0;
         }
         for (int i = 0; i < 8; ++i) {
             char k[8]; snprintf(k, sizeof k, "P%d", i);
-            std::vector<int> v = IniInts("JuggernautOutfit", k, {-1, 0});
+            std::vector<int> v = IniInts(sec, k, {-1, 0});
             for (int j = 0; j < 2; ++j) o.prop[i][j] = j < (int)v.size() ? v[j] : 0;
         }
     }
@@ -407,23 +409,31 @@ static void IniWrite(const char *sec, const char *key, const char *v) {
     WritePrivateProfileStringA(sec, key, v, g_ini.c_str());
 }
 
-// v8: copia a roupa que o jogador esta vestindo (ex.: armadura pesada na missao The Paleto Score)
+// secoes do .ini: 0 = antiga (v8), 1 = Michael, 2 = Franklin, 3 = Trevor
+const char *kOutfitSection[4] = {"JuggernautOutfit", "JuggernautOutfit_Michael", "JuggernautOutfit_Franklin",
+                                 "JuggernautOutfit_Trevor"};
+
+// v8/v9.3: copia a roupa que o protagonista esta vestindo (armadura pesada na missao The Paleto Score).
+// Cada protagonista tem a sua secao; o Juggernaut sorteia entre as que existirem.
 void OutfitCapture(Ped p) {
     char buf[64];
+    int slot = g_st.ch == CH_MICHAEL ? 1 : g_st.ch == CH_FRANKLIN ? 2 : g_st.ch == CH_TREVOR ? 3 : 0;
+    const char *sec = kOutfitSection[slot];
     snprintf(buf, sizeof buf, "%u", (unsigned)ENTITY::GET_ENTITY_MODEL(p));
-    IniWrite("JuggernautOutfit", "Model", buf);
+    IniWrite(sec, "Model", buf);
     for (int i = 0; i < 12; ++i) {
         char k[8]; snprintf(k, sizeof k, "C%d", i);
         snprintf(buf, sizeof buf, "%d,%d,%d", PED::GET_PED_DRAWABLE_VARIATION(p, i), PED::GET_PED_TEXTURE_VARIATION(p, i),
                  PED::GET_PED_PALETTE_VARIATION(p, i));
-        IniWrite("JuggernautOutfit", k, buf);
+        IniWrite(sec, k, buf);
     }
     for (int i = 0; i < 8; ++i) {
         char k[8]; snprintf(k, sizeof k, "P%d", i);
         snprintf(buf, sizeof buf, "%d,%d", PED::GET_PED_PROP_INDEX(p, i), PED::GET_PED_PROP_TEXTURE_INDEX(p, i));
-        IniWrite("JuggernautOutfit", k, buf);
+        IniWrite(sec, k, buf);
     }
-    Log("Roupa do Juggernaut copiada do jogador (modelo %u).", (unsigned)ENTITY::GET_ENTITY_MODEL(p));
+    Log("Roupa do Juggernaut copiada (%s, modelo %u) em [%s].", kCharName[g_st.ch],
+        (unsigned)ENTITY::GET_ENTITY_MODEL(p), sec);
 }
 
 void OutfitApply(Ped p, const Config::Outfit &o) {

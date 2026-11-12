@@ -86,3 +86,8 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - O mod vem desligado e o modo padrão é Junto com a polícia (aperte Insert e ative).
 - Menu mais perto do topo, compacto, com letras maiores e título na fonte do GTA.
 - Menu e avisos no idioma do jogo (português, espanhol ou inglês).
+
+## v9.3
+- Armas dos helicópteros funcionando: Annihilator, Valkyrie e helicópteros de ataque usam metralhadoras, canhões e mísseis; torretas tripuladas.
+- Rapel: o helicóptero só joga as cordas parado e fica fixo até todos descerem.
+- Juggernaut: armadura de Paleto guardada por protagonista, sorteada a cada Juggernaut, com aviso durante a missão.

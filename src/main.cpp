@@ -157,6 +157,25 @@ static void ScriptMain() {
             g_st.pauseReason = why;
         }
 
+        // v9.3: na missao The Paleto Score, lembra de copiar a armadura pesada para o Juggernaut
+        {
+            static const Hash paleto = GAMEPLAY::GET_HASH_KEY((char *)"rural_bank_heist");
+            static bool inPaleto = false;
+            static int hintAt = 0;
+            bool now = SCRIPT::_GET_NUMBER_OF_INSTANCES_OF_STREAMED_SCRIPT(paleto) > 0;
+            if (now && !inPaleto) { hintAt = g_st.now + 60000; Log("Missao The Paleto Score detectada."); }
+            if (now && g_cfg.debugKeys && hintAt && g_st.now >= hintAt) {
+                hintAt = g_st.now + 90000; // repete de vez em quando durante a missao
+                Notify(Tr("~r~Retaliation V~s~: de armadura pesada? Segure ~b~PageDown~s~ e aperte ~b~End~s~ para "
+                          "copiar a armadura para o Juggernaut.",
+                          "~r~Retaliation V~s~: wearing the heavy armor? Hold ~b~PageDown~s~ and press ~b~End~s~ to "
+                          "copy it to the Juggernaut.",
+                          "~r~Retaliation V~s~: ¿con la armadura pesada? Mantén ~b~AvPág~s~ y pulsa ~b~Fin~s~ para "
+                          "copiarla al Juggernaut."));
+            }
+            inPaleto = now;
+        }
+
         PointsTick(player, pid);
         SpawnerTick(player);
         DebugKeys();

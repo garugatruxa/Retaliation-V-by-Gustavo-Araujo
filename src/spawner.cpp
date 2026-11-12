@@ -542,8 +542,12 @@ static void SpawnJuggernaut() {
     if (jugSeat != -2) {
         // v8: humano com a armadura pesada do assalto de Paleto Bay (roupa copiada do jogo);
         // sem ela, um mercenario da Merryweather com capacete e colete. Nunca o robo do Online.
-        const Config::Outfit &of = g_cfg.jugOutfit;
-        bool suit = of.valid && STREAMING::IS_MODEL_IN_CDIMAGE(of.model);
+        // v9.3: sorteia entre as armaduras copiadas (Michael, Franklin, Trevor e a antiga)
+        std::vector<int> slots;
+        for (int s = 0; s < 4; ++s)
+            if (g_cfg.jugOutfits[s].valid && STREAMING::IS_MODEL_IN_CDIMAGE(g_cfg.jugOutfits[s].model)) slots.push_back(s);
+        const Config::Outfit &of = g_cfg.jugOutfits[slots.empty() ? 0 : slots[Rand((int)slots.size())]];
+        bool suit = !slots.empty();
         Hash jm = suit ? (Hash)of.model : H("s_m_y_blackops_01");
         if (!STREAMING::IS_MODEL_IN_CDIMAGE(jm)) jm = RandomPed();
         Ped j = NewPedIn(v, jm, jugSeat);
@@ -662,7 +666,8 @@ static bool SpawnRoadblock() {
 // do jogador e a tropa desce de corda) e ataque (Buzzard, mais raro). Matar o piloto derruba o helicoptero.
 enum HeliType { HT_SHOOTERS, HT_RAPPEL, HT_ATTACK };
 // state: 0 chegando, 1 rapel, 2 rondando, 10 pousando, 11 desembarcando
-struct HeliSt { Vehicle veh; Ped pilot; HeliType type; int state; int at; Vector3 drop; bool land; };
+struct HeliSt { Vehicle veh; Ped pilot; HeliType type; int state; int at; Vector3 drop; bool land;
+                float holdHeading = 0.f; int nextHold = 0; };
 static std::vector<HeliSt> s_helis;
 static std::vector<Hash> s_genericHelis;
 
@@ -679,8 +684,25 @@ static bool CanRappel(Hash m) {
     static const Hash a = H("maverick"), b = H("annihilator"), c = H("polmav");
     return m == a || m == b || m == c;
 }
+// v9.3: helicopteros com armas proprias (metralhadoras, canhoes, misseis)
+static bool ArmedHeli(Hash m) {
+    static const Hash list[] = {H("annihilator"), H("valkyrie"), H("valkyrie2"), H("buzzard"),
+                                H("savage"),      H("hunter"),   H("akula")};
+    for (Hash x : list) if (m == x) return true;
+    return false;
+}
+// Ronda o jogador. Helicoptero armado entra em combate, para usar as armas dele em vez de so voar em volta.
 static void PilotCircle(Ped pilot, Vehicle v, float radius) {
+    if (ArmedHeli(ENTITY::GET_ENTITY_MODEL(v))) {
+        VEHICLE::SET_VEHICLE_ENGINE_ON(v, TRUE, TRUE, FALSE);
+        AI::TASK_COMBAT_PED(pilot, s_player, 0, 16);
+        return;
+    }
     AI::TASK_HELI_MISSION(pilot, v, 0, s_player, 0.f, 0.f, 0.f, 9, 35.f, radius, -1.f, 40, 25, -1.f, 0);
+}
+// v9.3: fica parado no ar, no mesmo ponto e direcao, enquanto a tropa desce de corda
+static void PilotHold(Ped pilot, Vehicle v, const Vector3 &p, float heading) {
+    AI::TASK_HELI_MISSION(pilot, v, 0, 0, p.x, p.y, p.z, 4, 1.0f, 0.f, heading, -1, -1, -1.f, 0);
 }
 static void PilotLand(Ped pilot, Vehicle v, const Vector3 &p) {
     // missao "ir ate" com a flag 32 (pousar ao chegar)
@@ -758,6 +780,8 @@ static void SpawnHeli(bool air) {
             Hunter &h = AddHunter(ped);
             h.stayInVeh = true;
             h.heliRappel = type == HT_RAPPEL;
+            // v9.3: quem senta numa torreta (ex.: metralhadoras laterais do Valkyrie) usa a arma do helicoptero
+            if (invoke<BOOL>(0xE33FFA906CE74880, v, s)) h.rangeExempt = true; // IS_TURRET_SEAT
             ++crew;
         }
     }
@@ -836,16 +860,29 @@ static void UpdateHelis() {
                 st.at = g_st.now;
                 PilotGoTo(st.pilot, st.veh, st.drop);
             }
+            // v9.3: so joga as cordas quando estiver parado no ar (pairando) sobre o ponto
+            Vector3 vel = ENTITY::GET_ENTITY_VELOCITY(st.veh);
+            float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
             bool overDrop = D2(hp, st.drop) < 20.f && ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(st.veh) < 38.f;
-            if (overDrop || g_st.now - st.at > 60000) {
+            if (overDrop && speed > 2.5f) PilotHold(st.pilot, st.veh, hp, ENTITY::GET_ENTITY_HEADING(st.veh)); // freia
+            if ((overDrop && speed <= 2.5f) || g_st.now - st.at > 60000) {
+                st.drop = hp; // daqui em diante, st.drop = ponto em que ele fica parado
+                st.holdHeading = ENTITY::GET_ENTITY_HEADING(st.veh);
+                PilotHold(st.pilot, st.veh, st.drop, st.holdHeading);
                 for (Hunter &h : s_h)
                     if (h.heliRappel && PED::IS_PED_IN_VEHICLE(h.ped, st.veh, FALSE))
                         invoke<Void>(0x09693B0312F91649, h.ped, 10.0f); // TASK_RAPPEL_FROM_HELI
                 st.state = 1;
                 st.at = g_st.now;
-                Log("  rapel: tropa descendo de corda.");
+                st.nextHold = g_st.now + 2000;
+                Log("  rapel: helicoptero parado, tropa descendo de corda.");
             }
         } else if (st.type == HT_RAPPEL && st.state == 1) {
+            // continua parado no mesmo ponto ate todos descerem (sem esticar as cordas)
+            if (g_st.now >= st.nextHold) {
+                st.nextHold = g_st.now + 2000;
+                PilotHold(st.pilot, st.veh, st.drop, st.holdHeading);
+            }
             bool pending = false;
             for (Hunter &h : s_h) {
                 if (!h.heliRappel) continue;
