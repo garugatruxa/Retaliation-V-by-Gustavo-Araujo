@@ -64,3 +64,10 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Modo Diretor: ao entrar ou sair, os retaliadores somem e a retaliação zera. Lá dentro ela funciona com qualquer NPC e sobe direto pelos crimes ou pelas teclas de teste, sem o ciclo da polícia. Com `DirectorMode=0`, ela fica pausada.
 - Versão única, sem presets de desempenho.
 - Teclas de teste sem Ctrl: segure PageDown e aperte PageUp para subir um nível; segure PageUp e aperte PageDown para descer.
+
+## v8 — menu e modos
+- Menu na tecla Insert: as setas escolhem e mudam as opções, e a escolha fica salva no .ini.
+- Mod ativado/desativado pelo menu.
+- Três modos: junto com a polícia (o original), substitui a polícia, ou o ciclo da v7.
+- Trocar de modo ou desligar limpa tudo e devolve a polícia ao normal.
+- Juggernaut humano com a armadura de Paleto Bay, copiada do jogo (segure PageDown e aperte End com o personagem de armadura). Sem a cópia, vem um mercenário com capacete e colete. O robô do Online saiu.

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.7"
+#define RETALIATION_VERSION "0.8"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -15,6 +15,8 @@ struct Config {
     // [General]
     bool enabled = true;
     bool activeInMissions = false;
+    // v8: 1 = junto com a policia (original), 2 = substitui a policia, 3 = ciclo (policia -> Retaliation -> livre)
+    int mode = 3;
     bool directorMode = true; // v7: 1 = Retaliation livre no Modo Diretor (comeca zerado); 0 = limpa e pausa ao entrar
     bool debugKeys = true;
     // [Points]
@@ -50,6 +52,8 @@ struct Config {
     int rbMinLevel = 3, rbChance = 30;
     // [Juggernaut]
     bool jugEnabled = true;
+    // [JuggernautOutfit] v8: roupa copiada do jogo (armadura do assalto de Paleto Bay vestida por um protagonista)
+    struct Outfit { bool valid = false; unsigned model = 0; int comp[12][3] = {}; int prop[8][2] = {}; } jugOutfit;
     int jugMinLevel = 7, jugChance = 10, jugHealth = 3000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
     float topBonusPerPoint = 1.5f;
@@ -106,6 +110,12 @@ void PointsTick(Ped player, Player pid);
 void AddPoints(int amount, const char *why);
 void AddPointsForce(int amount, const char *why); // ignora o bloqueio de fora do ciclo (teste e inicio do ciclo)
 void CycleTick(Player pid);
+void PoliceRestore(Player pid); // devolve a policia ao normal (mod desligado ou troca de modo)
+void ConfigSetInt(const char *sec, const char *key, int v); // grava no .ini
+void OutfitCapture(Ped p);  // salva a roupa atual do jogador como roupa do Juggernaut
+void OutfitApply(Ped p, const Config::Outfit &o);
+void MenuTick(); // menu do Insert (v8)
+extern const char *kModeName[4];
 
 // hud.cpp
 void HudTick();

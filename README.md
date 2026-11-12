@@ -20,6 +20,7 @@ no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque 
 ## Índice
 
 - [Como funciona](#como-funciona)
+  - [Menu e modos (tecla Insert)](#menu-e-modos-tecla-insert)
   - [O ciclo: polícia → Retaliation → livre](#o-ciclo-polícia--retaliation--livre)
   - [Pontos de retaliação](#pontos-de-retaliação)
   - [Níveis e facções](#níveis-e-facções)
@@ -43,6 +44,24 @@ no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque 
 ---
 
 ## Como funciona
+
+### Menu e modos (tecla Insert)
+
+Aperte **Insert** para abrir o menu do mod, no canto esquerdo da tela. Use **↑ / ↓** para escolher a linha e
+**← / →** para mudar o valor. Com o menu aberto, as setas não mexem no celular nem no jogo. A escolha fica
+salva no `Retaliation.ini`.
+
+| Opção | Valores |
+|---|---|
+| **Mod** | Ativado / Desativado |
+| **Modo** | Junto com a polícia / Substitui a polícia / Ciclo (polícia → Retaliation) |
+
+- **Junto com a polícia** (o original): os crimes dão pontos sempre, e a polícia age normalmente ao mesmo tempo.
+  É uma guerra de três lados o tempo todo.
+- **Substitui a polícia:** você nunca ganha estrelas. Quem vem atrás de você são os retaliadores.
+- **Ciclo** (padrão): explicado logo abaixo.
+
+Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devolve a polícia ao normal.
 
 ### O ciclo: polícia → Retaliation → livre
 
@@ -149,6 +168,15 @@ Mini-boss dos níveis 7 e 8, com a armadura pesada do assalto de Paleto Bay. Che
 Insurgent**, com motorista e um atirador na torreta .50, e desce perto de você. Vem com **Combat MG** ou com a
 **escopeta automática de tambor**. A **minigun** é rara.
 
+O Juggernaut é um **humano com a armadura pesada do modo história** (a da missão The Paleto Score), e não o
+robô do Online. Essa armadura só existe nas roupas dos protagonistas, então o mod copia a roupa direto do jogo:
+
+1. Repita a missão **The Paleto Score** pelo replay de missões.
+2. Quando o personagem estiver com a armadura pesada, **segure PageDown e aperte End**.
+3. O mod salva a roupa no `Retaliation.ini`, em `[JuggernautOutfit]`, e os próximos Juggernauts já vêm com ela.
+
+Até a roupa ser copiada, o Juggernaut é um mercenário da Merryweather com capacete e colete pesado.
+
 ### Tanque no Cargobob e caça a jato
 
 Só no nível 8, um de cada por vez:
@@ -186,7 +214,7 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v7.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v8.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
 5. **Atualizando de outra versão:** substitua o `.asi` e apague o `Retaliation.ini` antigo, para o mod criar um
@@ -200,7 +228,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 
 | Seção | O que controla |
 |---|---|
-| `[General]` | Liga/desliga, ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
+| `[General]` | Liga/desliga, modo (1, 2 ou 3, também pelo menu), ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
 | `[Points]` | Pontos de cada crime e decaimento |
 | `[Levels]` | Em que pontos cada nível começa |
 | `[HotTimer]` | Timer de 5 min acima de 70 pontos |
@@ -224,6 +252,7 @@ Com `DebugKeys=1` (padrão), dá para mudar a pressão sem cometer crimes:
 
 - **Subir um nível:** segure **PageDown** e aperte **PageUp**.
 - **Descer um nível:** segure **PageUp** e aperte **PageDown**.
+- **Copiar a roupa atual para o Juggernaut:** segure **PageDown** e aperte **End**.
 
 O `Retaliation.log` registra cada crime, cada nível, cada wave e cada especial, além dos modelos e armas que o
 jogo não reconheceu.
@@ -233,9 +262,23 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v7.1`).
+(`v1` a `v8`).
 
-### v7 — atual
+### v8 — atual
+
+Comparado à v7:
+- **Menu do mod na tecla Insert**, no canto esquerdo, com texto branco e detalhes no vermelho da barra. As setas
+  escolhem e mudam as opções, e a escolha fica salva no `.ini`.
+- **Mod ativado/desativado** direto pelo menu, sem precisar mexer no `.ini`.
+- **Três modos** à escolha, que juntam as formas que o mod já teve:
+  - **Junto com a polícia:** o original (v2–v6). Os crimes sempre dão pontos e a polícia age ao mesmo tempo.
+  - **Substitui a polícia:** sem estrelas, só os retaliadores.
+  - **Ciclo:** o da v7, com polícia, fase conjunta, Retaliation e livre.
+- Trocar de modo ou desligar o mod limpa tudo e devolve a polícia ao normal.
+- **Juggernaut humano:** a armadura pesada do assalto de Paleto Bay no lugar do robô do Online. A roupa é
+  copiada do jogo (segure PageDown e aperte End com o personagem de armadura).
+
+### v7
 
 Comparado à v6:
 

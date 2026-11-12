@@ -478,12 +478,22 @@ static void SpawnJuggernaut() {
 
     // o Juggernaut
     if (jugSeat != -2) {
-        Hash jm = H("u_m_y_juggernaut_01");
-        bool real = STREAMING::IS_MODEL_IN_CDIMAGE(jm);
-        if (!real) { Log("  modelo u_m_y_juggernaut_01 nao existe: usando um da faccao."); jm = RandomPed(); }
+        // v8: humano com a armadura pesada do assalto de Paleto Bay (roupa copiada do jogo);
+        // sem ela, um mercenario da Merryweather com capacete e colete. Nunca o robo do Online.
+        const Config::Outfit &of = g_cfg.jugOutfit;
+        bool suit = of.valid && STREAMING::IS_MODEL_IN_CDIMAGE(of.model);
+        Hash jm = suit ? (Hash)of.model : H("s_m_y_blackops_01");
+        if (!STREAMING::IS_MODEL_IN_CDIMAGE(jm)) jm = RandomPed();
         Ped j = NewPedIn(v, jm, jugSeat);
         if (j) {
-            if (real) PED::SET_PED_DEFAULT_COMPONENT_VARIATION(j);
+            if (suit) {
+                OutfitApply(j, of);
+            } else {
+                Log("  Juggernaut sem a armadura de Paleto copiada: usando mercenario com capacete e colete.");
+                int n = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(j, 9);
+                if (n > 1) PED::SET_PED_COMPONENT_VARIATION(j, 9, n - 1, 0, 0);
+                if (PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(j, 0) > 0) PED::SET_PED_PROP_INDEX(j, 0, 0, 0, TRUE);
+            }
             Hash jw = JuggWeapon();
             SetupPed(j, s_level, jw);
             PED::SET_PED_MAX_HEALTH(j, g_cfg.jugHealth);

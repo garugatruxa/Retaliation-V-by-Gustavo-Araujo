@@ -36,6 +36,9 @@ static const char *kDefaultIni =
     "Enabled=1\r\n"
     "; 1 = emboscadas continuam durante missoes da historia\r\n"
     "ActiveInMissions=0\r\n"
+    "; modo (tambem muda pelo menu, tecla Insert): 1 = junto com a policia, 2 = substitui a policia,\r\n"
+    "; 3 = ciclo policia -> Retaliation -> livre\r\n"
+    "Mode=3\r\n"
     "; Modo Diretor (Rockstar Editor): 1 = Retaliation livre com qualquer NPC (comeca zerado, sobe por crimes ou\r\n"
     "; pelas teclas de teste, sem o ciclo da policia); 0 = remove os retaliadores e pausa\r\n"
     "DirectorMode=1\r\n"
@@ -133,6 +136,8 @@ static const char *kDefaultIni =
     "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara: base e teto)\r\n"
     "MinigunChance=10\r\n"
     "MinigunMax=25\r\n"
+    "; a roupa do Juggernaut fica em [JuggernautOutfit]. Para copiar a armadura pesada do assalto de Paleto Bay:\r\n"
+    "; repita a missao The Paleto Score e, ja de armadura, segure PageDown e aperte End\r\n"
     "\r\n"
     "[TopBonus]\r\n"
     "; % extra de chance dos especiais por ponto acima do inicio do ultimo nivel\r\n"
@@ -241,6 +246,8 @@ void ConfigLoad() {
     Config c;
     c.enabled = IniInt("General", "Enabled", 1);
     c.activeInMissions = IniInt("General", "ActiveInMissions", 0);
+    c.mode = IniInt("General", "Mode", 3);
+    if (c.mode < 1 || c.mode > 3) c.mode = 3;
     c.directorMode = IniInt("General", "DirectorMode", 1);
     c.debugKeys = IniInt("General", "DebugKeys", 1);
     c.killCivilian = IniInt("Points", "KillCivilian", c.killCivilian);
@@ -335,12 +342,65 @@ void ConfigLoad() {
     c.escPerPoint = IniFloat("Escalation", "PerPoint", c.escPerPoint);
     c.topBonusPerPoint = IniFloat("TopBonus", "PerPoint", c.topBonusPerPoint);
     c.gearStart = IniInt("Gear", "Start", c.gearStart);
+    {   // roupa do Juggernaut copiada do jogo (ver OutfitCapture)
+        Config::Outfit &o = c.jugOutfit;
+        std::string m = IniStr("JuggernautOutfit", "Model", "");
+        o.model = (unsigned)strtoul(m.c_str(), nullptr, 10);
+        o.valid = o.model != 0;
+        for (int i = 0; i < 12; ++i) {
+            char k[8]; snprintf(k, sizeof k, "C%d", i);
+            std::vector<int> v = IniInts("JuggernautOutfit", k, {-1, 0, 0});
+            for (int j = 0; j < 3; ++j) o.comp[i][j] = j < (int)v.size() ? v[j] : 0;
+        }
+        for (int i = 0; i < 8; ++i) {
+            char k[8]; snprintf(k, sizeof k, "P%d", i);
+            std::vector<int> v = IniInts("JuggernautOutfit", k, {-1, 0});
+            for (int j = 0; j < 2; ++j) o.prop[i][j] = j < (int)v.size() ? v[j] : 0;
+        }
+    }
     g_cfg = c;
 
     std::string lv;
     for (int v : g_cfg.levelStart) lv += std::to_string(v) + " ";
     Log("Config: niveis comecam em [ %s], max %d, decaimento %d a cada %ds, timer de %ds acima de %d pts.",
         lv.c_str(), g_cfg.maxPoints, g_cfg.decayAmount, g_cfg.decayInterval, g_cfg.hotSeconds, g_cfg.hotPoints);
+}
+
+static void IniWrite(const char *sec, const char *key, const char *v) {
+    WritePrivateProfileStringA(sec, key, v, g_ini.c_str());
+}
+
+// v8: copia a roupa que o jogador esta vestindo (ex.: armadura pesada na missao The Paleto Score)
+void OutfitCapture(Ped p) {
+    char buf[64];
+    snprintf(buf, sizeof buf, "%u", (unsigned)ENTITY::GET_ENTITY_MODEL(p));
+    IniWrite("JuggernautOutfit", "Model", buf);
+    for (int i = 0; i < 12; ++i) {
+        char k[8]; snprintf(k, sizeof k, "C%d", i);
+        snprintf(buf, sizeof buf, "%d,%d,%d", PED::GET_PED_DRAWABLE_VARIATION(p, i), PED::GET_PED_TEXTURE_VARIATION(p, i),
+                 PED::GET_PED_PALETTE_VARIATION(p, i));
+        IniWrite("JuggernautOutfit", k, buf);
+    }
+    for (int i = 0; i < 8; ++i) {
+        char k[8]; snprintf(k, sizeof k, "P%d", i);
+        snprintf(buf, sizeof buf, "%d,%d", PED::GET_PED_PROP_INDEX(p, i), PED::GET_PED_PROP_TEXTURE_INDEX(p, i));
+        IniWrite("JuggernautOutfit", k, buf);
+    }
+    Log("Roupa do Juggernaut copiada do jogador (modelo %u).", (unsigned)ENTITY::GET_ENTITY_MODEL(p));
+}
+
+void OutfitApply(Ped p, const Config::Outfit &o) {
+    for (int i = 0; i < 12; ++i)
+        if (o.comp[i][0] >= 0) PED::SET_PED_COMPONENT_VARIATION(p, i, o.comp[i][0], o.comp[i][1], o.comp[i][2]);
+    PED::CLEAR_ALL_PED_PROPS(p);
+    for (int i = 0; i < 8; ++i)
+        if (o.prop[i][0] >= 0) PED::SET_PED_PROP_INDEX(p, i, o.prop[i][0], o.prop[i][1], TRUE);
+}
+
+void ConfigSetInt(const char *sec, const char *key, int v) {
+    char buf[16];
+    snprintf(buf, sizeof buf, "%d", v);
+    WritePrivateProfileStringA(sec, key, buf, g_ini.c_str());
 }
 
 int LevelOf(int points) {

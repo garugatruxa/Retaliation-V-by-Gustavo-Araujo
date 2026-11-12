@@ -47,7 +47,8 @@ void AddPointsForce(int amount, const char *why) { s_force = true; AddPoints(amo
 
 void AddPoints(int amount, const char *why) {
     State &s = g_st;
-    if (amount > 0 && s.Pts() <= 0 && !s_force && !s.director) return; // fora do ciclo: so a policia
+    // so no modo ciclo (3) os crimes nao dao pontos fora do Retaliation
+    if (amount > 0 && s.Pts() <= 0 && !s_force && !s.director && g_cfg.mode == 3) return;
     if (amount > 0 && s.now < s.cooldownUntil) {
         Log("%s ignorado (cooldown do calor maximo).", why);
         return;
@@ -158,8 +159,31 @@ static void ClearWanted(Player pid) {
     PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
 }
 
+void PoliceRestore(Player pid) {
+    PoliceIgnore(pid, false);
+    ApplyMaxWanted(5);
+    s_jointUntil = 0;
+    s_wasActive = false;
+    g_st.wantedMaxSince = -1;
+}
+
 void CycleTick(Player pid) {
     State &s = g_st;
+    bool missionPause0 = s.paused && strcmp(s.pauseReason, "interior") != 0;
+    // v8, modo 1: junto com a policia (original) - o mod nao mexe na policia
+    // v8, modo 2: substitui a policia - o jogador nunca ganha estrelas; os retaliadores vem no lugar
+    if (!s.director && g_cfg.mode != 3) {
+        PoliceIgnore(pid, false);
+        s_jointUntil = 0;
+        s.wantedMaxSince = -1;
+        bool block = g_cfg.mode == 2 && !missionPause0;
+        ApplyMaxWanted(block ? 0 : 5);
+        if (block && PLAYER::GET_PLAYER_WANTED_LEVEL(pid) > 0) ClearWanted(pid);
+        bool active = s.Pts() > 0;
+        if (s_wasActive && !active) DespawnAll(false, "jogador livre");
+        s_wasActive = active;
+        return;
+    }
     if (s.director) { // Modo Diretor: sem ciclo e sem mexer na policia (ele tem a propria configuracao)
         PoliceIgnore(pid, false);
         ApplyMaxWanted(5);

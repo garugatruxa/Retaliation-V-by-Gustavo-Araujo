@@ -30,11 +30,16 @@ static FILETIME IniTime() {
 // v7: sem Ctrl (que o jogo usa). Segurar PageDown e apertar PageUp sobe um nivel;
 // segurar PageUp e apertar PageDown desce um nivel.
 static void DebugKeys() {
-    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT);
+    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT), end = KeyPressed(VK_END);
     bool holdUp = (GetAsyncKeyState(VK_PRIOR) & 0x8000) != 0, holdDn = (GetAsyncKeyState(VK_NEXT) & 0x8000) != 0;
     if (!g_cfg.debugKeys) return;
     const auto &ls = g_cfg.levelStart;
     int pts = g_st.Pts(), lv = LevelOf(pts);
+    if (end && holdDn) { // v8: copia a roupa atual como roupa do Juggernaut
+        OutfitCapture(PLAYER::PLAYER_PED_ID());
+        Notify("~r~Retaliation V~s~: roupa do Juggernaut copiada.");
+        return;
+    }
     if (up && holdDn) { // sobe um nivel
         int to = lv < (int)ls.size() ? ls[lv] : g_cfg.maxPoints;
         if (to > pts) AddPointsForce(to - pts, "(teste) segurar PageDown + PageUp: sobe nivel");
@@ -100,7 +105,23 @@ static void ScriptMain() {
         Player pid = PLAYER::PLAYER_ID();
         bool switching = STREAMING::IS_PLAYER_SWITCH_IN_PROGRESS();
         if (switching && HuntersAlive()) DespawnAll(true, "troca de personagem");
-        if (!g_cfg.enabled && HuntersAlive()) DespawnAll(false, "mod desligado no .ini");
+
+        // v8: menu do Insert; ligar/desligar ou trocar de modo (pelo menu ou pelo .ini) limpa tudo
+        MenuTick();
+        static int lastEnabled = -1, lastMode = -1;
+        if (lastEnabled != (int)g_cfg.enabled || lastMode != g_cfg.mode) {
+            if (lastEnabled != -1) {
+                DespawnAll(true, g_cfg.enabled ? "troca de modo" : "mod desativado");
+                for (int &p : g_st.points) p = 0;
+                g_st.hotSince = -1;
+                g_st.lastCrime = g_st.lastDecay = g_st.now;
+                PoliceRestore(pid);
+                Log("Mod %s, modo %d (%s).", g_cfg.enabled ? "ativado" : "desativado", g_cfg.mode,
+                    kModeName[g_cfg.mode]);
+            }
+            lastEnabled = g_cfg.enabled;
+            lastMode = g_cfg.mode;
+        }
         if (!g_cfg.enabled || !ENTITY::DOES_ENTITY_EXIST(player) || switching) {
             WAIT(0);
             continue;
