@@ -37,7 +37,8 @@ static void DebugKeys() {
     int pts = g_st.Pts(), lv = LevelOf(pts);
     if (end && holdDn) { // v8: copia a roupa atual como roupa do Juggernaut
         OutfitCapture(PLAYER::PLAYER_PED_ID());
-        Notify("~r~Retaliation V~s~: roupa do Juggernaut copiada.");
+        Notify(Tr("~r~Retaliation V~s~: roupa do Juggernaut copiada.", "~r~Retaliation V~s~: Juggernaut outfit saved.",
+                   "~r~Retaliation V~s~: ropa del Juggernaut guardada."));
         return;
     }
     if (up && holdDn) { // sobe um nivel

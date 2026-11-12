@@ -33,12 +33,13 @@ static const char *kDefaultIni =
     "; Apague este arquivo para recriar com os valores padrao.\r\n"
     "\r\n"
     "[General]\r\n"
-    "Enabled=1\r\n"
+    "; 0 = mod desligado (padrao). Liga e desliga tambem pelo menu (tecla Insert)\r\n"
+    "Enabled=0\r\n"
     "; 1 = emboscadas continuam durante missoes da historia\r\n"
     "ActiveInMissions=0\r\n"
     "; modo (tambem muda pelo menu, tecla Insert): 1 = junto com a policia, 2 = substitui a policia,\r\n"
     "; 3 = ciclo policia -> Retaliation -> livre\r\n"
-    "Mode=3\r\n"
+    "Mode=1\r\n"
     "; Modo Diretor (Rockstar Editor): 1 = Retaliation livre com qualquer NPC (comeca zerado, sobe por crimes ou\r\n"
     "; pelas teclas de teste, sem o ciclo da policia); 0 = remove os retaliadores e pausa\r\n"
     "DirectorMode=1\r\n"
@@ -268,9 +269,9 @@ void ConfigLoad() {
         }
     }
     Config c;
-    c.enabled = IniInt("General", "Enabled", 1);
+    c.enabled = IniInt("General", "Enabled", 0);
     c.activeInMissions = IniInt("General", "ActiveInMissions", 0);
-    c.mode = IniInt("General", "Mode", 3);
+    c.mode = IniInt("General", "Mode", 1);
     if (c.mode < 1 || c.mode > 3) c.mode = 3;
     c.directorMode = IniInt("General", "DirectorMode", 1);
     c.debugKeys = IniInt("General", "DebugKeys", 1);

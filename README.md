@@ -47,19 +47,22 @@ no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque 
 
 ### Menu e modos (tecla Insert)
 
-Aperte **Insert** para abrir o menu do mod, no canto esquerdo da tela. Use **↑ / ↓** para escolher a linha e
-**← / →** para mudar o valor. Com o menu aberto, as setas não mexem no celular nem no jogo. A escolha fica
-salva no `Retaliation.ini`.
+> **O mod vem desligado.** Na primeira vez, aperte **Insert** e mude a linha **Mod** para **Ativado**.
+
+Aperte **Insert** para abrir o menu do mod, no canto superior esquerdo da tela. Use **↑ / ↓** para escolher a
+linha e **← / →** para mudar o valor. Com o menu aberto, as setas não mexem no celular nem no jogo. A escolha
+fica salva no `Retaliation.ini`. O menu segue o **idioma do jogo**: português, espanhol ou, nos outros idiomas,
+inglês.
 
 | Opção | Valores |
 |---|---|
 | **Mod** | Ativado / Desativado |
 | **Modo** | Junto com a polícia / Substitui a polícia / Ciclo (polícia → Retaliation) |
 
-- **Junto com a polícia** (o original): os crimes dão pontos sempre, e a polícia age normalmente ao mesmo tempo.
-  É uma guerra de três lados o tempo todo.
+- **Junto com a polícia** (padrão, o original): os crimes dão pontos sempre, e a polícia age normalmente ao
+  mesmo tempo. É uma guerra de três lados o tempo todo.
 - **Substitui a polícia:** você nunca ganha estrelas. Quem vem atrás de você são os retaliadores.
-- **Ciclo** (padrão): explicado logo abaixo.
+- **Ciclo:** explicado logo abaixo.
 
 Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devolve a polícia ao normal.
 
@@ -219,9 +222,10 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v9.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v9.2.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
+   Ele **vem desligado**: aperte **Insert** e ative pelo menu.
 5. **Atualizando de outra versão:** substitua o `.asi` e apague o `Retaliation.ini` antigo, para o mod criar um
    novo com as opções atuais.
 
@@ -269,9 +273,14 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v9`, com as correções `v6.1` e `v7.1`).
+(`v1` a `v9`, com as correções `v6.1`, `v7.1` e `v9.2`).
 
-### v9 — atual
+### v9 — atual (v9.2)
+
+**v9.2:**
+- O mod **vem desligado** e o modo padrão é **Junto com a polícia**. Para começar, aperte Insert e ative.
+- **Menu** mais perto do topo da tela, mais compacto, com letras maiores e o título na fonte do GTA (Pricedown).
+- O menu e os avisos seguem o **idioma do jogo**: português, espanhol ou, nos outros idiomas, inglês.
 
 Comparado à v8:
 - **Chegada aos poucos, como no Retaliation original:**

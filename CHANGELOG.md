@@ -81,3 +81,8 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Escala decrescente: a partir de 50 pontos, cada 5 pontos acima tiram 0,2 de cada ganho (mínimo de 0,2).
 - Novas seções [Flow] e [Scaling] no .ini.
 - Funciona longe da cidade: spawns mais longe, terreno irregular aceito no interior, grupos saindo da estrada mais próxima, mais helicópteros longe das estradas e barcos quando há água por perto.
+
+## v9.2
+- O mod vem desligado e o modo padrão é Junto com a polícia (aperte Insert e ative).
+- Menu mais perto do topo, compacto, com letras maiores e título na fonte do GTA.
+- Menu e avisos no idioma do jogo (português, espanhol ou inglês).

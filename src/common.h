@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.9"
+#define RETALIATION_VERSION "0.9.2"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -13,10 +13,10 @@ void Log(const char *fmt, ...);
 // ---------- config ----------
 struct Config {
     // [General]
-    bool enabled = true;
+    bool enabled = false; // v9.2: comeca desligado (liga pelo menu, tecla Insert)
     bool activeInMissions = false;
     // v8: 1 = junto com a policia (original), 2 = substitui a policia, 3 = ciclo (policia -> Retaliation -> livre)
-    int mode = 3;
+    int mode = 1; // v9.2: padrao = junto com a policia
     bool directorMode = true; // v7: 1 = Retaliation livre no Modo Diretor (comeca zerado); 0 = limpa e pausa ao entrar
     bool debugKeys = true;
     // [Points]
@@ -125,6 +125,8 @@ void OutfitCapture(Ped p);  // salva a roupa atual do jogador como roupa do Jugg
 void OutfitApply(Ped p, const Config::Outfit &o);
 void MenuTick(); // menu do Insert (v8)
 extern const char *kModeName[4];
+int UiLang(); // 0 portugues, 1 ingles, 2 espanhol (segue o idioma do jogo)
+const char *Tr(const char *pt, const char *en, const char *es);
 
 // hud.cpp
 void HudTick();
