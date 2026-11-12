@@ -1,4 +1,4 @@
-﻿// Retaliation V - ponto de entrada (ScriptHookV).
+// Retaliation V - ponto de entrada (ScriptHookV).
 #include "spawn.h"
 
 State g_st;
@@ -27,19 +27,37 @@ static FILETIME IniTime() {
     return a.ftLastWriteTime;
 }
 
+// v7: sem Ctrl (que o jogo usa). Segurar PageDown e apertar PageUp sobe um nivel;
+// segurar PageUp e apertar PageDown desce um nivel.
 static void DebugKeys() {
-    bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT), end = KeyPressed(VK_END);
-    if (!ctrl || !g_cfg.debugKeys) return;
-    if (up) AddPoints(10, "(teste) Ctrl+PageUp");
-    if (dn) AddPoints(-10, "(teste) Ctrl+PageDown");
-    if (end) AddPoints(-g_st.Pts(), "(teste) Ctrl+End");
+    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT);
+    bool holdUp = (GetAsyncKeyState(VK_PRIOR) & 0x8000) != 0, holdDn = (GetAsyncKeyState(VK_NEXT) & 0x8000) != 0;
+    if (!g_cfg.debugKeys) return;
+    const auto &ls = g_cfg.levelStart;
+    int pts = g_st.Pts(), lv = LevelOf(pts);
+    if (up && holdDn) { // sobe um nivel
+        int to = lv < (int)ls.size() ? ls[lv] : g_cfg.maxPoints;
+        if (to > pts) AddPointsForce(to - pts, "(teste) segurar PageDown + PageUp: sobe nivel");
+    } else if (dn && holdUp) { // desce um nivel
+        int to = lv >= 2 ? ls[lv - 2] : 0;
+        if (pts > to) AddPoints(to - pts, "(teste) segurar PageUp + PageDown: desce nivel");
+    }
 }
 
 // Motivo para pausar as emboscadas (vazio = ativo).
+// v7: o Modo Diretor (Rockstar Editor) roda como "missao"; aqui ele e reconhecido separadamente.
+static bool InDirectorMode() {
+    static const Hash dm = GAMEPLAY::GET_HASH_KEY((char *)"director_mode");
+    return SCRIPT::_GET_NUMBER_OF_INSTANCES_OF_STREAMED_SCRIPT(dm) > 0;
+}
+
 static const char *PauseReason(Ped player) {
     if (CUTSCENE::IS_CUTSCENE_PLAYING()) return "cutscene";
-    if (!g_cfg.activeInMissions && GAMEPLAY::GET_MISSION_FLAG()) return "missao";
+    if (InDirectorMode()) {
+        if (!g_cfg.directorMode) return "modo diretor"; // limpa tudo e pausa
+    } else if (!g_cfg.activeInMissions && GAMEPLAY::GET_MISSION_FLAG()) {
+        return "missao";
+    }
     if (INTERIOR::GET_INTERIOR_FROM_ENTITY(player) != 0) return "interior";
     return "";
 }
@@ -95,6 +113,18 @@ static void ScriptMain() {
             g_st.maxHeatSince = -1;
             g_st.lastCrime = g_st.lastDecay = g_st.now;
             DespawnAll(true, "troca de personagem");
+        }
+
+        // v7: entrar ou sair do Modo Diretor limpa os retaliadores e zera a retaliacao
+        bool director = g_cfg.directorMode && InDirectorMode();
+        if (director != g_st.director) {
+            DespawnAll(true, director ? "entrou no Modo Diretor" : "saiu do Modo Diretor");
+            for (int &p : g_st.points) p = 0;
+            g_st.hotSince = -1;
+            g_st.lastCrime = g_st.lastDecay = g_st.now;
+            g_st.director = director;
+            Log(director ? "Modo Diretor: Retaliation zerado e liberado (sobe por crimes ou teclas de teste)."
+                         : "Fim do Modo Diretor: Retaliation zerado, ciclo da policia normal.");
         }
 
         const char *why = PauseReason(player);

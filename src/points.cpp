@@ -1,5 +1,5 @@
 // Deteccao de crimes, decaimento, morte/prisao e calor maximo.
-#include "common.h"
+#include "spawn.h"
 #include <unordered_set>
 
 static std::unordered_set<int> s_deadPeds;   // peds mortos ja avaliados
@@ -41,8 +41,13 @@ static Victim Classify(Ped p) {
     return V_CIV;
 }
 
+// v7: fora do ciclo (sem Retaliation ativo) os crimes nao dao pontos; so a policia age.
+static bool s_force = false;
+void AddPointsForce(int amount, const char *why) { s_force = true; AddPoints(amount, why); s_force = false; }
+
 void AddPoints(int amount, const char *why) {
     State &s = g_st;
+    if (amount > 0 && s.Pts() <= 0 && !s_force && !s.director) return; // fora do ciclo: so a policia
     if (amount > 0 && s.now < s.cooldownUntil) {
         Log("%s ignorado (cooldown do calor maximo).", why);
         return;
@@ -129,8 +134,104 @@ static void ScanVehicles(Ped player, Vehicle pveh, Vehicle plast) {
     }
 }
 
-void PointsTick(Ped player, Player pid) {
+// ---------- ciclo policia -> Retaliation -> livre (v7) ----------
+// 5 estrelas por 3 minutos sem morrer nem ser preso: o Retaliation comeca no nivel 2. Durante a "fase conjunta"
+// (5 minutos) as estrelas continuam e a policia segue vindo, mas IGNORA o jogador e so enfrenta os retaliadores.
+// Depois disso as estrelas somem e a policia fica bloqueada ate o jogador ficar livre (pontos zerados).
+static int s_maxWantedApplied = -1;
+static bool s_wasActive = false;
+static bool s_ignoring = true; // comeca "ligado" para o 1o frame sempre desligar (ex.: mod recarregado no meio da fase)
+static int s_jointUntil = 0, s_nextCentre = 0;
+
+static void ApplyMaxWanted(int v) {
+    if (v == s_maxWantedApplied) return;
+    PLAYER::SET_MAX_WANTED_LEVEL(v);
+    s_maxWantedApplied = v;
+}
+static void PoliceIgnore(Player pid, bool on) {
+    if (on == s_ignoring) return;
+    PLAYER::SET_POLICE_IGNORE_PLAYER(pid, on);
+    s_ignoring = on;
+}
+static void ClearWanted(Player pid) {
+    PLAYER::SET_PLAYER_WANTED_LEVEL(pid, 0, FALSE);
+    PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
+}
+
+void CycleTick(Player pid) {
     State &s = g_st;
+    if (s.director) { // Modo Diretor: sem ciclo e sem mexer na policia (ele tem a propria configuracao)
+        PoliceIgnore(pid, false);
+        ApplyMaxWanted(5);
+        s_jointUntil = 0;
+        s_wasActive = s.Pts() > 0;
+        s.wantedMaxSince = -1;
+        return;
+    }
+    bool active = s.Pts() > 0;
+    bool missionPause = s.paused && strcmp(s.pauseReason, "interior") != 0;
+    bool joint = active && s_jointUntil && s.now < s_jointUntil;
+
+    if (missionPause) { // missoes da historia: policia normal
+        PoliceIgnore(pid, false);
+        ApplyMaxWanted(5);
+    } else if (joint) {
+        // fase conjunta: mantem as estrelas e a policia procurando na area do jogador, mas ignorando ele
+        ApplyMaxWanted(5);
+        PoliceIgnore(pid, true);
+        if (PLAYER::GET_PLAYER_WANTED_LEVEL(pid) < g_cfg.cycleWanted) {
+            PLAYER::SET_PLAYER_WANTED_LEVEL(pid, g_cfg.cycleWanted, FALSE);
+            PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
+        }
+        if (s.now >= s_nextCentre) {
+            s_nextCentre = s.now + 3000;
+            Vector3 p = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), TRUE);
+            invoke<Void>(0x520E541A97A13354, pid, &p, FALSE, FALSE); // SET_PLAYER_WANTED_CENTRE_POSITION
+        }
+    } else if (active) {
+        if (s_jointUntil) { // fim da fase conjunta
+            s_jointUntil = 0;
+            PoliceIgnore(pid, false);
+            ClearWanted(pid);
+            Log("Fase conjunta encerrada: a policia foi embora, o Retaliation segue sozinho.");
+        }
+        PoliceIgnore(pid, false);
+        ApplyMaxWanted(0); // policia bloqueada ate o jogador ficar livre
+        if (PLAYER::GET_PLAYER_WANTED_LEVEL(pid) > 0) ClearWanted(pid);
+    } else {
+        PoliceIgnore(pid, false);
+        ApplyMaxWanted(5);
+    }
+
+    if (s_wasActive && !active) {
+        s_jointUntil = 0;
+        Log("Retaliation zerado: jogador livre, policia de volta ao normal.");
+        DespawnAll(false, "jogador livre");
+    }
+    s_wasActive = active;
+
+    if (active || missionPause) { s.wantedMaxSince = -1; return; }
+    int wl = PLAYER::GET_PLAYER_WANTED_LEVEL(pid);
+    if (wl >= g_cfg.cycleWanted) {
+        if (s.wantedMaxSince < 0) {
+            s.wantedMaxSince = s.now;
+            Log("%d estrelas: em %ds o Retaliation entra junto com a policia.", wl, g_cfg.cycleSeconds);
+        } else if (s.now - s.wantedMaxSince >= g_cfg.cycleSeconds * 1000) {
+            s.wantedMaxSince = -1;
+            int lv = g_cfg.cycleStartLevel;
+            int start = lv >= 1 && lv <= (int)g_cfg.levelStart.size() ? g_cfg.levelStart[lv - 1] : 21;
+            AddPointsForce(start, "o Retaliation assume; a policia passa a ignorar o jogador");
+            s_jointUntil = s.now + g_cfg.cycleJointSeconds * 1000;
+            s_nextCentre = 0;
+            PoliceIgnore(pid, true);
+            Log("Fase conjunta por %ds: policia contra os retaliadores.", g_cfg.cycleJointSeconds);
+        }
+    } else if (s.wantedMaxSince >= 0) {
+        s.wantedMaxSince = -1;
+        Log("Estrelas perdidas antes do tempo: timer interrompido.");
+    }
+}
+void PointsTick(Ped player, Player pid) {    State &s = g_st;
 
     // morte ou prisao zera os pontos do personagem atual
     bool dead = PLAYER::IS_PLAYER_DEAD(pid) || PLAYER::IS_PLAYER_BEING_ARRESTED(pid, TRUE);
@@ -144,7 +245,7 @@ void PointsTick(Ped player, Player pid) {
     s_wasDead = dead;
     if (dead) return;
 
-    // v4: acima de 80 pontos por 5 minutos sem morrer nem ser preso -> perde metade dos pontos
+    // v7: acima de 70 pontos por 5 minutos sem morrer nem ser preso -> cai de volta para o nivel 2
     if (g_cfg.hotEnabled) {
         if (s.Pts() >= g_cfg.hotPoints) {
             if (s.hotSince < 0) {
@@ -152,7 +253,10 @@ void PointsTick(Ped player, Player pid) {
                 Log("Timer de %ds acima de %d pontos iniciado.", g_cfg.hotSeconds, g_cfg.hotPoints);
             } else if (s.now - s.hotSince >= g_cfg.hotSeconds * 1000) {
                 s.hotSince = -1;
-                AddPoints(-(s.Pts() / 2), "sobreviveu acima do limite: metade dos pontos");
+                // v7: volta para o nivel 2; o jogador escolhe entre voltar ao caos ou se esconder
+                int lv = g_cfg.cycleStartLevel;
+                int to = lv >= 1 && lv <= (int)g_cfg.levelStart.size() ? g_cfg.levelStart[lv - 1] : 21;
+                if (s.Pts() > to) AddPoints(to - s.Pts(), "sobreviveu 5 minutos acima do limite: volta ao nivel 2");
             }
         } else if (s.hotSince >= 0) {
             s.hotSince = -1;
@@ -160,24 +264,7 @@ void PointsTick(Ped player, Player pid) {
         }
     }
 
-    // v4: 5 estrelas da policia por 5 minutos -> cai para 2 estrelas
-    if (g_cfg.reliefEnabled) {
-        int wl = PLAYER::GET_PLAYER_WANTED_LEVEL(pid);
-        if (wl >= 5) {
-            if (s.wantedMaxSince < 0) {
-                s.wantedMaxSince = s.now;
-                Log("5 estrelas: timer de %ds iniciado.", g_cfg.reliefSeconds);
-            } else if (s.now - s.wantedMaxSince >= g_cfg.reliefSeconds * 1000) {
-                s.wantedMaxSince = -1;
-                PLAYER::SET_PLAYER_WANTED_LEVEL(pid, g_cfg.reliefTo, FALSE);
-                PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
-                Log("Sobreviveu %ds com 5 estrelas: procurado cai para %d.", g_cfg.reliefSeconds, g_cfg.reliefTo);
-            }
-        } else if (s.wantedMaxSince >= 0) {
-            s.wantedMaxSince = -1;
-            Log("5 estrelas perdidas: timer interrompido.");
-        }
-    }
+    CycleTick(pid);
 
     Vehicle pveh = PED::IS_PED_IN_ANY_VEHICLE(player, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(player, FALSE) : 0;
     Vehicle plast = PED::GET_VEHICLE_PED_IS_IN(player, TRUE);

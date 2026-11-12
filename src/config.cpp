@@ -36,15 +36,21 @@ static const char *kDefaultIni =
     "Enabled=1\r\n"
     "; 1 = emboscadas continuam durante missoes da historia\r\n"
     "ActiveInMissions=0\r\n"
-    "; Teclas de teste: Ctrl+PageUp (+10 pontos), Ctrl+PageDown (-10), Ctrl+End (zera)\r\n"
+    "; Modo Diretor (Rockstar Editor): 1 = Retaliation livre com qualquer NPC (comeca zerado, sobe por crimes ou\r\n"
+    "; pelas teclas de teste, sem o ciclo da policia); 0 = remove os retaliadores e pausa\r\n"
+    "DirectorMode=1\r\n"
+    "; Teclas de teste: segure PageDown e aperte PageUp para subir um nivel;\r\n"
+    "; segure PageUp e aperte PageDown para descer um nivel\r\n"
     "DebugKeys=1\r\n"
     "\r\n"
     "[Points]\r\n"
-    "KillCivilian=4\r\n"
-    "KillCop=5\r\n"
+    "KillCivilian=2\r\n"
+    "KillCop=2\r\n"
     "KillGang=2\r\n"
     "StealVehicle=2\r\n"
     "BlowVehicle=4\r\n"
+    "; retaliador morto pelo jogador\r\n"
+    "KillHunter=2\r\n"
     "; helicoptero ou aviao destruido\r\n"
     "BlowAircraft=6\r\n"
     "; segundos sem crimes para perder pontos, e quanto perde\r\n"
@@ -57,16 +63,19 @@ static const char *kDefaultIni =
     "Start=10,21,32,43,54,65,76,88\r\n"
     "\r\n"
     "[HotTimer]\r\n"
-    "; acima de Points por Seconds sem morrer nem ser preso: perde metade dos pontos\r\n"
+    "; acima de Points por Seconds sem morrer nem ser preso: cai de volta para o nivel do [Cycle] StartLevel\r\n"
     "Enabled=1\r\n"
-    "Points=80\r\n"
+    "Points=70\r\n"
     "Seconds=300\r\n"
     "\r\n"
-    "[WantedRelief]\r\n"
-    "; com 5 estrelas por Seconds: o nivel de procurado cai para WantedTo\r\n"
-    "Enabled=1\r\n"
-    "Seconds=300\r\n"
-    "WantedTo=2\r\n"
+    "[Cycle]\r\n"
+    "; ciclo policia -> Retaliation -> livre: com Wanted estrelas por Seconds sem morrer nem ser preso,\r\n"
+    "; o Retaliation comeca no nivel StartLevel. Por JointSeconds a policia mantem as estrelas mas ignora o\r\n"
+    "; jogador e so enfrenta os retaliadores; depois as estrelas somem e a policia fica bloqueada ate ficar livre\r\n"
+    "Wanted=5\r\n"
+    "Seconds=180\r\n"
+    "StartLevel=2\r\n"
+    "JointSeconds=300\r\n"
     "\r\n"
     "[Hud]\r\n"
     "Enabled=1\r\n"
@@ -74,8 +83,8 @@ static const char *kDefaultIni =
     "OffsetX=0.0\r\n"
     "OffsetY=0.0085\r\n"
     "Height=0.0055\r\n"
-    "; inicio e fim da barra, em fracao da largura do minimapa (barra do especial = 0.75 a 1.0)\r\n"
-    "BarStart=0.75\r\n"
+    "; inicio e fim da barra, em fracao da largura do minimapa (0.0 a 1.0 = largura inteira; so o especial = 0.75 a 1.0)\r\n"
+    "BarStart=0.0\r\n"
     "BarEnd=1.0\r\n"
     "Color=200,25,25\r\n"
     "; 1 = mostra o numero do nivel ao lado da barra\r\n"
@@ -232,6 +241,7 @@ void ConfigLoad() {
     Config c;
     c.enabled = IniInt("General", "Enabled", 1);
     c.activeInMissions = IniInt("General", "ActiveInMissions", 0);
+    c.directorMode = IniInt("General", "DirectorMode", 1);
     c.debugKeys = IniInt("General", "DebugKeys", 1);
     c.killCivilian = IniInt("Points", "KillCivilian", c.killCivilian);
     c.killCop = IniInt("Points", "KillCop", c.killCop);
@@ -242,9 +252,11 @@ void ConfigLoad() {
     c.hotEnabled = IniInt("HotTimer", "Enabled", 1);
     c.hotPoints = IniInt("HotTimer", "Points", c.hotPoints);
     c.hotSeconds = IniInt("HotTimer", "Seconds", c.hotSeconds);
-    c.reliefEnabled = IniInt("WantedRelief", "Enabled", 1);
-    c.reliefSeconds = IniInt("WantedRelief", "Seconds", c.reliefSeconds);
-    c.reliefTo = IniInt("WantedRelief", "WantedTo", c.reliefTo);
+    c.cycleWanted = IniInt("Cycle", "Wanted", c.cycleWanted);
+    c.cycleSeconds = IniInt("Cycle", "Seconds", c.cycleSeconds);
+    c.cycleStartLevel = IniInt("Cycle", "StartLevel", c.cycleStartLevel);
+    c.cycleJointSeconds = IniInt("Cycle", "JointSeconds", c.cycleJointSeconds);
+    c.killHunter = IniInt("Points", "KillHunter", c.killHunter);
     c.decayInterval = IniInt("Points", "DecayInterval", c.decayInterval);
     c.decayAmount = IniInt("Points", "DecayAmount", c.decayAmount);
     c.maxPoints = IniInt("Points", "Max", c.maxPoints);

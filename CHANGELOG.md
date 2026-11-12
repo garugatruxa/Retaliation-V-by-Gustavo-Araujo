@@ -48,3 +48,19 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Até 3 helicópteros misturados. Valkyrie, Savage e Hunter entram na Merryweather.
 - Tanque Rhino entregue pelo Cargobob, um por vez.
 - Jato Lazer (ou Hydra, mais raro) alternando canhão e mísseis, um por vez.
+- Chances com teto para os especiais e as armas perigosas. O 3º helicóptero é bem raro.
+- Mira imprecisa de propósito para explosivos (RPG, lança-granadas, tanque, jato e helicóptero de ataque).
+
+## v7 — o ciclo
+- O Retaliation fica desligado até a polícia desistir. Fora dele, os crimes não dão pontos.
+- 5 estrelas por 3 min sem morrer nem ser preso: o Retaliation começa no nível 2.
+- Fase conjunta (5 min): as estrelas continuam e a polícia segue vindo, mas ignora o jogador e só enfrenta os retaliadores.
+- Depois da fase conjunta, as estrelas somem e a polícia fica bloqueada até o jogador ficar livre. Nas missões da história ela volta ao normal.
+- Qualquer NPC morto vale +2: retaliador, pedestre, gangue ou policial. Os veículos e as aeronaves deles também dão pontos.
+- Sobreviver 5 min acima de 70 pontos faz voltar ao nível 2, e aí dá para escolher: voltar ao caos ou se esconder.
+- Para ficar livre, é preciso se esconder até o decaimento zerar os pontos.
+- Livre, o ciclo recomeça: polícia → Retaliation → livre.
+- A barra ocupa a largura inteira do minimapa, alinhada com as barras de vida, fôlego e especial.
+- Modo Diretor: ao entrar ou sair, os retaliadores somem e a retaliação zera. Lá dentro ela funciona com qualquer NPC e sobe direto pelos crimes ou pelas teclas de teste, sem o ciclo da polícia. Com `DirectorMode=0`, ela fica pausada.
+- Versão única, sem presets de desempenho.
+- Teclas de teste sem Ctrl: segure PageDown e aperte PageUp para subir um nível; segure PageUp e aperte PageDown para descer.

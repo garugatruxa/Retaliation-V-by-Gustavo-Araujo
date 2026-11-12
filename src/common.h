@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.6"
+#define RETALIATION_VERSION "0.7"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -15,16 +15,17 @@ struct Config {
     // [General]
     bool enabled = true;
     bool activeInMissions = false;
+    bool directorMode = true; // v7: 1 = Retaliation livre no Modo Diretor (comeca zerado); 0 = limpa e pausa ao entrar
     bool debugKeys = true;
     // [Points]
-    int killCivilian = 4, killCop = 5, killGang = 2, stealVehicle = 2, blowVehicle = 4, blowAircraft = 6;
+    int killCivilian = 2, killCop = 2, killGang = 2, stealVehicle = 2, blowVehicle = 4, blowAircraft = 6;
     int decayInterval = 45, decayAmount = 5, maxPoints = 100;
     // [Levels] pontos em que cada nivel comeca (nivel 1..N)
     std::vector<int> levelStart{10, 21, 32, 43, 54, 65, 76, 88};
     // [Hud]
     bool hudEnabled = true;
     float hudOffsetX = 0.0f, hudOffsetY = 0.0085f, hudHeight = 0.0055f;
-    float hudStart = 0.75f, hudEnd = 1.0f; // trecho da largura do minimapa (barra do especial = ultimo quarto)
+    float hudStart = 0.0f, hudEnd = 1.0f; // v7: largura inteira do minimapa, alinhada com as barras de vida/especial // trecho da largura do minimapa (barra do especial = ultimo quarto)
     int hudR = 200, hudG = 25, hudB = 25;
     bool hudShowLevel = false;
     // [Spawn]
@@ -39,10 +40,11 @@ struct Config {
                 {35, 6, 3, 45, 275, 100, 24}, {30, 6, 4, 50, 300, 100, 28}};
     // [HotTimer] acima desses pontos por X segundos sem morrer/ser preso: perde metade dos pontos
     bool hotEnabled = true;
-    int hotPoints = 80, hotSeconds = 300;
-    // [WantedRelief] 5 estrelas por X segundos: cai para N estrelas
-    bool reliefEnabled = true;
-    int reliefSeconds = 300, reliefTo = 2;
+    int hotPoints = 70, hotSeconds = 300;
+    // [Cycle] v7: com Wanted estrelas por Seconds, a policia desiste e o Retaliation comeca em StartLevel
+    int cycleWanted = 5, cycleSeconds = 180, cycleStartLevel = 2;
+    int cycleJointSeconds = 300; // fase conjunta: policia mantem as estrelas mas so enfrenta os retaliadores
+    int killHunter = 2; // [Points] retaliador morto
     // [Roadblock]
     bool rbEnabled = true;
     int rbMinLevel = 3, rbChance = 30;
@@ -88,6 +90,7 @@ struct State {
     int cooldownUntil = 0;    // retaliacao desligada ate esse tempo
     int hotSince = -1;        // desde quando esta acima de HotTimer.Points
     int wantedMaxSince = -1;  // desde quando esta com 5 estrelas
+    bool director = false;    // v7: no Modo Diretor com o Retaliation liberado (sem ciclo da policia)
     bool paused = false;      // emboscadas pausadas (missao, cutscene, interior)
     const char *pauseReason = "";
     int &Pts() { return points[ch]; }
@@ -101,6 +104,8 @@ void PointsReset();
 void PointsSeed();
 void PointsTick(Ped player, Player pid);
 void AddPoints(int amount, const char *why);
+void AddPointsForce(int amount, const char *why); // ignora o bloqueio de fora do ciclo (teste e inicio do ciclo)
+void CycleTick(Player pid);
 
 // hud.cpp
 void HudTick();

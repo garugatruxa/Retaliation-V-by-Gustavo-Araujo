@@ -60,7 +60,7 @@ struct Hunter {
     int nextArea = 0, nextGesture = 0;
     float areaRadius = 30.f;
 };
-struct SquadVeh { Vehicle veh; int born; bool roadblock; };
+struct SquadVeh { Vehicle veh; int born; bool roadblock; bool scored = false; };
 enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI, P_TANK, P_JET };
 struct Pending { int at; PKind k; int n; int role; bool bicycleOk; };
 
@@ -1160,6 +1160,10 @@ static void UpdateHunters() {
         if (!ENTITY::DOES_ENTITY_EXIST(h.ped)) { RemoveBlip(h); s_h.erase(s_h.begin() + i); continue; }
         if (PED::IS_PED_DEAD_OR_DYING(h.ped, TRUE)) {
             if (h.juggernaut) Log("Juggernaut abatido!");
+            // v7: retaliador morto pelo jogador da pontos
+            Entity k = PED::_GET_PED_KILLER(h.ped);
+            Vehicle pv = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
+            if (k && (k == s_player || (pv && k == pv))) AddPoints(g_cfg.killHunter, "retaliador morto");
             ReleasePed(h, false);
             s_h.erase(s_h.begin() + i);
             continue;
@@ -1219,6 +1223,18 @@ static void UpdateHunters() {
     for (size_t i = 0; i < s_v.size();) {
         SquadVeh &s = s_v[i];
         if (!ENTITY::DOES_ENTITY_EXIST(s.veh)) { s_v.erase(s_v.begin() + i); continue; }
+        // v7: veiculo/aeronave dos retaliadores destruido pelo jogador tambem da pontos
+        if (!s.scored && ENTITY::IS_ENTITY_DEAD(s.veh)) {
+            s.scored = true;
+            Vehicle pv = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
+            if (ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, s_player, TRUE) ||
+                (pv && pv != s.veh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, pv, TRUE))) {
+                Hash m = ENTITY::GET_ENTITY_MODEL(s.veh);
+                bool air = VEHICLE::IS_THIS_MODEL_A_HELI(m) || VEHICLE::IS_THIS_MODEL_A_PLANE(m);
+                AddPoints(air ? g_cfg.blowAircraft : g_cfg.blowVehicle, air ? "aeronave dos retaliadores destruida"
+                                                                             : "veiculo dos retaliadores destruido");
+            }
+        }
         float d = D2(ENTITY::GET_ENTITY_COORDS(s.veh, TRUE), s_ppos);
         bool used = false;
         if (!s.roadblock)
