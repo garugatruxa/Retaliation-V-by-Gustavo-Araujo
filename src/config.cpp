@@ -45,6 +45,8 @@ static const char *kDefaultIni =
     "KillGang=2\r\n"
     "StealVehicle=2\r\n"
     "BlowVehicle=4\r\n"
+    "; helicoptero ou aviao destruido\r\n"
+    "BlowAircraft=6\r\n"
     "; segundos sem crimes para perder pontos, e quanto perde\r\n"
     "DecayInterval=45\r\n"
     "DecayAmount=5\r\n"
@@ -54,12 +56,17 @@ static const char *kDefaultIni =
     "; pontos em que cada nivel comeca (nivel 1, 2, 3...)\r\n"
     "Start=10,21,32,43,54,65,76,88\r\n"
     "\r\n"
-    "[MaxHeat]\r\n"
+    "[HotTimer]\r\n"
+    "; acima de Points por Seconds sem morrer nem ser preso: perde metade dos pontos\r\n"
     "Enabled=1\r\n"
-    "Points=95\r\n"
-    "Seconds=120\r\n"
-    "WantedLevel=5\r\n"
-    "Cooldown=60\r\n"
+    "Points=80\r\n"
+    "Seconds=300\r\n"
+    "\r\n"
+    "[WantedRelief]\r\n"
+    "; com 5 estrelas por Seconds: o nivel de procurado cai para WantedTo\r\n"
+    "Enabled=1\r\n"
+    "Seconds=300\r\n"
+    "WantedTo=2\r\n"
     "\r\n"
     "[Hud]\r\n"
     "Enabled=1\r\n"
@@ -76,14 +83,12 @@ static const char *kDefaultIni =
 #ifdef RET_SPAWN
     "\r\n"
     "[Spawn]\r\n"
-    "; limite de retaliadores vivos ao mesmo tempo\r\n"
-    "MaxAlive=16\r\n"
     "; distancias (metros): grupos a pe, veiculos, remocao\r\n"
-    "FootMin=60\r\n"
-    "FootMax=100\r\n"
-    "VehMin=170\r\n"
-    "VehMax=240\r\n"
-    "DespawnDist=350\r\n"
+    "FootMin=80\r\n"
+    "FootMax=125\r\n"
+    "VehMin=260\r\n"
+    "VehMax=350\r\n"
+    "DespawnDist=480\r\n"
     "; segundos para chegar perto do jogador antes de ser removido\r\n"
     "ArriveTimeout=150\r\n"
     "; segundos ate a primeira wave depois de entrar no nivel 1\r\n"
@@ -92,15 +97,15 @@ static const char *kDefaultIni =
     "BlipRadius=120\r\n"
     "\r\n"
     "; Por nivel: Interval (s entre waves), Foot (inimigos a pe), Vehicles, Accuracy (0-100),\r\n"
-    "; Health (200 = normal), Armor (0-100)\r\n"
-    "[Level1]\r\nInterval=50\r\nFoot=2\r\nVehicles=1\r\nAccuracy=15\r\nHealth=150\r\nArmor=0\r\n"
-    "[Level2]\r\nInterval=45\r\nFoot=3\r\nVehicles=1\r\nAccuracy=20\r\nHealth=175\r\nArmor=0\r\n"
-    "[Level3]\r\nInterval=45\r\nFoot=3\r\nVehicles=2\r\nAccuracy=25\r\nHealth=200\r\nArmor=10\r\n"
-    "[Level4]\r\nInterval=42\r\nFoot=4\r\nVehicles=2\r\nAccuracy=30\r\nHealth=200\r\nArmor=25\r\n"
-    "[Level5]\r\nInterval=40\r\nFoot=4\r\nVehicles=2\r\nAccuracy=35\r\nHealth=225\r\nArmor=50\r\n"
-    "[Level6]\r\nInterval=38\r\nFoot=4\r\nVehicles=3\r\nAccuracy=40\r\nHealth=250\r\nArmor=75\r\n"
-    "[Level7]\r\nInterval=35\r\nFoot=5\r\nVehicles=3\r\nAccuracy=45\r\nHealth=275\r\nArmor=100\r\n"
-    "[Level8]\r\nInterval=30\r\nFoot=5\r\nVehicles=3\r\nAccuracy=50\r\nHealth=300\r\nArmor=100\r\n"
+    "; Health (200 = normal), Armor (0-100), MaxAlive (limite de inimigos vivos, contando os dos veiculos)\r\n"
+    "[Level1]\r\nInterval=50\r\nFoot=2\r\nVehicles=1\r\nAccuracy=15\r\nHealth=150\r\nArmor=0\r\nMaxAlive=10\r\n"
+    "[Level2]\r\nInterval=45\r\nFoot=3\r\nVehicles=1\r\nAccuracy=20\r\nHealth=175\r\nArmor=0\r\nMaxAlive=12\r\n"
+    "[Level3]\r\nInterval=45\r\nFoot=3\r\nVehicles=2\r\nAccuracy=25\r\nHealth=200\r\nArmor=10\r\nMaxAlive=14\r\n"
+    "[Level4]\r\nInterval=42\r\nFoot=4\r\nVehicles=2\r\nAccuracy=30\r\nHealth=200\r\nArmor=25\r\nMaxAlive=16\r\n"
+    "[Level5]\r\nInterval=40\r\nFoot=4\r\nVehicles=2\r\nAccuracy=35\r\nHealth=225\r\nArmor=50\r\nMaxAlive=18\r\n"
+    "[Level6]\r\nInterval=38\r\nFoot=5\r\nVehicles=3\r\nAccuracy=40\r\nHealth=250\r\nArmor=75\r\nMaxAlive=21\r\n"
+    "[Level7]\r\nInterval=35\r\nFoot=6\r\nVehicles=3\r\nAccuracy=45\r\nHealth=275\r\nArmor=100\r\nMaxAlive=24\r\n"
+    "[Level8]\r\nInterval=30\r\nFoot=6\r\nVehicles=4\r\nAccuracy=50\r\nHealth=300\r\nArmor=100\r\nMaxAlive=28\r\n"
     "\r\n"
     "[Roadblock]\r\n"
     "; bloqueio de estrada a frente quando o jogador esta dirigindo (chance por wave, %)\r\n"
@@ -173,15 +178,17 @@ void ConfigLoad() {
     c.killGang = IniInt("Points", "KillGang", c.killGang);
     c.stealVehicle = IniInt("Points", "StealVehicle", c.stealVehicle);
     c.blowVehicle = IniInt("Points", "BlowVehicle", c.blowVehicle);
+    c.blowAircraft = IniInt("Points", "BlowAircraft", c.blowAircraft);
+    c.hotEnabled = IniInt("HotTimer", "Enabled", 1);
+    c.hotPoints = IniInt("HotTimer", "Points", c.hotPoints);
+    c.hotSeconds = IniInt("HotTimer", "Seconds", c.hotSeconds);
+    c.reliefEnabled = IniInt("WantedRelief", "Enabled", 1);
+    c.reliefSeconds = IniInt("WantedRelief", "Seconds", c.reliefSeconds);
+    c.reliefTo = IniInt("WantedRelief", "WantedTo", c.reliefTo);
     c.decayInterval = IniInt("Points", "DecayInterval", c.decayInterval);
     c.decayAmount = IniInt("Points", "DecayAmount", c.decayAmount);
     c.maxPoints = IniInt("Points", "Max", c.maxPoints);
     c.levelStart = IniInts("Levels", "Start", c.levelStart);
-    c.maxHeatEnabled = IniInt("MaxHeat", "Enabled", 1);
-    c.maxHeatPoints = IniInt("MaxHeat", "Points", c.maxHeatPoints);
-    c.maxHeatSeconds = IniInt("MaxHeat", "Seconds", c.maxHeatSeconds);
-    c.maxHeatWanted = IniInt("MaxHeat", "WantedLevel", c.maxHeatWanted);
-    c.maxHeatCooldown = IniInt("MaxHeat", "Cooldown", c.maxHeatCooldown);
     c.hudEnabled = IniInt("Hud", "Enabled", 1);
     c.hudOffsetX = IniFloat("Hud", "OffsetX", c.hudOffsetX);
     c.hudOffsetY = IniFloat("Hud", "OffsetY", c.hudOffsetY);
@@ -191,7 +198,6 @@ void ConfigLoad() {
     std::vector<int> col = IniInts("Hud", "Color", {c.hudR, c.hudG, c.hudB});
     if (col.size() >= 3) { c.hudR = col[0]; c.hudG = col[1]; c.hudB = col[2]; }
     c.hudShowLevel = IniInt("Hud", "ShowLevel", 0);
-    c.maxAlive = IniInt("Spawn", "MaxAlive", c.maxAlive);
     c.footMin = IniFloat("Spawn", "FootMin", c.footMin);
     c.footMax = IniFloat("Spawn", "FootMax", c.footMax);
     c.vehMin = IniFloat("Spawn", "VehMin", c.vehMin);
@@ -210,6 +216,7 @@ void ConfigLoad() {
         l.accuracy = IniInt(sec, "Accuracy", l.accuracy);
         l.health = IniInt(sec, "Health", l.health);
         l.armor = IniInt(sec, "Armor", l.armor);
+        l.maxAlive = IniInt(sec, "MaxAlive", l.maxAlive);
     }
     c.rbEnabled = IniInt("Roadblock", "Enabled", 1);
     c.rbMinLevel = IniInt("Roadblock", "MinLevel", c.rbMinLevel);
@@ -224,9 +231,8 @@ void ConfigLoad() {
 
     std::string lv;
     for (int v : g_cfg.levelStart) lv += std::to_string(v) + " ";
-    Log("Config: niveis comecam em [ %s], max %d, decaimento %d a cada %ds, calor maximo %d pts por %ds.",
-        lv.c_str(), g_cfg.maxPoints, g_cfg.decayAmount, g_cfg.decayInterval, g_cfg.maxHeatPoints,
-        g_cfg.maxHeatSeconds);
+    Log("Config: niveis comecam em [ %s], max %d, decaimento %d a cada %ds, timer de %ds acima de %d pts.",
+        lv.c_str(), g_cfg.maxPoints, g_cfg.decayAmount, g_cfg.decayInterval, g_cfg.hotSeconds, g_cfg.hotPoints);
 }
 
 int LevelOf(int points) {

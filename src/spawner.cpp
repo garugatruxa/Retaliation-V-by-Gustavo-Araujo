@@ -78,7 +78,8 @@ static int Queued() {
     for (auto &p : s_q) n += p.k == P_FOOT ? p.n : p.k == P_ROADBLOCK ? 4 : p.k == P_JUGG ? 4 : 2;
     return n;
 }
-static int Budget() { return g_cfg.maxAlive - HuntersAlive(); }
+static int MaxAlive() { return s_level >= 1 && s_level <= 8 ? g_cfg.lv[s_level - 1].maxAlive : 10; }
+static int Budget() { return MaxAlive() - HuntersAlive(); }
 static bool JuggAlive() {
     for (auto &h : s_h) if (h.juggernaut) return true;
     for (auto &p : s_q) if (p.k == P_JUGG) return true;
@@ -172,6 +173,7 @@ static Ped NewPedAt(Hash model, const Vector3 &p, float heading) {
     if (!LoadModel(model)) return 0;
     Ped ped = PED::CREATE_PED(4, model, p.x, p.y, p.z, heading, FALSE, TRUE);
     STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
+    if (ped) ENTITY::SET_ENTITY_LOAD_COLLISION_FLAG(ped, TRUE); // nao cair pelo mapa longe do jogador
     return ped;
 }
 static Ped NewPedIn(Vehicle v, Hash model, int seat) {
@@ -188,46 +190,86 @@ static Vehicle NewVehicle(Hash model, const Vector3 &p, float heading) {
     Vehicle v = VEHICLE::CREATE_VEHICLE(model, p.x, p.y, p.z, heading, FALSE, TRUE);
     STREAMING::SET_MODEL_AS_NO_LONGER_NEEDED(model);
     if (!v) return 0;
+    ENTITY::SET_ENTITY_LOAD_COLLISION_FLAG(v, TRUE);
     VEHICLE::SET_VEHICLE_ON_GROUND_PROPERLY(v);
     return v;
 }
 
 // ---------- posicoes ----------
-// Ponto a pe a media distancia, de preferencia atras da camera e fora da tela.
+// v4: tudo nasce no chao e no mesmo "andar" do jogador (viaduto em cima, rua embaixo...).
+// O chao e sempre procurado a partir da altura do jogador para baixo, entao um viaduto acima dele e ignorado.
+static float s_pgz = 0.f; // altura do chao sob o jogador
+
+static bool GroundBelow(float x, float y, float fromZ, float &gz) {
+    return GAMEPLAY::GET_GROUND_Z_FOR_3D_COORD(x, y, fromZ, &gz, 0) != 0;
+}
+
+// Caminha do jogador ate o ponto, em passos de ~15 m, seguindo o chao. Recusa se houver um degrau maior que
+// maxStep (queda de viaduto, subida para outra pista). strict=false aceita quando o chao ainda nao carregou longe.
+static bool SameLevel(float x1, float y1, float &outZ, bool strict) {
+    float x0 = s_ppos.x, y0 = s_ppos.y, z = s_pgz;
+    float d = std::hypot(x1 - x0, y1 - y0);
+    int steps = (int)(d / 15.f) + 1;
+    const float maxStep = 4.5f;
+    for (int k = 1; k <= steps; ++k) {
+        float t = (float)k / steps, g;
+        if (!GroundBelow(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, z + 3.5f, g)) {
+            if (strict) return false;
+            break; // longe demais para ter colisao carregada: decide pela tolerancia de altura
+        }
+        if (std::fabs(g - z) > maxStep) return false;
+        z = g;
+    }
+    outZ = z;
+    return true;
+}
+
+static void UpdatePlayerGround() {
+    float gz;
+    s_pgz = GroundBelow(s_ppos.x, s_ppos.y, s_ppos.z + 1.0f, gz) ? gz : s_ppos.z - 1.0f;
+}
+
+// Ponto a pe a media distancia, no chao, no mesmo nivel, de preferencia atras da camera e fora da tela.
 static bool FindFootPos(float dmin, float dmax, Vector3 &out) {
     float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z;
-    for (int i = 0; i < 14; ++i) {
-        float ang = i < 9 ? camH + 180.f + RandF(-80.f, 80.f) : RandF(0.f, 360.f);
+    for (int i = 0; i < 18; ++i) {
+        float ang = i < 11 ? camH + 180.f + RandF(-80.f, 80.f) : RandF(0.f, 360.f);
         float d = RandF(dmin, dmax), dx, dy;
         Dir(ang, dx, dy);
         float x = s_ppos.x + dx * d, y = s_ppos.y + dy * d, gz = 0.f;
-        if (!GAMEPLAY::GET_GROUND_Z_FOR_3D_COORD(x, y, s_ppos.z + 60.f, &gz, 0)) continue;
+        if (!SameLevel(x, y, gz, true)) continue;
         Vector3 safe;
-        if (PATHFIND::GET_SAFE_COORD_FOR_PED(x, y, gz + 1.f, TRUE, &safe, 16)) { x = safe.x; y = safe.y; gz = safe.z; }
-        if (std::fabs(gz - s_ppos.z) > 30.f) continue;
-        Vector3 c = V3(x, y, gz + 1.f);
+        if (PATHFIND::GET_SAFE_COORD_FOR_PED(x, y, gz + 1.f, TRUE, &safe, 16) && std::fabs(safe.z - gz) < 1.5f &&
+            std::hypot(safe.x - x, safe.y - y) < 12.f) {
+            x = safe.x; y = safe.y; gz = safe.z;
+        }
+        Vector3 c = V3(x, y, gz + 0.1f);
         if (D2(c, s_ppos) < dmin * 0.7f) continue;
-        if (CAM::IS_SPHERE_VISIBLE(c.x, c.y, c.z, 1.5f)) continue;
+        if (CAM::IS_SPHERE_VISIBLE(c.x, c.y, c.z + 1.f, 1.5f)) continue;
         out = c;
         return true;
     }
     return false;
 }
 
-// Ponto numa rua, virado para o jogador.
+// Ponto numa rua do mesmo nivel do jogador, virado para ele.
 static bool FindRoadPos(float dmin, float dmax, Vector3 &out, float &heading) {
     float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z;
-    for (int i = 0; i < 12; ++i) {
-        float ang = i < 6 ? camH + 180.f + RandF(-90.f, 90.f) : RandF(0.f, 360.f);
+    for (int i = 0; i < 16; ++i) {
+        float ang = i < 8 ? camH + 180.f + RandF(-90.f, 90.f) : RandF(0.f, 360.f);
         float d = RandF(dmin, dmax), dx, dy;
         Dir(ang, dx, dy);
         Vector3 node;
         float h = 0.f;
-        if (!PATHFIND::GET_CLOSEST_VEHICLE_NODE_WITH_HEADING(s_ppos.x + dx * d, s_ppos.y + dy * d, s_ppos.z, &node, &h,
+        if (!PATHFIND::GET_CLOSEST_VEHICLE_NODE_WITH_HEADING(s_ppos.x + dx * d, s_ppos.y + dy * d, s_pgz, &node, &h,
                                                              1, 3.0f, 0))
             continue;
         float nd = D2(node, s_ppos);
         if (nd < dmin * 0.75f || nd > dmax * 1.3f) continue;
+        // altura: tolerancia cresce com a distancia (ladeiras), mas pista em outro andar e recusada
+        if (std::fabs(node.z - s_pgz) > 6.f + nd * 0.04f) continue;
+        float lz;
+        if (!SameLevel(node.x, node.y, lz, false)) continue;
         if (nd < 200.f && CAM::IS_SPHERE_VISIBLE(node.x, node.y, node.z + 1.f, 3.f)) continue;
         float to = HeadingTo(node, s_ppos);
         if (AngDiff(h, to) > 90.f) h += 180.f;
@@ -238,7 +280,6 @@ static bool FindRoadPos(float dmin, float dmax, Vector3 &out, float &heading) {
     }
     return false;
 }
-
 static bool FindWaterPos(Vector3 &out) {
     for (int i = 0; i < 16; ++i) {
         float d = RandF(110.f, 170.f), dx, dy, wh = 0.f;
@@ -425,13 +466,16 @@ static bool SpawnRoadblock() {
     Vector3 node; float nh = 0.f; bool ok = false;
     for (float d : {300.f, 260.f, 220.f, 340.f}) {
         Vector3 n; float h;
-        if (!PATHFIND::GET_CLOSEST_VEHICLE_NODE_WITH_HEADING(s_ppos.x + fx * d, s_ppos.y + fy * d, s_ppos.z, &n, &h, 1,
+        if (!PATHFIND::GET_CLOSEST_VEHICLE_NODE_WITH_HEADING(s_ppos.x + fx * d, s_ppos.y + fy * d, s_pgz, &n, &h, 1,
                                                              3.0f, 0))
             continue;
         float nd = D2(n, s_ppos);
         if (nd < 180.f || nd > 380.f) continue;
         float dot = ((n.x - s_ppos.x) * fx + (n.y - s_ppos.y) * fy) / nd;
         if (dot < 0.8f) continue;
+        if (std::fabs(n.z - s_pgz) > 6.f + nd * 0.04f) continue; // mesma pista/andar do jogador
+        float lz;
+        if (!SameLevel(n.x, n.y, lz, false)) continue;
         node = n; nh = h; ok = true;
         break;
     }
@@ -455,8 +499,8 @@ static bool SpawnRoadblock() {
         for (int k = 0; k < perVeh && Budget() > 0; ++k) {
             float side = (k - (perVeh - 1) * 0.5f) * 1.6f;
             float x = vp.x + ax * 3.f + rx * side, y = vp.y + ay * 3.f + ry * side, gz = vp.z;
-            GAMEPLAY::GET_GROUND_Z_FOR_3D_COORD(x, y, vp.z + 5.f, &gz, 0);
-            Vector3 q = V3(x, y, gz + 0.5f);
+            if (!GroundBelow(x, y, node.z + 3.f, gz) || std::fabs(gz - node.z) > 3.f) gz = node.z;
+            Vector3 q = V3(x, y, gz + 0.1f);
             Ped ped = NewPedAt(RandomPed(), q, HeadingTo(q, s_ppos));
             if (!ped) continue;
             SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
@@ -480,7 +524,7 @@ static void Queue(int delayMs, PKind k, int n = 0, int role = 0, bool bicycleOk 
 static void BuildWave() {
     const Config::Lv &L = g_cfg.lv[s_level - 1];
     int free = Budget() - Queued();
-    if (free <= 0) { Log("Wave adiada: limite de %d retaliadores.", g_cfg.maxAlive); return; }
+    if (free <= 0) { Log("Wave adiada: limite de %d retaliadores.", MaxAlive()); return; }
     bool inVeh = PED::IS_PED_IN_ANY_VEHICLE(s_player, FALSE);
     bool air = PED::IS_PED_IN_FLYING_VEHICLE(s_player);
     bool boat = PED::IS_PED_IN_ANY_BOAT(s_player);
@@ -696,6 +740,7 @@ void SpawnerInit() {
 void SpawnerTick(Ped player) {
     s_player = player;
     s_ppos = ENTITY::GET_ENTITY_COORDS(player, TRUE);
+    UpdatePlayerGround();
     Player pid = PLAYER::PLAYER_ID();
 
     bool dead = PLAYER::IS_PLAYER_DEAD(pid) || PLAYER::IS_PLAYER_BEING_ARRESTED(pid, TRUE);

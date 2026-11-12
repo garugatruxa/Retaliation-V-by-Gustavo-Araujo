@@ -175,7 +175,7 @@ void FactionsInit() {
     Log("Faccoes carregadas: %d.", (int)g_factions.size());
 }
 
-// Odio ao jogador, guerra com a policia e entre faccoes; FIB e aliado da policia.
+// Odio ao jogador e guerra com a policia; faccoes se respeitam (v4); FIB e aliado da policia.
 void RelationsApply() {
     for (Faction &f : g_factions) {
         PED::SET_RELATIONSHIP_BETWEEN_GROUPS(0, f.group, f.group);
@@ -190,7 +190,7 @@ void RelationsApply() {
             PED::SET_RELATIONSHIP_BETWEEN_GROUPS(1, f.ambient, f.group);
         }
         for (Faction &g : g_factions)
-            if (&g != &f) PED::SET_RELATIONSHIP_BETWEEN_GROUPS(5, f.group, g.group);
+            if (&g != &f) PED::SET_RELATIONSHIP_BETWEEN_GROUPS(1, f.group, g.group); // v4: faccoes nao brigam entre si
     }
 }
 

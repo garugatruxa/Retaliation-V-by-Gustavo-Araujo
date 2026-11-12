@@ -1,4 +1,4 @@
-﻿// Barra de retaliacao no estilo da barra do especial: fundo escuro da mesma cor, preenchimento
+// Barra de retaliacao no estilo da barra do especial: fundo escuro da mesma cor, preenchimento
 // forte, animacao suave e brilho no trecho que acabou de encher.
 #include "common.h"
 #include <cmath>
@@ -86,9 +86,9 @@ void HudTick() {
               Clamp255(G + (255 - G) * 0.5f), Clamp255(B + (255 - B) * 0.5f), Clamp255(200 * a));
     }
 
-    // preenchimento; pisca quando o calor maximo esta carregando
+    // preenchimento; pisca nos ultimos 30 s do timer de 5 minutos (quando vai perder metade dos pontos)
     int alpha = 235;
-    if (s.maxHeatSince >= 0) alpha = Clamp255(150 + 105 * (0.5f + 0.5f * std::sin(s.now * 0.012f)));
+    if (s.hotSince >= 0 && s.now - s.hotSince > (g_cfg.hotSeconds - 30) * 1000) alpha = Clamp255(150 + 105 * (0.5f + 0.5f * std::sin(s.now * 0.012f)));
     RectL(x, y, w * s_shown, h, R, G, B, alpha);
 
     // brilho do ganho: o trecho novo fica quase branco e volta para a cor, com um halo em volta
@@ -108,12 +108,7 @@ void HudTick() {
         RectL(x + w * s_shown - 0.002f, y, 0.002f, h * 1.6f, 255, 235, 235, Clamp255(230 * k));
     }
 
-    // marcas dos niveis
-    for (int start : g_cfg.levelStart) {
-        float f = (float)start / g_cfg.maxPoints;
-        if (f <= 0.f || f >= 1.f) continue;
-        RectL(x + w * f - 0.0004f, y, 0.0008f, h, 0, 0, 0, 120);
-    }
+    // v4: barra solida, sem marcas entre os niveis
 
     if (g_cfg.hudShowLevel) {
         char buf[16];

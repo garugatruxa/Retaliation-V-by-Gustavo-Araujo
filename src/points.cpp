@@ -56,14 +56,7 @@ void AddPoints(int amount, const char *why) {
     if (amount > 0) { s.lastCrime = s.now; s.lastDecay = s.now; }
     int lv = LevelOf(v);
     Log("%+d %s -> %d pontos (nivel %d) [%s]", amount, why, v, lv, kCharName[s.ch]);
-    if (lv != lvBefore) {
-        Log("Nivel %d -> %d", lvBefore, lv);
-        if (lv > lvBefore) {
-            char msg[96];
-            snprintf(msg, sizeof msg, "~r~Retaliação~s~: nível %d", lv);
-            Notify(msg);
-        }
-    }
+    if (lv != lvBefore) Log("Nivel %d -> %d", lvBefore, lv); // v4: sem aviso na tela, so a barra
 }
 
 // Marca tudo que ja esta morto como avaliado, sem dar pontos (ao iniciar ou carregar).
@@ -120,7 +113,13 @@ static void ScanVehicles(Ped player, Vehicle pveh, Vehicle plast) {
         bool byPlayer = ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, player, TRUE) ||
                         (pveh && pveh != v && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, pveh, TRUE)) ||
                         (plast && plast != v && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(v, plast, TRUE));
-        if (byPlayer) AddPoints(g_cfg.blowVehicle, "veiculo explodido");
+        if (byPlayer) {
+            Hash m = ENTITY::GET_ENTITY_MODEL(v);
+            if (VEHICLE::IS_THIS_MODEL_A_HELI(m) || VEHICLE::IS_THIS_MODEL_A_PLANE(m))
+                AddPoints(g_cfg.blowAircraft, "aeronave destruida");
+            else
+                AddPoints(g_cfg.blowVehicle, "veiculo explodido");
+        }
     }
     // roubo: jogador ao volante de um veiculo marcado como roubado
     if (pveh && VEHICLE::GET_PED_IN_VEHICLE_SEAT(pveh, -1) == player && !s_stolen.count(pveh) &&
@@ -139,9 +138,46 @@ void PointsTick(Ped player, Player pid) {
         if (s.Pts() > 0) Log("Jogador morreu ou foi preso: pontos zerados [%s].", kCharName[s.ch]);
         s.Pts() = 0;
         s.maxHeatSince = -1;
+        s.hotSince = -1;
+        s.wantedMaxSince = -1;
     }
     s_wasDead = dead;
     if (dead) return;
+
+    // v4: acima de 80 pontos por 5 minutos sem morrer nem ser preso -> perde metade dos pontos
+    if (g_cfg.hotEnabled) {
+        if (s.Pts() >= g_cfg.hotPoints) {
+            if (s.hotSince < 0) {
+                s.hotSince = s.now;
+                Log("Timer de %ds acima de %d pontos iniciado.", g_cfg.hotSeconds, g_cfg.hotPoints);
+            } else if (s.now - s.hotSince >= g_cfg.hotSeconds * 1000) {
+                s.hotSince = -1;
+                AddPoints(-(s.Pts() / 2), "sobreviveu acima do limite: metade dos pontos");
+            }
+        } else if (s.hotSince >= 0) {
+            s.hotSince = -1;
+            Log("Timer acima de %d pontos interrompido.", g_cfg.hotPoints);
+        }
+    }
+
+    // v4: 5 estrelas da policia por 5 minutos -> cai para 2 estrelas
+    if (g_cfg.reliefEnabled) {
+        int wl = PLAYER::GET_PLAYER_WANTED_LEVEL(pid);
+        if (wl >= 5) {
+            if (s.wantedMaxSince < 0) {
+                s.wantedMaxSince = s.now;
+                Log("5 estrelas: timer de %ds iniciado.", g_cfg.reliefSeconds);
+            } else if (s.now - s.wantedMaxSince >= g_cfg.reliefSeconds * 1000) {
+                s.wantedMaxSince = -1;
+                PLAYER::SET_PLAYER_WANTED_LEVEL(pid, g_cfg.reliefTo, FALSE);
+                PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
+                Log("Sobreviveu %ds com 5 estrelas: procurado cai para %d.", g_cfg.reliefSeconds, g_cfg.reliefTo);
+            }
+        } else if (s.wantedMaxSince >= 0) {
+            s.wantedMaxSince = -1;
+            Log("5 estrelas perdidas: timer interrompido.");
+        }
+    }
 
     Vehicle pveh = PED::IS_PED_IN_ANY_VEHICLE(player, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(player, FALSE) : 0;
     Vehicle plast = PED::GET_VEHICLE_PED_IS_IN(player, TRUE);
@@ -163,25 +199,5 @@ void PointsTick(Ped player, Player pid) {
         AddPoints(-g_cfg.decayAmount, "tempo sem crimes");
     }
 
-    // calor maximo: tempo seguido acima do limite vira estrelas da policia
-    if (g_cfg.maxHeatEnabled) {
-        if (s.Pts() >= g_cfg.maxHeatPoints) {
-            if (s.maxHeatSince < 0) {
-                s.maxHeatSince = s.now;
-                Log("Calor maximo carregando (%ds).", g_cfg.maxHeatSeconds);
-            } else if (s.now - s.maxHeatSince >= g_cfg.maxHeatSeconds * 1000) {
-                PLAYER::SET_PLAYER_WANTED_LEVEL(pid, g_cfg.maxHeatWanted, FALSE);
-                PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
-                s.Pts() = 0;
-                s.maxHeatSince = -1;
-                s.cooldownUntil = s.now + g_cfg.maxHeatCooldown * 1000;
-                Log("CALOR MAXIMO: %d estrelas, retaliacao zerada, cooldown %ds.", g_cfg.maxHeatWanted,
-                    g_cfg.maxHeatCooldown);
-                Notify("~r~Calor máximo!~s~ A polícia assumiu a caçada.");
-            }
-        } else if (s.maxHeatSince >= 0) {
-            s.maxHeatSince = -1;
-            Log("Calor maximo interrompido.");
-        }
-    }
+    // v4: o calor maximo foi removido; quem manda agora e o timer de 5 minutos (HotTimer) acima.
 }

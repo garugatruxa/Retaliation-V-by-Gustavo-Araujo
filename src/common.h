@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.3"
+#define RETALIATION_VERSION "0.4"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -17,13 +17,10 @@ struct Config {
     bool activeInMissions = false;
     bool debugKeys = true;
     // [Points]
-    int killCivilian = 4, killCop = 5, killGang = 2, stealVehicle = 2, blowVehicle = 4;
+    int killCivilian = 4, killCop = 5, killGang = 2, stealVehicle = 2, blowVehicle = 4, blowAircraft = 6;
     int decayInterval = 45, decayAmount = 5, maxPoints = 100;
     // [Levels] pontos em que cada nivel comeca (nivel 1..N)
     std::vector<int> levelStart{10, 21, 32, 43, 54, 65, 76, 88};
-    // [MaxHeat]
-    bool maxHeatEnabled = true;
-    int maxHeatPoints = 95, maxHeatSeconds = 120, maxHeatWanted = 5, maxHeatCooldown = 60;
     // [Hud]
     bool hudEnabled = true;
     float hudOffsetX = 0.0f, hudOffsetY = 0.0085f, hudHeight = 0.0055f;
@@ -31,15 +28,21 @@ struct Config {
     int hudR = 200, hudG = 25, hudB = 25;
     bool hudShowLevel = false;
     // [Spawn]
-    int maxAlive = 16;
-    float footMin = 60, footMax = 100, vehMin = 170, vehMax = 240, despawnDist = 350;
+    float footMin = 80, footMax = 125, vehMin = 260, vehMax = 350, despawnDist = 480;
     int arriveTimeout = 150, firstWaveDelay = 8;
     float blipRadius = 120; // blips vermelhos so aparecem nesse raio
     // [LevelN] 1..8
-    struct Lv { int interval, foot, vehicles, accuracy, health, armor; };
-    Lv lv[8] = {{50, 2, 1, 15, 150, 0},  {45, 3, 1, 20, 175, 0},  {45, 3, 2, 25, 200, 10},
-                {42, 4, 2, 30, 200, 25}, {40, 4, 2, 35, 225, 50}, {38, 4, 3, 40, 250, 75},
-                {35, 5, 3, 45, 275, 100}, {30, 5, 3, 50, 300, 100}};
+    // maxAlive = limite de retaliadores vivos no nivel (a pe + em veiculos), 28 no nivel maximo
+    struct Lv { int interval, foot, vehicles, accuracy, health, armor, maxAlive; };
+    Lv lv[8] = {{50, 2, 1, 15, 150, 0, 10},  {45, 3, 1, 20, 175, 0, 12},  {45, 3, 2, 25, 200, 10, 14},
+                {42, 4, 2, 30, 200, 25, 16}, {40, 4, 2, 35, 225, 50, 18}, {38, 5, 3, 40, 250, 75, 21},
+                {35, 6, 3, 45, 275, 100, 24}, {30, 6, 4, 50, 300, 100, 28}};
+    // [HotTimer] acima desses pontos por X segundos sem morrer/ser preso: perde metade dos pontos
+    bool hotEnabled = true;
+    int hotPoints = 80, hotSeconds = 300;
+    // [WantedRelief] 5 estrelas por X segundos: cai para N estrelas
+    bool reliefEnabled = true;
+    int reliefSeconds = 300, reliefTo = 2;
     // [Roadblock]
     bool rbEnabled = true;
     int rbMinLevel = 3, rbChance = 30;
@@ -67,6 +70,8 @@ struct State {
     int lastDecay = 0;        // ultimo decaimento (ms)
     int maxHeatSince = -1;    // quando entrou na faixa de calor maximo (-1 = fora)
     int cooldownUntil = 0;    // retaliacao desligada ate esse tempo
+    int hotSince = -1;        // desde quando esta acima de HotTimer.Points
+    int wantedMaxSince = -1;  // desde quando esta com 5 estrelas
     bool paused = false;      // emboscadas pausadas (missao, cutscene, interior)
     const char *pauseReason = "";
     int &Pts() { return points[ch]; }
