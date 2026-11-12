@@ -111,6 +111,21 @@ static const std::vector<const char *> kHeavy[8] = {
     {"WEAPON_RPG", "WEAPON_RPG", "WEAPON_GRENADELAUNCHER", "WEAPON_COMPACTLAUNCHER", "WEAPON_MINIGUN"},
 };
 static const char *kMelee[] = {"WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK"};
+// v5: armas que nunca podem aparecer, mesmo se alguem colocar na lista
+static const char *kBanned[] = {"WEAPON_MUSKET", "WEAPON_MARKSMANPISTOL", "WEAPON_RAILGUN", "WEAPON_RAILGUNXM3"};
+
+// v5: helicopteros por faccao. transport = atiradores ou rapel; attack = helicoptero de ataque (Buzzard).
+struct HeliDef { const char *id; std::vector<const char *> transport, attack; };
+static const std::vector<HeliDef> kHelis = {
+    {"ONEIL", {"frogger"}, {}},
+    {"BALLAS", {"frogger"}, {}},
+    {"KKANGPAE", {"maverick", "frogger"}, {}},
+    {"TRIADS", {"supervolito", "maverick"}, {}},
+    {"MADRAZO", {"maverick", "frogger"}, {}},
+    {"FIB", {"maverick", "frogger"}, {}},
+    {"CACADORES", {"maverick", "frogger"}, {"buzzard"}},
+    {"MERRYWEATHER", {"annihilator", "maverick"}, {"buzzard"}},
+};
 
 // ---------- estado resolvido ----------
 std::vector<Faction> g_factions;
@@ -161,6 +176,11 @@ void FactionsInit() {
         std::string g = std::string("RET_") + d.id;
         PED::ADD_RELATIONSHIP_GROUP((char *)g.c_str(), &f.group);
         f.ambient = d.ambientGroup ? H(d.ambientGroup) : 0;
+        for (const HeliDef &hd : kHelis)
+            if (!strcmp(hd.id, d.id)) {
+                f.helis = Resolve(hd.transport, d.id, true);
+                f.attackHelis = Resolve(hd.attack, d.id, true);
+            }
         if (f.peds.empty()) Log("  [%s] AVISO: nenhum modelo de NPC valido!", d.id);
         g_factions.push_back(f);
     }

@@ -6,6 +6,7 @@ enum Region { RG_CITY = 0, RG_COUNTRY = 1 };
 struct Faction {
     const char *id, *name;
     std::vector<Hash> peds, cars, bikes, bicycles, boats;
+    std::vector<Hash> helis, attackHelis; // v5
     int bikePct = 0;
     bool policeAlly = false;
     Hash group = 0, ambient = 0;

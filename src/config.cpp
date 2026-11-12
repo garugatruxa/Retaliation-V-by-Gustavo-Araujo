@@ -117,12 +117,38 @@ static const char *kDefaultIni =
     "; mini-boss com armadura pesada e minigun, chega no Insurgent (chance por wave, %)\r\n"
     "Enabled=1\r\n"
     "MinLevel=7\r\n"
-    "Chance=20\r\n"
+    "Chance=15\r\n"
     "Health=3000\r\n"
+    "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara, % abaixo, sobe a partir dos 70 pontos)\r\n"
+    "MinigunChance=15\r\n"
     "\r\n"
     "[TopBonus]\r\n"
     "; % extra de chance dos especiais por ponto acima do inicio do ultimo nivel\r\n"
     "PerPoint=1.5\r\n"
+    "\r\n"
+    "[Range]\r\n"
+    "; distancia (m) em que comecam a atirar: pistolas/SMGs/escopetas e fuzis/metralhadoras.\r\n"
+    "; snipers e RPG atiram assim que veem o jogador\r\n"
+    "Short=45\r\n"
+    "Medium=110\r\n"
+    "\r\n"
+    "[Heli]\r\n"
+    "; chance (%) de helicoptero por wave, do nivel 1 ao 8\r\n"
+    "Chance=0,0,8,12,16,22,28,35\r\n"
+    "; limite ao mesmo tempo: normal, niveis 7-8, e com o jogador voando\r\n"
+    "Max=1\r\n"
+    "MaxTop=2\r\n"
+    "MaxAir=3\r\n"
+    "; % de ser helicoptero de ataque (Buzzard) e % de rapel (quando o jogador esta no chao)\r\n"
+    "AttackChance=15\r\n"
+    "RappelChance=40\r\n"
+    "; % de o helicoptero de ataque ou de rapel pousar perto do jogador a pe e a tropa descer\r\n"
+    "LandChance=30\r\n"
+    "\r\n"
+    "[Escalation]\r\n"
+    "; a partir desses pontos, cada ponto a mais soma PerPoint % a Juggernaut, minigun e helicoptero de ataque\r\n"
+    "Start=70\r\n"
+    "PerPoint=1.0\r\n"
     "\r\n"
     "[Gear]\r\n"
     "; a partir desses pontos aumenta a chance de colete, capacete e armas melhores\r\n"
@@ -225,6 +251,21 @@ void ConfigLoad() {
     c.jugMinLevel = IniInt("Juggernaut", "MinLevel", c.jugMinLevel);
     c.jugChance = IniInt("Juggernaut", "Chance", c.jugChance);
     c.jugHealth = IniInt("Juggernaut", "Health", c.jugHealth);
+    c.jugMinigunPct = IniInt("Juggernaut", "MinigunChance", c.jugMinigunPct);
+    c.rangeShort = IniFloat("Range", "Short", c.rangeShort);
+    c.rangeMedium = IniFloat("Range", "Medium", c.rangeMedium);
+    {
+        std::vector<int> hc = IniInts("Heli", "Chance", std::vector<int>(c.heliChance, c.heliChance + 8));
+        for (int i = 0; i < 8 && i < (int)hc.size(); ++i) c.heliChance[i] = hc[i];
+    }
+    c.heliMax = IniInt("Heli", "Max", c.heliMax);
+    c.heliMaxTop = IniInt("Heli", "MaxTop", c.heliMaxTop);
+    c.heliMaxAir = IniInt("Heli", "MaxAir", c.heliMaxAir);
+    c.heliAttackPct = IniInt("Heli", "AttackChance", c.heliAttackPct);
+    c.heliRappelPct = IniInt("Heli", "RappelChance", c.heliRappelPct);
+    c.heliLandPct = IniInt("Heli", "LandChance", c.heliLandPct);
+    c.escStart = IniInt("Escalation", "Start", c.escStart);
+    c.escPerPoint = IniFloat("Escalation", "PerPoint", c.escPerPoint);
     c.topBonusPerPoint = IniFloat("TopBonus", "PerPoint", c.topBonusPerPoint);
     c.gearStart = IniInt("Gear", "Start", c.gearStart);
     g_cfg = c;

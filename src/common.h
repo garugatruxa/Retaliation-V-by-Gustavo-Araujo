@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.4"
+#define RETALIATION_VERSION "0.5"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -48,11 +48,19 @@ struct Config {
     int rbMinLevel = 3, rbChance = 30;
     // [Juggernaut]
     bool jugEnabled = true;
-    int jugMinLevel = 7, jugChance = 20, jugHealth = 3000;
+    int jugMinLevel = 7, jugChance = 15, jugHealth = 3000, jugMinigunPct = 15;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
     float topBonusPerPoint = 1.5f;
     // [Gear] a partir desses pontos aumenta a chance de colete, capacete e armas melhores
     int gearStart = 40;
+    // [Range] v5: alcance (m) em que cada classe de arma comeca a atirar
+    float rangeShort = 45, rangeMedium = 110;
+    // [Heli] v5: chance (%) de helicoptero por wave em cada nivel, e limite ao mesmo tempo
+    int heliChance[8] = {0, 0, 8, 12, 16, 22, 28, 35};
+    int heliMax = 1, heliMaxTop = 2, heliMaxAir = 3, heliAttackPct = 15, heliRappelPct = 40, heliLandPct = 30;
+    // [Escalation] v5: a partir desses pontos, mais especiais (Juggernaut, minigun, ataque)
+    int escStart = 70;
+    float escPerPoint = 1.0f;
 };
 extern Config g_cfg;
 extern std::string g_dir; // pasta do .asi (raiz do jogo)
