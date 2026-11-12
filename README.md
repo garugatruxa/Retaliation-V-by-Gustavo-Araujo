@@ -186,7 +186,7 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v7.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v7.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
 5. **Atualizando de outra versão:** substitua o `.asi` e apague o `Retaliation.ini` antigo, para o mod criar um
@@ -233,7 +233,7 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v7`).
+(`v1` a `v7.1`).
 
 ### v7 — atual
 

@@ -847,6 +847,10 @@ static void SpawnTank() {
         SetupPed(t.driver, s_level, WeaponFor(s_level));
         PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 3, FALSE);
         PED::SET_PED_ACCURACY(t.driver, g_cfg.explosiveAcc); // canhao do tanque impreciso
+        // pendurado no Cargobob o tanque nao atira; o canhao so libera depois de tocar o chao
+        PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, TRUE);
+        PED::SET_PED_SHOOT_RATE(t.driver, 0);
+        VEHICLE::DISABLE_VEHICLE_WEAPON(TRUE, H("VEHICLE_WEAPON_TANK"), t.rhino, t.driver);
         AddCrew(t.driver);
     }
     VEHICLE::SET_VEHICLE_FORWARD_SPEED(t.cargo, 20.f);
@@ -896,7 +900,13 @@ static void UpdateTank() {
     } else if (t.state == 1) {
         if (ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.rhino) < 1.5f || g_st.now - t.at > 8000) {
             ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, FALSE);
-            if (t.driver && !PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE)) AI::TASK_COMBAT_PED(t.driver, s_player, 0, 16);
+            if (t.driver && !PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE)) {
+                // no chao: libera o canhao e comeca a cacar
+                VEHICLE::DISABLE_VEHICLE_WEAPON(FALSE, H("VEHICLE_WEAPON_TANK"), t.rhino, t.driver);
+                PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
+                PED::SET_PED_SHOOT_RATE(t.driver, 100);
+                AI::TASK_COMBAT_PED(t.driver, s_player, 0, 16);
+            }
             t.state = 2;
             Log("  tanque no chao, cacando o jogador.");
         }
