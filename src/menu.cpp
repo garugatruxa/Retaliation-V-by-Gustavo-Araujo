@@ -17,11 +17,12 @@ const char *Tr(const char *pt, const char *en, const char *es) {
     return l == 0 ? pt : l == 2 ? es : en;
 }
 
-const char *kModeName[4] = {"", "Junto com a polícia", "Substitui a polícia", "Ciclo"};
+const char *kModeName[5] = {"", "Junto com a polícia", "Substitui a polícia", "Ciclo", "Desordem"};
 static const char *ModeName(int m) {
     switch (m) {
     case 1: return Tr("Junto com a polícia", "Alongside the police", "Junto a la policía");
     case 2: return Tr("Substitui a polícia", "Replaces the police", "Reemplaza a la policía");
+    case 4: return Tr("Desordem", "Disorder", "Desorden"); // v11
     default: return Tr("Ciclo", "Cycle", "Ciclo"); // v10: nome curto
     }
 }
@@ -120,6 +121,7 @@ static void MenuSetLevel(int delta) {
     if (lv > top) lv = top;
     int to = lv == 0 ? 0 : lv == top ? g_cfg.maxPoints : ls[lv - 1];
     if (to != pts) AddPointsForce(to - pts, delta > 0 ? "(menu) sobe nivel" : "(menu) desce nivel");
+    DisorderMenuLevel(); // v11: na Desordem, o nivel escolhido vale como inicio (nada baixa no primeiro minuto)
 }
 
 void MenuTick() {
@@ -153,8 +155,8 @@ void MenuTick() {
             Log("Menu: trava de nivel %s.", g_cfg.levelLock ? "ligada" : "desligada");
         } else {
             int m = g_cfg.mode + (rt ? 1 : -1);
-            if (m < 1) m = 3;
-            if (m > 3) m = 1;
+            if (m < 1) m = 4;
+            if (m > 4) m = 1;
             g_cfg.mode = m;
             ConfigSetInt("General", "Mode", m);
             Log("Menu: modo %d (%s).", m, kModeName[m]);

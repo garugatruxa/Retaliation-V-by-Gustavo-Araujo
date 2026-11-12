@@ -68,8 +68,11 @@ struct Hunter {
     int nextApproach = 0; bool approaching = false; // v10: fora do alcance, corre ate o jogador
     int nextPush = 0; bool pushing = false, wild = false; // v10: fora da estrada: avanca ate o jogador
     float areaRadius = 30.f;
+    int lastHp = -1;          // v11: vida no ultimo exame (para saber se o jogador atacou)
+    int onPlayer = -1;        // v11: na Desordem, 1 = atacando o jogador, 0 = outros alvos
+    int nextChase = 0;        // v11: motorista na Desordem renova o destino
 };
-struct SquadVeh { Vehicle veh; int born; bool roadblock; bool scored = false; Blip blip = 0; };
+struct SquadVeh { Vehicle veh; int born; bool roadblock; bool scored = false; Blip blip = 0; int lastHp = -1; };
 enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI, P_TANK, P_JET, P_KHAN, P_AIR, P_PARA };
 struct Pending { int at; PKind k; int n; int role; bool bicycleOk; };
 
@@ -85,6 +88,23 @@ static int s_level = 0;
 static const float kBlipRadius = 180.f; // padrao; o .ini pode mudar
 static float BlipRadius() { return g_cfg.blipRadius > 0 ? g_cfg.blipRadius : kBlipRadius; }
 static bool s_wild = false; // v10: jogador a pe fora das estradas (ver UpdateWild)
+// ---------- v11: alvo na Desordem ----------
+// Fora da Desordem (ou com os retaliadores contra o jogador) todos atacam o jogador, como sempre. Na Desordem
+// calma, quem esta longe do jogador luta contra os inimigos em volta (policia e civis); de perto, ataca ele.
+static bool Calm() { return DisorderCalm(); }
+static bool NearPlayer(Ped p) { return D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) < g_cfg.disNearDist; }
+static void Engage(Ped p) {
+    if (Calm() && !NearPlayer(p)) AI::TASK_COMBAT_HATED_TARGETS_AROUND_PED(p, 300.f, 0);
+    else AI::TASK_COMBAT_PED(p, s_player, 0, 16);
+}
+// motorista: persegue o jogador; na Desordem calma, so dirige ate a area dele (e desce para lutar)
+static void Chase(Ped p) {
+    Vehicle v = PED::GET_VEHICLE_PED_IS_IN(p, FALSE);
+    if (Calm() && v && !NearPlayer(p))
+        AI::TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE(p, v, s_ppos.x, s_ppos.y, s_ppos.z, 30.f, 786469, 35.f);
+    else
+        AI::TASK_VEHICLE_CHASE(p, s_player);
+}
 // v10: jogador a pe e no chao (nem em veiculo, nem nadando, caindo ou de paraquedas)
 static bool PlayerOnFootGround() {
     return !PED::IS_PED_IN_ANY_VEHICLE(s_player, FALSE) && !PED::IS_PED_SWIMMING(s_player) &&
@@ -475,7 +495,7 @@ static void SpawnFoot(int n, int role) {
             hh.walking = true;
             if (D2(p, s_ppos) > 300.f) hh.farOk = true; // v10: vem de longe (ate 1500 m antes de ser removido)
         } else {
-            AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+            Engage(ped);
         }
     }
     if (fromRoad) Log("  a pe: %d saindo da estrada mais proxima, a %.0fm", n, D2(p, s_ppos));
@@ -491,10 +511,10 @@ static void FillVehicle(Vehicle v, int seats) {
         if (s == -1) {
             PED::SET_DRIVER_ABILITY(ped, 1.0f);
             PED::SET_DRIVER_AGGRESSIVENESS(ped, 0.75f);
-            AI::TASK_VEHICLE_CHASE(ped, s_player);
+            Chase(ped);
             AI::SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE(ped, 0.f);
         } else {
-            AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+            Engage(ped);
         }
         AddHunter(ped);
     }
@@ -509,7 +529,7 @@ static int FillTurrets(Vehicle v) {
         if (!g) continue;
         SetupPed(g, s_level, WeaponFor(s_level, BetterPct()));
         PED::SET_PED_COMBAT_ATTRIBUTES(g, 3, FALSE);
-        AI::TASK_COMBAT_PED(g, s_player, 0, 16);
+        Engage(g);
         Hunter &h = AddHunter(g);
         h.stayInVeh = true;
         h.rangeExempt = true;
@@ -751,7 +771,7 @@ static void SetupLightJug(Ped j) {
     PED::SET_PED_FIRING_PATTERN(j, 0xC6EE6B4C); // rajada continua
     PED::SET_PED_COMBAT_MOVEMENT(j, 2);          // avanca
     PED::SET_PED_COMBAT_RANGE(j, 1);
-    AI::TASK_COMBAT_PED(j, s_player, 0, 16);
+    Engage(j);
     Hunter &hj = AddHunter(j);
     hj.juggernaut = true;
     hj.lightJug = true;
@@ -806,10 +826,10 @@ static void SpawnJuggernaut() {
         if (s == -1) {
             PED::SET_DRIVER_ABILITY(ped, 1.0f);
             PED::SET_DRIVER_AGGRESSIVENESS(ped, 0.8f);
-            AI::TASK_VEHICLE_CHASE(ped, s_player);
+            Chase(ped);
             AI::SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE(ped, 25.f);
         } else {
-            AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+            Engage(ped);
         }
         AddHunter(ped).stayInVeh = true;
     }
@@ -852,7 +872,7 @@ static void SpawnJuggernaut() {
             PED::SET_PED_COMBAT_MOVEMENT(j, 2);           // avanca
             PED::SET_PED_COMBAT_ATTRIBUTES(j, 0, FALSE);  // nao usa cobertura
             PED::SET_PED_COMBAT_RANGE(j, 1);
-            AI::TASK_COMBAT_PED(j, s_player, 0, 16);
+            Engage(j);
             Hunter &hj = AddHunter(j);
             hj.juggernaut = true;
             Log("  JUGGERNAUT a caminho (%s, %s) a %.0fm", s_fac->name,
@@ -868,7 +888,7 @@ static void SpawnJuggernaut() {
         Ped ped = NewPedIn(v, RandomPed(), s);
         if (!ped) continue;
         SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
-        AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+        Engage(ped);
         AddHunter(ped);
     }
     s_v.push_back({v, g_st.now, false});
@@ -932,7 +952,7 @@ static bool SpawnRoadblock() {
             SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
             PED::SET_PED_COMBAT_MOVEMENT(ped, 1); // defensivo
             PED::SET_PED_SPHERE_DEFENSIVE_AREA(ped, node.x, node.y, node.z, 18.f, FALSE, FALSE);
-            AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+            Engage(ped);
             AddHunter(ped).roadblock = true;
             ++men;
         }
@@ -990,14 +1010,14 @@ static void AttackHeliEngage(HeliSt &st) {
     PED::SET_PED_COMBAT_ATTRIBUTES(st.pilot, 53, TRUE); // usar as armas montadas no veiculo
     PED::SET_PED_FIRING_PATTERN(st.pilot, 0xC6EE6B4C);  // rajada continua
     PED::SET_PED_SHOOT_RATE(st.pilot, 100);
-    AI::TASK_COMBAT_PED(st.pilot, s_player, 0, 16);
+    Engage(st.pilot);
 }
 
 // Ronda o jogador. Helicoptero armado entra em combate, para usar as armas dele em vez de so voar em volta.
 static void PilotCircle(Ped pilot, Vehicle v, float radius) {
     if (ArmedHeli(ENTITY::GET_ENTITY_MODEL(v))) {
         VEHICLE::SET_VEHICLE_ENGINE_ON(v, TRUE, TRUE, FALSE);
-        AI::TASK_COMBAT_PED(pilot, s_player, 0, 16);
+        Engage(pilot);
         return;
     }
     AI::TASK_HELI_MISSION(pilot, v, 0, s_player, 0.f, 0.f, 0.f, 9, 35.f, radius, -1.f, 40, 25, -1.f, 0);
@@ -1054,6 +1074,19 @@ static void SpawnHeli(bool air, bool sea = false) {
     }
     if (!model) model = RandomOf(transport);
     if (!model) return;
+    // v11: na Desordem, nada de helicoptero com misseis ou canhao explosivo, menos o Buzzard
+    if (g_cfg.mode == 4) {
+        static const Hash banned[] = {H("valkyrie"), H("valkyrie2"), H("savage"), H("hunter"), H("akula")};
+        auto isBanned = [&](Hash m) { for (Hash b : banned) if (m == b) return true; return false; };
+        if (isBanned(model)) {
+            if (type == HT_ATTACK) model = H("buzzard");
+            else {
+                std::vector<Hash> ok;
+                for (Hash m : transport) if (!isBanned(m) && (type != HT_RAPPEL || CanRappel(m))) ok.push_back(m);
+                model = ok.empty() ? H("maverick") : RandomOf(ok);
+            }
+        }
+    }
 
     float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z, dx, dy, d = RandF(330.f, 430.f);
     Dir(camH + 180.f + RandF(-100.f, 100.f), dx, dy);
@@ -1085,7 +1118,7 @@ static void SpawnHeli(bool air, bool sea = false) {
             SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
             PED::SET_PED_ACCURACY(ped, g_cfg.heliAccuracy); // v10: "stormtrooper" (NormalAim ao descer)
             PED::SET_PED_COMBAT_ATTRIBUTES(ped, 3, FALSE);
-            if (type != HT_RAPPEL) AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
+            if (type != HT_RAPPEL) Engage(ped);
             Hunter &h = AddHunter(ped);
             h.stayInVeh = true;
             h.heliRappel = type == HT_RAPPEL;
@@ -1145,7 +1178,7 @@ static void UpdateHelis() {
                 st.land = false;
                 st.state = 0;
                 st.at = g_st.now;
-                if (st.type == HT_ATTACK) AI::TASK_COMBAT_PED(st.pilot, s_player, 0, 16);
+                if (st.type == HT_ATTACK) Engage(st.pilot);
                 else PilotGoTo(st.pilot, st.veh, st.drop = DropPoint());
             } else {
                 Vector3 vel = ENTITY::GET_ENTITY_VELOCITY(st.veh);
@@ -1168,7 +1201,7 @@ static void UpdateHelis() {
         } else if (st.state == 11 && g_st.now - st.at > 6000) {
             st.state = 2;
             st.land = false;
-            if (st.type == HT_ATTACK) AI::TASK_COMBAT_PED(st.pilot, s_player, 0, 16); // decola e volta a atacar
+            if (st.type == HT_ATTACK) Engage(st.pilot); // decola e volta a atacar
             else PilotCircle(st.pilot, st.veh, 55.f);
         }
 
@@ -1210,7 +1243,7 @@ static void UpdateHelis() {
                     h.heliRappel = false;
                     h.stayInVeh = false;
                     NormalAim(h.ped);
-                    AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+                    Engage(h.ped);
                 } else {
                     pending = true;
                 }
@@ -1384,7 +1417,7 @@ static void UpdateTank() {
                 // v9: no chao, libera o canhao e comeca a cacar
                 // v10: o canhao continua travado; UpdateTank libera um tiro a cada ShotInterval segundos
                 PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
-                AI::TASK_COMBAT_PED(t.driver, s_player, 0, 16);
+                Engage(t.driver);
                 t.nextShot = g_st.now + 3000;
                 t.gunOpen = false;
             }
@@ -1410,7 +1443,7 @@ static void UpdateTank() {
             PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 2, TRUE);
             PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
             PED::SET_PED_SHOOT_RATE(t.driver, 100);
-            AI::TASK_COMBAT_PED(t.driver, s_player, 0, 16);
+            Engage(t.driver);
             t.gunOpen = true;
             t.openAt = g_st.now;
         } else if (t.gunOpen) {
@@ -1432,7 +1465,7 @@ static void UpdateTank() {
             PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 2, FALSE);
             if (!t.chasing) { // so persegue, sem combate, ate a proxima janela
                 PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, TRUE); // nao volta sozinho ao combate
-                AI::TASK_VEHICLE_CHASE(t.driver, s_player);
+                Chase(t.driver);
                 AI::SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE(t.driver, 35.f);
                 t.chasing = true;
             }
@@ -1504,7 +1537,7 @@ static void UpdateKhanjali() {
         PED::SET_PED_COMBAT_ATTRIBUTES(k.driver, 2, TRUE);
         PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(k.driver, FALSE);
         PED::SET_PED_SHOOT_RATE(k.driver, 100);
-        AI::TASK_COMBAT_PED(k.driver, s_player, 0, 16);
+        Engage(k.driver);
         k.gunOpen = true;
         k.openAt = g_st.now;
     } else if (k.gunOpen) {
@@ -1520,7 +1553,7 @@ static void UpdateKhanjali() {
         PED::SET_PED_SHOOT_RATE(k.driver, 0); // v10.1: fora da janela nada atira
         if (!k.chasing) {
             PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(k.driver, TRUE);
-            AI::TASK_VEHICLE_CHASE(k.driver, s_player);
+            Chase(k.driver);
             AI::SET_TASK_VEHICLE_CHASE_IDEAL_PURSUIT_DISTANCE(k.driver, 35.f);
             k.chasing = true;
         }
@@ -1765,6 +1798,8 @@ static void UpdateJet() {
 }
 // ---------- waves ----------
 static void Queue(int delayMs, PKind k, int n = 0, int role = 0, bool bicycleOk = false) {
+    // v11: na Desordem nao vem jato, aviao perseguidor nem tanque
+    if (g_cfg.mode == 4 && (k == P_TANK || k == P_KHAN || k == P_JET || k == P_AIR)) return;
     // v9: cada unidade sai da fila com espacamento da anterior, em fluxo continuo entre as waves
     int at = g_st.now + delayMs;
     if (at < s_flowNext) at = s_flowNext;
@@ -2057,7 +2092,7 @@ static void SetWild(Hunter &h, bool on) {
         RangeClass rc = RangeOf(WEAPON::GET_SELECTED_PED_WEAPON(h.ped));
         PED::SET_PED_COMBAT_RANGE(h.ped, rc == RC_SHORT ? 0 : rc == RC_MEDIUM ? 1 : 2);
         if (h.tactical) PED::SET_PED_COMBAT_ATTRIBUTES(h.ped, 50, FALSE);
-        AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+        Engage(h.ped);
     }
 }
 // avanca correndo e atirando ate ~20 m do jogador; ai luta normalmente (ofensivo)
@@ -2070,7 +2105,7 @@ static void WildPush(Hunter &h, float d) {
         h.pushing = true;
     } else if (h.pushing) {
         h.pushing = false;
-        AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+        Engage(h.ped);
     }
 }
 
@@ -2092,6 +2127,8 @@ static void UpdateHunters() {
             Entity k = PED::_GET_PED_KILLER(h.ped);
             Vehicle pv = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
             if (k && (k == s_player || (pv && k == pv))) AddPoints(g_cfg.killHunter, "retaliador morto");
+            else if (DisorderOn() && D2(ENTITY::GET_ENTITY_COORDS(h.ped, FALSE), s_ppos) < g_cfg.disDeathRadius)
+                AddPoints(g_cfg.disDeathPts, "retaliador morto na desordem"); // v11
             ReleasePed(h, false);
             s_h.erase(s_h.begin() + i);
             continue;
@@ -2103,6 +2140,18 @@ static void UpdateHunters() {
         }
         Vector3 hp = ENTITY::GET_ENTITY_COORDS(h.ped, TRUE);
         float d = D2(hp, s_ppos);
+        // v11: Desordem - o jogador feriu um retaliador: os retaliadores ficam contra ele
+        if (g_cfg.mode == 4) {
+            int life = ENTITY::GET_ENTITY_HEALTH(h.ped) + PED::GET_PED_ARMOUR(h.ped);
+            Vehicle pv0 = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
+            if (h.lastHp >= 0 && life < h.lastHp &&
+                (ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(h.ped, s_player, TRUE) ||
+                 (pv0 && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(h.ped, pv0, TRUE)))) {
+                DisorderProvoke(false);
+                ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(h.ped);
+            }
+            h.lastHp = life;
+        }
 
         // blip vermelho so perto do jogador. v10: dentro de veiculo aparece o icone do veiculo
         bool pedInVeh = PED::IS_PED_IN_ANY_VEHICLE(h.ped, FALSE);
@@ -2122,13 +2171,31 @@ static void UpdateHunters() {
                           ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(h.ped) < 2.5f;
             if (landed || g_st.now - h.born > 60000) {
                 h.para = false;
-                AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+                Engage(h.ped);
             } else { ++i; continue; }
         }
         if (d < 70.f) h.reached = true;
+        // v11: Desordem - escolhe o alvo de novo quando muda a situacao (perto/longe do jogador, ou ele atacou)
+        if (DisorderOn() && !h.walking && !h.leaving && !h.heliRappel && !h.tankGunner) {
+            Vehicle hv0 = PED::GET_VEHICLE_PED_IS_IN(h.ped, FALSE);
+            Hash hm0 = hv0 ? ENTITY::GET_ENTITY_MODEL(hv0) : 0;
+            bool air0 = hv0 && (VEHICLE::IS_THIS_MODEL_A_HELI(hm0) || VEHICLE::IS_THIS_MODEL_A_PLANE(hm0));
+            bool driver = hv0 && VEHICLE::GET_PED_IN_VEHICLE_SEAT(hv0, -1) == h.ped;
+            int want = (!Calm() || d < g_cfg.disNearDist) ? 1 : 0;
+            if (!(air0 && driver)) { // pilotos ficam com o controle do helicoptero
+                if (want != h.onPlayer) {
+                    h.onPlayer = want;
+                    if (driver) Chase(h.ped); else Engage(h.ped);
+                    h.nextChase = g_st.now + 8000;
+                } else if (driver && !want && g_st.now >= h.nextChase) { // renova o destino (o jogador anda)
+                    h.nextChase = g_st.now + 8000;
+                    Chase(h.ped);
+                }
+            }
+        }
         if (h.walking && (d < 80.f || g_st.now - h.born > 90000)) { // chegou perto: comeca a lutar
             h.walking = false;
-            AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+            Engage(h.ped);
         }
 
         // v5: so atira dentro do alcance da arma.
@@ -2142,7 +2209,7 @@ static void UpdateHunters() {
                       : hv ? g_cfg.rangeVehicle
                            : RangeMeters(RangeOf(WEAPON::GET_SELECTED_PED_WEAPON(h.ped)));
             if (!air && r > br) r = br; // e nunca antes de aparecer no minimapa
-            bool ok = d <= r;
+            bool ok = d <= r || Calm(); // v11: na Desordem calma o alvo nao e o jogador
             int want = ok ? 100 : 0;
             if (want != h.shootRate) { PED::SET_PED_SHOOT_RATE(h.ped, want); h.shootRate = want; }
             // a pe e fora do alcance: corre ate o jogador em vez de ficar atirando de longe
@@ -2153,7 +2220,7 @@ static void UpdateHunters() {
                 h.nextApproach = g_st.now + 4000;
             } else if (h.approaching && (ok || !free)) {
                 h.approaching = false;
-                if (free) AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+                if (free) Engage(h.ped);
             }
         }
         bool timeout = !h.reached && !h.roadblock && g_st.now - h.born > (g_cfg.arriveTimeout + (h.farOk ? 120 : 0)) * 1000; // v10: quem vem de longe tem +2 min
@@ -2166,31 +2233,31 @@ static void UpdateHunters() {
 
         // descer do veiculo perto do jogador a pe
         bool inVeh = PED::IS_PED_IN_ANY_VEHICLE(h.ped, FALSE);
-        if (inVeh && !h.stayInVeh && !h.leaving && onFoot && d < 45.f) {
+        if (inVeh && !h.stayInVeh && !h.leaving && (Calm() ? d < 60.f : onFoot && d < 45.f)) { // v11: na Desordem desce na area
             AI::TASK_LEAVE_VEHICLE(h.ped, PED::GET_VEHICLE_PED_IS_IN(h.ped, FALSE), 0);
             h.leaving = true;
             h.leftAt = g_st.now;
         } else if (h.leaving && (!inVeh || g_st.now - h.leftAt > 4000)) {
             h.leaving = false;
             if (h.juggernaut && !h.lightJug) ApplyJuggernautWalk(h.ped);
-            AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
+            Engage(h.ped);
         }
 
         // v10: fora das estradas, quem esta a pe avanca ate o jogador (menos snipers e quem ainda vem andando da estrada)
         bool canWild = !inVeh && !h.leaving && !h.sniper && !h.heliRappel;
-        SetWild(h, s_wild && canWild);
+        SetWild(h, s_wild && canWild && !Calm());
         if (h.wild) WildPush(h, d);
 
         // v10: sem visao do jogador (atras de parede/objeto e fora de cobertura): procura um caminho ate ele
         // e volta a atacar quando o enxergar de novo. Em cobertura, os inimigos mantem o comportamento normal.
-        if (!inVeh && !h.leaving && !h.sniper && !h.heliRappel && !h.roadblock && !h.walking && !h.wild &&
+        if (!Calm() && !inVeh && !h.leaving && !h.sniper && !h.heliRappel && !h.roadblock && !h.walking && !h.wild &&
             !h.approaching && d < 120.f && g_st.now >= h.nextLos) {
             h.nextLos = g_st.now + 900 + Rand(300);
             bool sees = ENTITY::HAS_ENTITY_CLEAR_LOS_TO_ENTITY(h.ped, s_player, 17) != 0;
             bool cover = PED::IS_PED_IN_COVER(s_player, FALSE) != 0;
             if (sees || cover) {
                 h.losLostAt = 0;
-                if (h.seeking) { h.seeking = false; AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16); }
+                if (h.seeking) { h.seeking = false; Engage(h.ped); }
             } else {
                 if (!h.losLostAt) h.losLostAt = g_st.now;
                 if (g_st.now - h.losLostAt > 3000) {
@@ -2201,7 +2268,7 @@ static void UpdateHunters() {
                     h.losLostAt = g_st.now; // renova o caminho a cada ~3 s enquanto nao enxergar
                 }
             }
-        } else if (h.seeking && (inVeh || h.wild || h.approaching)) {
+        } else if (h.seeking && (inVeh || h.wild || h.approaching || Calm())) {
             h.seeking = false;
         }
 
@@ -2224,11 +2291,27 @@ static void UpdateHunters() {
             s_v.erase(s_v.begin() + i);
             continue;
         }
+        // v11: Desordem - o jogador atacou um veiculo dos retaliadores
+        if (g_cfg.mode == 4 && !ENTITY::IS_ENTITY_DEAD(s.veh)) {
+            int life = ENTITY::GET_ENTITY_HEALTH(s.veh);
+            Vehicle pv0 = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
+            if (s.lastHp >= 0 && life < s.lastHp &&
+                (ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, s_player, TRUE) ||
+                 (pv0 && pv0 != s.veh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, pv0, TRUE)))) {
+                DisorderProvoke(false);
+                ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(s.veh);
+            }
+            s.lastHp = life;
+        }
         // v7: veiculo/aeronave dos retaliadores destruido pelo jogador tambem da pontos
         if (!s.scored && ENTITY::IS_ENTITY_DEAD(s.veh)) {
             s.scored = true;
             Vehicle pv = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
-            if (ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, s_player, TRUE) ||
+            bool near0 = D2(ENTITY::GET_ENTITY_COORDS(s.veh, FALSE), s_ppos) < g_cfg.disDeathRadius;
+            if (DisorderOn() && near0 && !ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, s_player, TRUE) &&
+                !(pv && pv != s.veh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, pv, TRUE)))
+                AddPoints(g_cfg.disVehPts, "veiculo dos retaliadores destruido na desordem"); // v11
+            else if (ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, s_player, TRUE) ||
                 (pv && pv != s.veh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(s.veh, pv, TRUE))) {
                 Hash m = ENTITY::GET_ENTITY_MODEL(s.veh);
                 bool air = VEHICLE::IS_THIS_MODEL_A_HELI(m) || VEHICLE::IS_THIS_MODEL_A_PLANE(m);

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "10.1"
+#define RETALIATION_VERSION "11"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -16,6 +16,7 @@ struct Config {
     bool enabled = false; // v9.2: comeca desligado (liga pelo menu, tecla Insert)
     bool activeInMissions = false;
     // v8: 1 = junto com a policia (original), 2 = substitui a policia, 3 = ciclo (policia -> Retaliation -> livre)
+    // v11: 4 = Desordem (policia x retaliadores, o jogador so e atacado de perto ou se atacar primeiro)
     int mode = 1; // v9.2: padrao = junto com a policia
     bool directorMode = true; // v7: 1 = Retaliation livre no Modo Diretor (comeca zerado); 0 = limpa e pausa ao entrar
     bool debugKeys = true;
@@ -92,6 +93,16 @@ struct Config {
     bool popKeep = true;
     float popPeds = 1.0f, popTraffic = 1.0f;
     int popWithPolicePct = 75;
+    // v11: [Disorder] modo 4 (Desordem)
+    int disStartLevel = 3;     // nivel inicial sem nivel escolhido no menu
+    int disHoldSeconds = 60;   // nada baixa no comeco (e ao escolher o nivel no menu)
+    float disNearDist = 12.f;  // mais perto que isso, policiais e retaliadores atacam o jogador
+    int disAggroSeconds = 60;  // quanto tempo um lado fica contra o jogador depois que ele ataca esse lado
+    float disDeathRadius = 200.f; // mortes e destruicao de qualquer um ate essa distancia sobem a pressao
+    int disDeathPts = 2, disVehPts = 4; // pontos por morte / veiculo destruido que nao foram do jogador
+    int disArmedCivPct = 15;   // % dos civis com arma curta
+    bool disRestartOnDeath = true;
+    int disRestartDelay = 10;  // segundos depois de morrer/ser preso para recomecar
     // v10: [WeaponMods] chance (%) de a arma vir com acessorios: Base no nivel 1 + PerLevel por nivel acima
     bool modsEnabled = true;
     int modsBase = 10, modsPerLevel = 10;
@@ -165,7 +176,12 @@ void OutfitCapture(Ped p, int slot); // salva a roupa do ped como roupa do Jugge
 void ConfigSetStr(const char *sec, const char *key, const char *v);
 void OutfitApply(Ped p, const Config::Outfit &o);
 void MenuTick(); // menu do Insert (v8)
-extern const char *kModeName[4];
+extern const char *kModeName[5];
+// v11: modo Desordem (points.cpp)
+bool DisorderCalm();      // modo 4 ativo e os retaliadores nao estao contra o jogador
+bool DisorderOn();        // modo 4 ativo (fora de missao)
+void DisorderProvoke(bool police); // o jogador atacou a policia (true) ou os retaliadores (false)
+void DisorderMenuLevel(); // nivel escolhido no menu: recomeca a espera sem baixar
 int UiLang(); // 0 portugues, 1 ingles, 2 espanhol (segue o idioma do jogo)
 const char *Tr(const char *pt, const char *en, const char *es);
 

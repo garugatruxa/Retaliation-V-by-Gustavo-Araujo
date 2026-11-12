@@ -1,6 +1,7 @@
 // Deteccao de crimes, decaimento, morte/prisao e calor maximo.
 #include "spawn.h"
 #include <unordered_set>
+#include <unordered_map>
 
 static std::unordered_set<int> s_deadPeds;   // peds mortos ja avaliados
 static std::unordered_set<int> s_deadVehs;   // veiculos destruidos ja avaliados
@@ -16,6 +17,9 @@ static const int kMaxEnt = 1024;
 static int s_buf[kMaxEnt];
 
 static Hash H(const char *s) { return GAMEPLAY::GET_HASH_KEY((char *)s); }
+static void DisorderReset();
+static void DisorderOnDeath();
+static bool DisorderHold();
 
 static bool IsGangGroup(Hash g) {
     static const Hash gangs[] = {
@@ -100,6 +104,7 @@ void PointsSeed() {
 }
 
 void PointsReset() {
+    DisorderReset(); // v11
     for (int &p : g_st.points) p = 0;
     g_st.maxHeatSince = -1;
     g_st.cooldownUntil = 0;
@@ -122,7 +127,16 @@ static void ScanKills(Ped player, Vehicle pveh, Vehicle plast) {
         if (!s_deadPeds.insert(p).second) continue;   // ja avaliado
         if (PED::IS_PED_A_PLAYER(p) || ENTITY::IS_ENTITY_A_MISSION_ENTITY(p)) continue; // missao / retaliadores
         Entity k = PED::_GET_PED_KILLER(p);
-        if (!k || !(k == player || (pveh && k == pveh) || (plast && k == plast))) continue;
+        if (!k || !(k == player || (pveh && k == pveh) || (plast && k == plast))) {
+            // v11: na Desordem, qualquer morte perto do jogador sobe a pressao, mesmo sem ser ele
+            if (DisorderOn() && Classify(p) != V_NONE) {
+                Vector3 a = ENTITY::GET_ENTITY_COORDS(p, FALSE), b = ENTITY::GET_ENTITY_COORDS(player, TRUE);
+                float dx = a.x - b.x, dy = a.y - b.y;
+                if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius)
+                    AddPoints(g_cfg.disDeathPts, "morte na desordem");
+            }
+            continue;
+        }
         switch (Classify(p)) {
         case V_CIV: AddPoints(g_cfg.killCivilian, "civil morto"); break;
         case V_COP: AddPoints(g_cfg.killCop, "policial morto"); break;
@@ -148,6 +162,11 @@ static void ScanVehicles(Ped player, Vehicle pveh, Vehicle plast) {
                 AddPoints(g_cfg.blowAircraft, "aeronave destruida");
             else
                 AddPoints(g_cfg.blowVehicle, "veiculo explodido");
+        } else if (DisorderOn()) { // v11: destruicao perto do jogador, de quem for
+            Vector3 a = ENTITY::GET_ENTITY_COORDS(v, FALSE), b = ENTITY::GET_ENTITY_COORDS(player, TRUE);
+            float dx = a.x - b.x, dy = a.y - b.y;
+            if (dx * dx + dy * dy < g_cfg.disDeathRadius * g_cfg.disDeathRadius)
+                AddPoints(g_cfg.disVehPts, "veiculo destruido na desordem");
         }
     }
     // roubo: jogador ao volante de um veiculo marcado como roubado
@@ -187,6 +206,8 @@ static void ClearWanted(Player pid) {
 }
 
 void PoliceRestore(Player pid) {
+    DisorderReset(); // v11
+    RelationsDisorder(false, false);
     s_dmForce = false;
     PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(pid, TRUE);
     PoliceIgnore(pid, false);
@@ -194,6 +215,160 @@ void PoliceRestore(Player pid) {
     s_jointUntil = 0;
     s_wasActive = false;
     g_st.wantedMaxSince = -1;
+}
+
+// ---------- v11: modo 4, Desordem ----------
+// Comeca no nivel escolhido no menu (ou no StartLevel) com N estrelas (no maximo 5), e nada baixa no primeiro
+// minuto. Policia e retaliadores se enfrentam; o jogador so e atacado por quem chegar muito perto ou pelo lado
+// que ele atacar primeiro. Qualquer morte ou destruicao perto do jogador sobe a pressao, e as estrelas seguem o
+// nivel. Os retaliadores tambem atacam civis, e parte dos civis anda com arma curta.
+static bool s_disOn = false;
+static int s_disHold = 0, s_disRestartAt = 0, s_disCentre = 0, s_disScan = 0, s_disPrune = 0;
+static int s_polAggro = 0, s_hunAggro = 0;
+static std::unordered_set<int> s_civChecked;           // civis ja sorteados (arma ou nao)
+static std::unordered_map<int, int> s_copNear;          // policial perto do jogador -> quando foi mandado atacar
+static std::unordered_map<int, int> s_copHp;            // vida do policial no ultimo exame
+
+static bool MissionPaused() { return g_st.paused && strcmp(g_st.pauseReason, "interior") != 0; }
+bool DisorderOn() { return g_cfg.mode == 4 && s_disOn && !MissionPaused(); }
+bool DisorderCalm() { return DisorderOn() && g_st.now >= s_hunAggro; }
+static bool DisorderHold() { return DisorderOn() && g_st.now < s_disHold; }
+void DisorderProvoke(bool police) {
+    if (!DisorderOn()) return;
+    int &until = police ? s_polAggro : s_hunAggro;
+    if (g_st.now >= until)
+        Log("Desordem: o jogador atacou %s; eles ficam contra ele por %ds.", police ? "a policia" : "os retaliadores",
+            g_cfg.disAggroSeconds);
+    until = g_st.now + g_cfg.disAggroSeconds * 1000;
+}
+void DisorderMenuLevel() {
+    if (g_cfg.mode != 4) return;
+    s_disOn = true;
+    s_disRestartAt = 0;
+    s_disHold = g_st.now + g_cfg.disHoldSeconds * 1000;
+    Log("Desordem: nivel %d escolhido no menu; nada baixa por %ds.", LevelOf(g_st.Pts()), g_cfg.disHoldSeconds);
+}
+static void DisorderReset() {
+    s_disOn = false;
+    s_disHold = s_disRestartAt = s_polAggro = s_hunAggro = 0;
+    s_civChecked.clear(); s_copNear.clear(); s_copHp.clear();
+}
+// morte ou prisao: recomeca no nivel inicial depois de RestartDelay segundos (contados depois de voltar)
+static void DisorderOnDeath() {
+    if (g_cfg.mode != 4 || !s_disOn) return;
+    s_polAggro = s_hunAggro = 0;
+    if (!g_cfg.disRestartOnDeath) return; // segue ligada, a partir do zero
+    s_disOn = false;
+    s_disRestartAt = 1; // marca: comeca a contar quando o jogador voltar
+}
+
+// a cada 0,5 s: policiais atacados pelo jogador ou muito perto dele; civis armados
+static void DisorderScan(Ped player) {
+    if (g_st.now < s_disScan) return;
+    s_disScan = g_st.now + 500;
+    static const Hash kCivGuns[] = {H("WEAPON_PISTOL"), H("WEAPON_MICROSMG"), H("WEAPON_MINISMG"),
+                                    H("WEAPON_MACHINEPISTOL")};
+    Vehicle pveh = PED::IS_PED_IN_ANY_VEHICLE(player, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(player, FALSE) : 0;
+    Vector3 pp = ENTITY::GET_ENTITY_COORDS(player, TRUE);
+    float nearD = g_cfg.disNearDist;
+    int armed = 0;
+    int n = worldGetAllPeds(s_buf, kMaxEnt);
+    for (int i = 0; i < n; ++i) {
+        Ped p = s_buf[i];
+        if (p == player || ENTITY::IS_ENTITY_DEAD(p) || PED::IS_PED_A_PLAYER(p) || ENTITY::IS_ENTITY_A_MISSION_ENTITY(p))
+            continue;
+        Vector3 q = ENTITY::GET_ENTITY_COORDS(p, TRUE);
+        float dx = q.x - pp.x, dy = q.y - pp.y, dz = q.z - pp.z, d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > 160.f * 160.f) continue;
+        Victim v = Classify(p);
+        if (v == V_COP) {
+            Vehicle cv = PED::IS_PED_IN_ANY_VEHICLE(p, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(p, FALSE) : 0;
+            int hp = ENTITY::GET_ENTITY_HEALTH(p);
+            auto it = s_copHp.find(p);
+            bool hurt = it != s_copHp.end() && hp < it->second;
+            s_copHp[p] = hp;
+            bool byPlayer = ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(p, player, TRUE) ||
+                            (pveh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(p, pveh, TRUE));
+            if (hurt && byPlayer) DisorderProvoke(true);
+            if (cv && cv != pveh && ENTITY::HAS_ENTITY_BEEN_DAMAGED_BY_ENTITY(cv, player, TRUE)) {
+                DisorderProvoke(true);
+                ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(cv);
+            }
+            if (byPlayer) ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(p);
+            // muito perto do jogador: esse policial vai para cima dele
+            if (!cv && g_st.now >= s_polAggro && d2 < nearD * nearD) {
+                auto c = s_copNear.find(p);
+                if (c == s_copNear.end() || g_st.now - c->second > 6000) {
+                    AI::TASK_COMBAT_PED(p, player, 0, 16);
+                    s_copNear[p] = g_st.now;
+                }
+            }
+        } else if (v == V_CIV && g_cfg.disArmedCivPct > 0 && s_civChecked.insert(p).second) {
+            if (Rand(100) < g_cfg.disArmedCivPct) {
+                WEAPON::GIVE_WEAPON_TO_PED(p, kCivGuns[Rand(4)], 200, FALSE, FALSE);
+                ++armed;
+            }
+        }
+    }
+    if (armed) Log("Desordem: %d civil(is) andando com arma curta.", armed);
+    if (g_st.now >= s_disPrune) {
+        s_disPrune = g_st.now + 10000;
+        for (auto it = s_civChecked.begin(); it != s_civChecked.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(*it) ? std::next(it) : s_civChecked.erase(it);
+        for (auto it = s_copNear.begin(); it != s_copNear.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copNear.erase(it);
+        for (auto it = s_copHp.begin(); it != s_copHp.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copHp.erase(it);
+    }
+}
+
+static void DisorderTick(Player pid, bool missionPause) {
+    State &s = g_st;
+    s_jointUntil = 0;
+    s.wantedMaxSince = -1;
+    if (missionPause) { // missoes da historia: tudo normal
+        RelationsDisorder(false, false);
+        PoliceIgnore(pid, false);
+        ApplyMaxWanted(5);
+        return;
+    }
+    if (!s_disOn) {
+        if (s_disRestartAt == 1) s_disRestartAt = s.now + g_cfg.disRestartDelay * 1000;
+        if (s.now >= s_disRestartAt) {
+            s_disOn = true;
+            s_disRestartAt = 0;
+            s_disHold = s.now + g_cfg.disHoldSeconds * 1000;
+            int lv = g_cfg.disStartLevel < 1 ? 1 : g_cfg.disStartLevel > (int)g_cfg.levelStart.size()
+                                                     ? (int)g_cfg.levelStart.size() : g_cfg.disStartLevel;
+            int start = g_cfg.levelStart[lv - 1];
+            if (s.Pts() < start) AddPointsForce(start - s.Pts(), "a Desordem comeca");
+            int l = LevelOf(s.Pts());
+            Log("Desordem: comeca no nivel %d com %d estrela(s); nada baixa por %ds.", l, l > 5 ? 5 : l,
+                g_cfg.disHoldSeconds);
+        }
+    }
+    bool on = s_disOn;
+    int lv = LevelOf(s.Pts());
+    int stars = lv > 5 ? 5 : lv;
+    ApplyMaxWanted(5);
+    // as estrelas seguem o nivel (nivel N = N estrelas). Sem nivel, a policia age como no jogo normal
+    if (on && stars > 0 && PLAYER::GET_PLAYER_WANTED_LEVEL(pid) != stars) {
+        PLAYER::SET_PLAYER_WANTED_LEVEL(pid, stars, FALSE);
+        PLAYER::SET_PLAYER_WANTED_LEVEL_NOW(pid, FALSE);
+    }
+    // policia na area, mas ignorando o jogador (enfrenta os retaliadores), a nao ser que ele ataque a policia
+    bool polCalm = on && stars > 0 && s.now >= s_polAggro;
+    PoliceIgnore(pid, polCalm);
+    if (polCalm && s.now >= s_disCentre) {
+        s_disCentre = s.now + 3000;
+        Vector3 p = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), TRUE);
+        invoke<Void>(0x520E541A97A13354, pid, &p, FALSE, FALSE); // SET_PLAYER_WANTED_CENTRE_POSITION
+    }
+    RelationsDisorder(on, s.now >= s_hunAggro);
+    bool active = s.Pts() > 0;
+    if (s_wasActive && !active) DespawnAll(false, "jogador livre");
+    s_wasActive = active;
+    if (on) DisorderScan(PLAYER::PLAYER_PED_ID());
 }
 
 void CycleTick(Player pid) {
@@ -206,6 +381,9 @@ void CycleTick(Player pid) {
         s_ignoring = !s_ignoring;
     }
     s_dmForce = s.director;
+    // v11, modo 4: Desordem
+    if (g_cfg.mode == 4) { DisorderTick(pid, missionPause0); return; }
+    RelationsDisorder(false, false);
     // v8, modo 1: junto com a policia (original) - o mod nao mexe na policia (no Modo Diretor, forca a policia normal)
     // v8, modo 2: substitui a policia - o jogador nunca ganha estrelas; os retaliadores vem no lugar
     if (g_cfg.mode != 3) {
@@ -299,6 +477,7 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
         if (g_cfg.levelLock) Log("Jogador morreu ou foi preso: nivel mantido (trava de nivel).");
         else if (s.Pts() > 0) Log("Jogador morreu ou foi preso: pontos zerados [%s].", kCharName[s.ch]);
         if (!g_cfg.levelLock) s.Pts() = 0;
+        DisorderOnDeath(); // v11
         s.maxHeatSince = -1;
         s.hotSince = -1;
         s.wantedMaxSince = -1;
@@ -343,7 +522,7 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
     }
 
     // decaimento
-    if (s.Pts() > 0 && s.now - s.lastCrime >= g_cfg.decayInterval * 1000 &&
+    if (s.Pts() > 0 && !DisorderHold() && s.now - s.lastCrime >= g_cfg.decayInterval * 1000 &&
         s.now - s.lastDecay >= g_cfg.decayInterval * 1000) {
         s.lastDecay = s.now;
         AddPoints(-g_cfg.decayAmount, "tempo sem crimes");

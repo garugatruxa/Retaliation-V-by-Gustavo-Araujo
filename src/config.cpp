@@ -38,7 +38,7 @@ static const char *kDefaultIni =
     "; 1 = emboscadas continuam durante missoes da historia\r\n"
     "ActiveInMissions=0\r\n"
     "; modo (tambem muda pelo menu, tecla Insert): 1 = junto com a policia, 2 = substitui a policia,\r\n"
-    "; 3 = ciclo policia -> Retaliation -> livre\r\n"
+    "; 3 = ciclo policia -> Retaliation -> livre, 4 = Desordem (policia contra retaliadores)\r\n"
     "Mode=1\r\n"
     "; Modo Diretor (Rockstar Editor): 1 = Retaliation ativo (comeca zerado) e o modo do menu manda na policia,\r\n"
     "; acima da configuracao de procurado do Modo Diretor; 0 = remove os retaliadores e pausa\r\n"
@@ -195,6 +195,24 @@ static const char *kDefaultIni =
     "; % do limite de retaliadores quando a policia tambem esta atras do jogador\r\n"
     "WithPolicePct=75\r\n"
     "\r\n"
+    "[Disorder]\r\n"
+    "; modo 4 (Desordem): policia e retaliadores se enfrentam; o jogador so e atacado se chegar muito perto\r\n"
+    "; (NearDist m) ou atacar primeiro (aquele lado fica contra ele por AggroSeconds). Nivel N = N estrelas (max 5)\r\n"
+    "; sem jatos, avioes e tanques; helicopteros com misseis ou canhao explosivo, so o Buzzard\r\n"
+    "StartLevel=3\r\n"
+    "HoldSeconds=60\r\n"
+    "NearDist=12\r\n"
+    "AggroSeconds=60\r\n"
+    "; qualquer morte ou veiculo destruido ate DeathRadius m do jogador sobe a pressao (mesmo sem ser ele)\r\n"
+    "DeathRadius=200\r\n"
+    "DeathPoints=2\r\n"
+    "VehiclePoints=4\r\n"
+    "; % dos civis com arma curta (pistola, Micro SMG, Mini SMG, Machine Pistol)\r\n"
+    "ArmedCiviliansPct=15\r\n"
+    "; 1 = depois de morrer ou ser preso, a Desordem recomeca no nivel inicial\r\n"
+    "RestartOnDeath=1\r\n"
+    "RestartDelay=10\r\n"
+    "\r\n"
     "[Vehicles]\r\n"
     "; 1 = a elite e o cartel usam veiculos com torreta (Technical, Insurgent, Halftrack...). Quando o jogador\r\n"
     "; assume uma torreta, a tripulacao inimiga desce e ninguem consegue tirar ele de la. 0 = sem torretas\r\n"
@@ -346,7 +364,7 @@ void ConfigLoad() {
     c.enabled = IniInt("General", "Enabled", 0);
     c.activeInMissions = IniInt("General", "ActiveInMissions", 0);
     c.mode = IniInt("General", "Mode", 1);
-    if (c.mode < 1 || c.mode > 3) c.mode = 3;
+    if (c.mode < 1 || c.mode > 4) c.mode = 1;
     c.directorMode = IniInt("General", "DirectorMode", 1);
     c.levelLock = IniInt("General", "LevelLock", 0) != 0;
     c.debugKeys = IniInt("General", "DebugKeys", 1);
@@ -472,6 +490,16 @@ void ConfigLoad() {
     c.popTraffic = IniInt("Population", "TrafficPct", (int)(c.popTraffic * 100)) / 100.f;
     c.popWithPolicePct = IniInt("Population", "WithPolicePct", c.popWithPolicePct);
     c.vehGunRest = IniInt("VehicleGuns", "RestSeconds", c.vehGunRest);
+    c.disStartLevel = IniInt("Disorder", "StartLevel", c.disStartLevel);
+    c.disHoldSeconds = IniInt("Disorder", "HoldSeconds", c.disHoldSeconds);
+    c.disNearDist = (float)IniInt("Disorder", "NearDist", (int)c.disNearDist);
+    c.disAggroSeconds = IniInt("Disorder", "AggroSeconds", c.disAggroSeconds);
+    c.disDeathRadius = (float)IniInt("Disorder", "DeathRadius", (int)c.disDeathRadius);
+    c.disDeathPts = IniInt("Disorder", "DeathPoints", c.disDeathPts);
+    c.disVehPts = IniInt("Disorder", "VehiclePoints", c.disVehPts);
+    c.disArmedCivPct = IniInt("Disorder", "ArmedCiviliansPct", c.disArmedCivPct);
+    c.disRestartOnDeath = IniInt("Disorder", "RestartOnDeath", 1) != 0;
+    c.disRestartDelay = IniInt("Disorder", "RestartDelay", c.disRestartDelay);
     c.jugMinigunMax = IniInt("Juggernaut", "MinigunMax", c.jugMinigunMax);
     c.tankMax = IniInt("Tank", "Max", c.tankMax);
     c.jetMax = IniInt("Jet", "Max", c.jetMax);

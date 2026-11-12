@@ -261,6 +261,30 @@ void RelationsApply() {
     }
 }
 
+// v11: modo Desordem. on: os retaliadores odeiam os civis (e os civis armados revidam); calm: ficam neutros com
+// o jogador, para so atacarem quem estiver perto ou se o jogador atacar primeiro. Reaplica a cada 5 s.
+void RelationsDisorder(bool on, bool calm) {
+    static int last = -1, lastAt = 0;
+    int key = on ? (calm ? 2 : 1) : 0;
+    int now = (int)GAMEPLAY::GET_GAME_TIMER();
+    if (key == last && (key == 0 || now - lastAt < 5000)) return;
+    last = key;
+    lastAt = now;
+    static const Hash civm = H("CIVMALE"), civf = H("CIVFEMALE");
+    for (Faction &f : g_factions) {
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on && calm ? 3 : 5, f.group, s_player);
+        for (Hash c : {civm, civf}) {
+            if (on) {
+                PED::SET_RELATIONSHIP_BETWEEN_GROUPS(5, f.group, c);
+                PED::SET_RELATIONSHIP_BETWEEN_GROUPS(5, c, f.group);
+            } else {
+                PED::CLEAR_RELATIONSHIP_BETWEEN_GROUPS(5, f.group, c);
+                PED::CLEAR_RELATIONSHIP_BETWEEN_GROUPS(5, c, f.group);
+            }
+        }
+    }
+}
+
 // Cidade = Los Santos; interior = Blaine County, desertos, montanhas e litoral norte.
 Region RegionAt(float x, float y) {
     bool city = y < 1150.f && x > -2200.f && x < 1750.f;

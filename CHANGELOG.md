@@ -122,3 +122,13 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Mar aberto (sem terra a 110 m): só helicóptero de ataque (nível 3+, sem rapel) e barcos inimigos.
 - Civis e trânsito normais com estrelas ou retaliação; com a polícia junto, retaliadores em 75% do limite.
 - Novas seções no .ini: [Heavy], [VehicleGuns] (FireSeconds, RestSeconds), [Population] (KeepCivilians, CiviliansPct, TrafficPct, WithPolicePct).
+
+## v11 — modo Desordem
+- Novo modo 4, Desordem (menu e Mode=4 no .ini). Começa no nível 3 com 3 estrelas, ou no nível escolhido no menu (nível N = N estrelas, máximo 5); nada baixa no primeiro minuto.
+- Polícia e retaliadores se enfrentam. A polícia ignora o jogador (SET_POLICE_IGNORE_PLAYER, centro do procurado nele) e os retaliadores ficam neutros com ele, lutando contra os inimigos em volta (TASK_COMBAT_HATED_TARGETS_AROUND_PED). Quem chega a menos de 12 m ataca o jogador. Ferir um policial/viatura põe a polícia contra ele por 60 s; ferir um retaliador/veículo dele, os retaliadores.
+- Qualquer morte (+2) ou veículo destruído (+4) a até 200 m do jogador sobe a pressão, de quem for. Estrelas acompanham o nível.
+- Retaliadores odeiam os civis (e vice-versa). 15% dos civis recebem pistola, Micro SMG, Mini SMG ou Machine Pistol.
+- Motoristas dos retaliadores dirigem até a área do jogador e a tropa desce a 60 m.
+- Sem tanques (Rhino, Khanjali), caça e aviões perseguidores. Helicópteros com mísseis ou canhão explosivo: só o Buzzard (Valkyrie, Savage, Hunter e Akula trocados).
+- Morrer ou ser preso recomeça a Desordem no nível inicial depois de 10 s.
+- Nova seção [Disorder] no .ini: StartLevel, HoldSeconds, NearDist, AggroSeconds, DeathRadius, DeathPoints, VehiclePoints, ArmedCiviliansPct, RestartOnDeath, RestartDelay.

@@ -65,7 +65,7 @@ Com o menu aberto, as setas e o direcional não mexem no celular nem no jogo. As
 | Opção | Valores |
 |---|---|
 | **Mod** | Ativado / Desativado |
-| **Modo** | Junto com a polícia / Substitui a polícia / Ciclo |
+| **Modo** | Junto com a polícia / Substitui a polícia / Ciclo / Desordem |
 | **Trava de nível** | Ligada / Desligada |
 | **Nível** | Nenhum, 1 a 8 ou **Máximo** (barra cheia) |
 
@@ -87,6 +87,20 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
      retaliação acabar.
   4. **Fim.** A retaliação acaba quando você despista (a pressão cai até zerar) ou **sobrevive aos 5 minutos
      acima de 350 pontos**. Morrer ou ser preso também zera. Livre, o ciclo recomeça.
+- **Desordem:** a polícia e os retaliadores entram em guerra, com você no meio.
+  - Começa no **nível 3 com 3 estrelas**, ou no nível escolhido no menu: nível N vale N estrelas (no máximo 5).
+    No **primeiro minuto** nada baixa; depois, a pressão e as estrelas baixam normalmente.
+  - A polícia e os retaliadores **brigam entre si**. Eles só vêm para cima de você se você chegar **muito perto**
+    (12 m) ou **atacar primeiro**: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
+    retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
+  - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe a retaliação (+2 por pessoa, +4 por
+    veículo). As estrelas acompanham o nível até o máximo.
+  - Os retaliadores **também atacam civis**, e parte dos civis, a pé ou dirigindo, anda com **arma curta**
+    (pistola, Micro SMG, Mini SMG ou Machine Pistol).
+  - Os carros dos retaliadores vêm até a sua área e a tropa desce para lutar.
+  - **Sem jatos, aviões perseguidores e tanques.** Dos helicópteros com mísseis ou canhão explosivo, só vem o
+    **Buzzard**.
+  - Morrer ou ser preso faz a Desordem recomeçar no nível 3, 10 s depois de você voltar.
 
 Os pontos são **separados por personagem** (Michael, Franklin e Trevor). Trocar de personagem remove os
 retaliadores, e a pressão de cada um fica guardada. As emboscadas **pausam em missões da história, cutscenes
@@ -273,7 +287,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v10.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v11.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -293,7 +307,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 
 | Seção | O que controla |
 |---|---|
-| `[General]` | Liga/desliga, modo (1, 2 ou 3), trava de nível, ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
+| `[General]` | Liga/desliga, modo (1, 2, 3 ou 4), trava de nível, ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
 | `[Points]` | Pontos de cada crime e decaimento |
 | `[Scaling]` | Escala decrescente dos ganhos acima de 250 pontos |
 | `[Levels]` | Em que pontos cada nível começa |
@@ -308,6 +322,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 | `[Heavy]` | Heavy (Juggernaut leve): níveis, chance, teto e vida |
 | `[VehicleGuns]` | Rajadas das armas de veículo: segundos atirando e parado |
 | `[Population]` | Civis e trânsito com estrelas, e % do limite de retaliadores com a polícia junto |
+| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, distância "muito perto", tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
 | `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
 | `[WeaponMods]` | Chance de acessórios nas armas |
 | `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
@@ -334,9 +349,28 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v10`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3` e `v10.1`).
+(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3` e `v10.1`).
 
-### v10.1 — atual
+### v11 — atual
+
+Comparado à v10.1:
+- **Novo modo Desordem** (modo 4, no menu). A cidade vira uma guerra entre a polícia e os retaliadores, e você
+  está no meio:
+  - Começa no **nível 3 com 3 estrelas**, ou no nível escolhido no menu (nível N = N estrelas, no máximo 5).
+    Nada baixa no **primeiro minuto**; depois, baixa normalmente.
+  - **Polícia contra retaliadores:** os dois lados se enfrentam e **só atacam você** se você chegar **muito perto**
+    (12 m) ou **atacar primeiro**. Ferir um policial põe a polícia contra você por 60 s; ferir um retaliador põe os
+    retaliadores contra você por 60 s.
+  - **Qualquer morte ou destruição** perto de você, sua ou não, sobe a retaliação, e as **estrelas acompanham o
+    nível** até o máximo.
+  - Os retaliadores **também atacam civis**, e **15% dos civis** (a pé ou dirigindo) andam com arma curta:
+    pistola, Micro SMG, Mini SMG ou Machine Pistol.
+  - **Sem jatos, aviões perseguidores e tanques.** Dos helicópteros com mísseis ou canhão explosivo, só o
+    **Buzzard** aparece (Savage, Hunter, Akula e Valkyrie ficam de fora).
+  - Morrer ou ser preso faz a Desordem recomeçar no nível 3, 10 s depois de voltar.
+- Nova seção `[Disorder]` no `.ini`, com tudo ajustável. **Atualizando:** apague o `Retaliation.ini` antigo.
+
+### v10.1
 
 Correções e ajustes da v10:
 - **Armas de veículo travadas de verdade:** na v10, a IA ignorava a trava e o Rhino atirava fora das janelas.

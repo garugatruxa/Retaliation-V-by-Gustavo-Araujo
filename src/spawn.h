@@ -34,3 +34,5 @@ int HuntersAlive();
 // points.cpp: retaliadores nao dao pontos
 void PointsIgnorePed(Ped p);
 void PointsIgnoreVeh(Vehicle v);
+// v11: Desordem - retaliadores neutros com o jogador (calm) e contra os civis
+void RelationsDisorder(bool on, bool calm);
