@@ -117,14 +117,26 @@ static const char *kDefaultIni =
     "; mini-boss com armadura pesada e minigun, chega no Insurgent (chance por wave, %)\r\n"
     "Enabled=1\r\n"
     "MinLevel=7\r\n"
-    "Chance=15\r\n"
+    "; chance por wave: base e teto (sobe com os pontos ate o teto)\r\n"
+    "Chance=10\r\n"
+    "Max=30\r\n"
     "Health=3000\r\n"
-    "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara, % abaixo, sobe a partir dos 70 pontos)\r\n"
-    "MinigunChance=15\r\n"
+    "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara: base e teto)\r\n"
+    "MinigunChance=10\r\n"
+    "MinigunMax=25\r\n"
     "\r\n"
     "[TopBonus]\r\n"
     "; % extra de chance dos especiais por ponto acima do inicio do ultimo nivel\r\n"
     "PerPoint=1.5\r\n"
+    "\r\n"
+    "[Weapons]\r\n"
+    "; chance (%) por wave de vir um sniper (nivel 6+) e alguem com RPG/lanca-granadas (nivel 7+, base e teto)\r\n"
+    "SniperChance=50\r\n"
+    "HeavyChance=12\r\n"
+    "HeavyMax=20\r\n"
+    "; mira (0-100) de quem usa explosivos (RPG, lanca-granadas, tanque, jato, helicoptero de ataque).\r\n"
+    "; baixa de proposito: os tiros passam perto e explodem em volta, mais cinematografico\r\n"
+    "ExplosiveAccuracy=8\r\n"
     "\r\n"
     "[Range]\r\n"
     "; distancia (m) em que comecam a atirar: pistolas/SMGs/escopetas e fuzis/metralhadoras.\r\n"
@@ -135,15 +147,37 @@ static const char *kDefaultIni =
     "[Heli]\r\n"
     "; chance (%) de helicoptero por wave, do nivel 1 ao 8\r\n"
     "Chance=0,0,8,12,16,22,28,35\r\n"
-    "; limite ao mesmo tempo: normal, niveis 7-8, e com o jogador voando\r\n"
+    "; limite ao mesmo tempo (no maximo 3): niveis 3-5, niveis 7-8 (nivel 6 = 2), e com o jogador voando\r\n"
     "Max=1\r\n"
-    "MaxTop=2\r\n"
+    "MaxTop=3\r\n"
     "MaxAir=3\r\n"
-    "; % de ser helicoptero de ataque (Buzzard) e % de rapel (quando o jogador esta no chao)\r\n"
-    "AttackChance=15\r\n"
+    "; 2o e 3o helicoptero no ar ao mesmo tempo (base e teto). O 3o so no nivel 8\r\n"
+    "SecondChance=10\r\n"
+    "SecondMax=20\r\n"
+    "ThirdChance=3\r\n"
+    "ThirdMax=8\r\n"
+    "; % de ser helicoptero de ataque (Buzzard/Savage/Hunter, base e teto) e % de rapel (jogador no chao)\r\n"
+    "AttackChance=10\r\n"
+    "AttackMax=20\r\n"
     "RappelChance=40\r\n"
     "; % de o helicoptero de ataque ou de rapel pousar perto do jogador a pe e a tropa descer\r\n"
     "LandChance=30\r\n"
+    "\r\n"
+    "[Tank]\r\n"
+    "; Rhino entregue pelo Cargobob (um por vez). Chance por wave (%)\r\n"
+    "Enabled=1\r\n"
+    "MinLevel=8\r\n"
+    "Chance=8\r\n"
+    "Max=18\r\n"
+    "\r\n"
+    "[Jet]\r\n"
+    "; caca Lazer (ou Hydra, HydraChance %) que ataca por Duration segundos e vai embora. Um por vez\r\n"
+    "Enabled=1\r\n"
+    "MinLevel=8\r\n"
+    "Chance=5\r\n"
+    "Max=15\r\n"
+    "Duration=90\r\n"
+    "HydraChance=25\r\n"
     "\r\n"
     "[Escalation]\r\n"
     "; a partir desses pontos, cada ponto a mais soma PerPoint % a Juggernaut, minigun e helicoptero de ataque\r\n"
@@ -264,6 +298,27 @@ void ConfigLoad() {
     c.heliAttackPct = IniInt("Heli", "AttackChance", c.heliAttackPct);
     c.heliRappelPct = IniInt("Heli", "RappelChance", c.heliRappelPct);
     c.heliLandPct = IniInt("Heli", "LandChance", c.heliLandPct);
+    c.heliAttackMax = IniInt("Heli", "AttackMax", c.heliAttackMax);
+    c.heliSecondPct = IniInt("Heli", "SecondChance", c.heliSecondPct);
+    c.heliSecondMax = IniInt("Heli", "SecondMax", c.heliSecondMax);
+    c.heliThirdPct = IniInt("Heli", "ThirdChance", c.heliThirdPct);
+    c.heliThirdMax = IniInt("Heli", "ThirdMax", c.heliThirdMax);
+    c.sniperPct = IniInt("Weapons", "SniperChance", c.sniperPct);
+    c.heavyPct = IniInt("Weapons", "HeavyChance", c.heavyPct);
+    c.heavyMax = IniInt("Weapons", "HeavyMax", c.heavyMax);
+    c.explosiveAcc = IniInt("Weapons", "ExplosiveAccuracy", c.explosiveAcc);
+    c.jugMax = IniInt("Juggernaut", "Max", c.jugMax);
+    c.jugMinigunMax = IniInt("Juggernaut", "MinigunMax", c.jugMinigunMax);
+    c.tankMax = IniInt("Tank", "Max", c.tankMax);
+    c.jetMax = IniInt("Jet", "Max", c.jetMax);
+    c.tankEnabled = IniInt("Tank", "Enabled", 1);
+    c.tankMinLevel = IniInt("Tank", "MinLevel", c.tankMinLevel);
+    c.tankChance = IniInt("Tank", "Chance", c.tankChance);
+    c.jetEnabled = IniInt("Jet", "Enabled", 1);
+    c.jetMinLevel = IniInt("Jet", "MinLevel", c.jetMinLevel);
+    c.jetChance = IniInt("Jet", "Chance", c.jetChance);
+    c.jetDuration = IniInt("Jet", "Duration", c.jetDuration);
+    c.jetHydraPct = IniInt("Jet", "HydraChance", c.jetHydraPct);
     c.escStart = IniInt("Escalation", "Start", c.escStart);
     c.escPerPoint = IniFloat("Escalation", "PerPoint", c.escPerPoint);
     c.topBonusPerPoint = IniFloat("TopBonus", "PerPoint", c.topBonusPerPoint);

@@ -56,11 +56,12 @@ struct Hunter {
     bool rangeExempt = false; // pilotos e torretas: armas do veiculo, sem limite de alcance
     bool heliRappel = false;  // vai descer de corda
     int shootRate = -1;
+    bool farOk = false; // jato e Cargobob voam longe: so sao removidos a 1500 m
     int nextArea = 0, nextGesture = 0;
     float areaRadius = 30.f;
 };
 struct SquadVeh { Vehicle veh; int born; bool roadblock; };
-enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI };
+enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI, P_TANK, P_JET };
 struct Pending { int at; PKind k; int n; int role; bool bicycleOk; };
 
 static std::vector<Hunter> s_h;
@@ -92,6 +93,11 @@ static bool JuggAlive() {
 static float EscBonus() {
     int pts = g_st.Pts();
     return pts > g_cfg.escStart ? (pts - g_cfg.escStart) * g_cfg.escPerPoint : 0.f;
+}
+// chance com teto: base + bonus, nunca acima de max
+static int Pct(int base, float bonus, int max) {
+    int v = base + (int)bonus;
+    return v > max ? max : v;
 }
 static float TopBonus() {
     if (g_cfg.levelStart.empty() || LevelOf(g_st.Pts()) < (int)g_cfg.levelStart.size()) return 0.f;
@@ -335,6 +341,7 @@ static void SpawnFoot(int n, int role) {
         if (i == 0 && role == 1) { Hash sw = SniperFor(s_level); if (sw) w = sw; }
         if (i == 0 && role == 2) { Hash hw = HeavyFor(s_level); if (hw) w = hw; }
         SetupPed(ped, s_level, w);
+        if (i == 0 && role == 2) PED::SET_PED_ACCURACY(ped, g_cfg.explosiveAcc); // RPG/lanca-granadas: mira cinematografica
         bool sn = i == 0 && role == 1;
         if (sn) { PED::SET_PED_COMBAT_MOVEMENT(ped, 0); PED::SET_PED_COMBAT_RANGE(ped, 2); }
         AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
@@ -361,6 +368,24 @@ static void FillVehicle(Vehicle v, int seats) {
     }
 }
 
+// v6: veiculos com torreta (Technical, Caracara, Menacer, Halftrack, Insurgent...) ganham um atirador nela.
+static int FillTurrets(Vehicle v) {
+    int n = 0, maxP = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v);
+    for (int s = 0; s < maxP && Budget() > 0 && n < 2; ++s) {
+        if (!invoke<BOOL>(0xE33FFA906CE74880, v, s) || !VEHICLE::IS_VEHICLE_SEAT_FREE(v, s)) continue; // IS_TURRET_SEAT
+        Ped g = NewPedIn(v, RandomPed(), s);
+        if (!g) continue;
+        SetupPed(g, s_level, WeaponFor(s_level, BetterPct()));
+        PED::SET_PED_COMBAT_ATTRIBUTES(g, 3, FALSE);
+        AI::TASK_COMBAT_PED(g, s_player, 0, 16);
+        Hunter &h = AddHunter(g);
+        h.stayInVeh = true;
+        h.rangeExempt = true;
+        ++n;
+    }
+    return n;
+}
+
 static void SpawnVehicle(bool bicycleOk) {
     Hash model = 0;
     int seats = 2;
@@ -382,8 +407,9 @@ static void SpawnVehicle(bool bicycleOk) {
     int maxSeats = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v) + 1;
     if (seats > maxSeats) seats = maxSeats;
     FillVehicle(v, seats);
+    int gunners = FillTurrets(v);
     s_v.push_back({v, g_st.now, false});
-    Log("  %s com %d (%s) a %.0fm", kind, seats, s_fac->name, D2(p, s_ppos));
+    Log("  %s com %d%s (%s) a %.0fm", kind, seats, gunners ? " + atirador na torreta" : "", s_fac->name, D2(p, s_ppos));
 }
 
 static void SpawnBoat() {
@@ -401,7 +427,7 @@ static void SpawnBoat() {
 
 // Arma do Juggernaut: Combat MG ou escopeta automatica de tambor (comuns), minigun (rara, sobe com os pontos).
 static Hash JuggWeapon() {
-    if (Rand(100) < g_cfg.jugMinigunPct + EscBonus()) return H("WEAPON_MINIGUN");
+    if (Rand(100) < Pct(g_cfg.jugMinigunPct, EscBonus() * 0.3f, g_cfg.jugMinigunMax)) return H("WEAPON_MINIGUN");
     const char *w = Rand(2) ? "WEAPON_COMBATMG" : "WEAPON_ASSAULTSHOTGUN";
     if (!strcmp(w, "WEAPON_COMBATMG") && WEAPON::IS_WEAPON_VALID(H("WEAPON_COMBATMG_MK2")) && Rand(100) < 30)
         w = "WEAPON_COMBATMG_MK2";
@@ -574,7 +600,8 @@ static int HelisQueued() {
     return n;
 }
 static int HeliLimit(bool air) {
-    return air ? g_cfg.heliMaxAir : s_level >= 7 ? g_cfg.heliMaxTop : g_cfg.heliMax;
+    int lim = air ? g_cfg.heliMaxAir : s_level >= 7 ? g_cfg.heliMaxTop : s_level == 6 ? 2 : g_cfg.heliMax;
+    return lim > 3 ? 3 : lim; // v6: nunca mais de 3 ao mesmo tempo
 }
 static bool CanRappel(Hash m) {
     static const Hash a = H("maverick"), b = H("annihilator"), c = H("polmav");
@@ -602,11 +629,21 @@ static Vector3 DropPoint() {
     return V3(s_ppos.x, s_ppos.y, s_pgz);
 }
 
+static int HelisNow() { return (int)s_helis.size() + HelisQueued(); }
+// chance de colocar mais um helicoptero, dado quantos ja estao no ar
+static int NextHeliPct(int n) {
+    if (n == 0) return (int)(g_cfg.heliChance[s_level - 1] + TopBonus() + EscBonus() * 0.5f);
+    if (n == 1) return s_level >= 6 ? Pct(g_cfg.heliSecondPct, EscBonus() * 0.33f + (g_st.Pts() >= 90 ? 5 : 0), g_cfg.heliSecondMax) : 0;
+    if (n == 2) return s_level >= 8 ? Pct(g_cfg.heliThirdPct, TopBonus() * 0.3f, g_cfg.heliThirdMax) : 0;
+    return 0;
+}
+
 static void SpawnHeli(bool air) {
     const std::vector<Hash> &transport = !s_fac->helis.empty() ? s_fac->helis : s_genericHelis;
     HeliType type = HT_SHOOTERS;
     Hash model = 0;
-    if (!s_fac->attackHelis.empty() && Rand(100) < g_cfg.heliAttackPct + EscBonus() + (air ? 15 : 0)) {
+    if (!s_fac->attackHelis.empty() &&
+        Rand(100) < Pct(g_cfg.heliAttackPct, EscBonus() * 0.25f, g_cfg.heliAttackMax) + (air ? 10 : 0)) {
         type = HT_ATTACK;
         model = RandomOf(s_fac->attackHelis);
     } else if (!air && Rand(100) < g_cfg.heliRappelPct) {
@@ -657,6 +694,7 @@ static void SpawnHeli(bool air) {
     bool land = !air && type != HT_SHOOTERS && crew > 0 && Rand(100) < g_cfg.heliLandPct;
     HeliSt st{v, pilot, type, 0, g_st.now, {}, land};
     if (type == HT_ATTACK) {
+        PED::SET_PED_ACCURACY(pilot, g_cfg.explosiveAcc); // misseis passam perto em vez de acertar em cheio
         AI::TASK_COMBAT_PED(pilot, s_player, 0, 16); // usa as armas do Buzzard
     } else if (type == HT_RAPPEL) {
         st.drop = DropPoint();
@@ -754,6 +792,183 @@ static void UpdateHelis() {
     }
 }
 
+// ---------- tanque entregue pelo Cargobob (v6) ----------
+// O Cargobob chega com o Rhino pendurado, solta num ponto aberto perto do jogador e vai embora.
+// Abater o Cargobob antes derruba o tanque junto. Um tanque por vez.
+struct TankSt { Vehicle cargo = 0, rhino = 0; Ped pilot = 0, driver = 0; int state = -1, at = 0; Vector3 drop{}; bool planB = false; };
+static TankSt s_tank;
+static bool TankActive() {
+    if (s_tank.state >= 0) return true;
+    for (auto &p : s_q) if (p.k == P_TANK) return true; // ja na fila
+    return false;
+}
+
+static Vector3 PointAround(float dmin, float dmax) {
+    for (int i = 0; i < 14; ++i) {
+        float dx, dy, d = RandF(dmin, dmax), gz;
+        Dir(RandF(0.f, 360.f), dx, dy);
+        float x = s_ppos.x + dx * d, y = s_ppos.y + dy * d;
+        if (SameLevel(x, y, gz, i < 9)) return V3(x, y, gz);
+    }
+    return V3(s_ppos.x, s_ppos.y, s_pgz);
+}
+
+static Hunter &AddCrew(Ped p) {
+    Hunter &h = AddHunter(p);
+    h.stayInVeh = true;
+    h.rangeExempt = true;
+    h.reached = true;
+    h.farOk = true;
+    return h;
+}
+
+static void SpawnTank() {
+    Hash cb = H("cargobob"), rh = H("rhino");
+    if (!STREAMING::IS_MODEL_IN_CDIMAGE(cb) || !STREAMING::IS_MODEL_IN_CDIMAGE(rh)) { Log("  tanque: modelos nao encontrados."); return; }
+    float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z, dx, dy, d = RandF(380.f, 450.f);
+    Dir(camH + 180.f + RandF(-90.f, 90.f), dx, dy);
+    Vector3 p = V3(s_ppos.x + dx * d, s_ppos.y + dy * d, s_pgz + 85.f);
+    TankSt t;
+    t.cargo = NewVehicle(cb, p, HeadingTo(p, s_ppos), false);
+    if (!t.cargo) { Log("  tanque: falha ao criar o Cargobob."); return; }
+    VEHICLE::SET_VEHICLE_ENGINE_ON(t.cargo, TRUE, TRUE, FALSE);
+    VEHICLE::SET_HELI_BLADES_FULL_SPEED(t.cargo);
+    VEHICLE::_ENABLE_CARGOBOB_HOOK(t.cargo, 0); // gancho
+    t.rhino = NewVehicle(rh, V3(p.x, p.y, p.z - 10.f), HeadingTo(p, s_ppos), false);
+    if (!t.rhino) { VEHICLE::DELETE_VEHICLE(&t.cargo); Log("  tanque: falha ao criar o Rhino."); return; }
+    ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, TRUE); // imune ate tocar o chao
+    VEHICLE::ATTACH_VEHICLE_TO_CARGOBOB(t.rhino, t.cargo, -1, 0.f, 0.f, 0.f);
+
+    t.pilot = NewPedIn(t.cargo, RandomPed(), -1);
+    t.driver = NewPedIn(t.rhino, RandomPed(), -1);
+    if (!t.pilot || !t.driver) Log("  tanque: falha ao criar a tripulacao.");
+    if (t.pilot) { SetupPed(t.pilot, s_level, WeaponFor(s_level)); PED::SET_PED_COMBAT_ATTRIBUTES(t.pilot, 3, FALSE); AddCrew(t.pilot); }
+    if (t.driver) {
+        SetupPed(t.driver, s_level, WeaponFor(s_level));
+        PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 3, FALSE);
+        PED::SET_PED_ACCURACY(t.driver, g_cfg.explosiveAcc); // canhao do tanque impreciso
+        AddCrew(t.driver);
+    }
+    VEHICLE::SET_VEHICLE_FORWARD_SPEED(t.cargo, 20.f);
+    t.drop = PointAround(110.f, 140.f);
+    if (t.pilot) PilotGoTo(t.pilot, t.cargo, t.drop);
+    t.state = 0;
+    t.at = g_st.now;
+    s_tank = t;
+    s_v.push_back({t.cargo, g_st.now, false});
+    s_v.push_back({t.rhino, g_st.now, false});
+    Log("  TANQUE a caminho no Cargobob (%s) a %.0fm; entrega a %.0fm do jogador", s_fac->name, D2(p, s_ppos),
+        D2(t.drop, s_ppos));
+}
+
+static void ReleaseTankFromHook(TankSt &t) {
+    if (t.planB) ENTITY::DETACH_ENTITY(t.rhino, TRUE, TRUE);
+    else VEHICLE::DETACH_VEHICLE_FROM_CARGOBOB(t.rhino, t.cargo);
+}
+
+static void UpdateTank() {
+    TankSt &t = s_tank;
+    if (t.state < 0) return;
+    bool rhinoOk = ENTITY::DOES_ENTITY_EXIST(t.rhino) && !ENTITY::IS_ENTITY_DEAD(t.rhino);
+    if (!rhinoOk) { t.state = -1; Log("Tanque destruido."); return; }
+    bool cargoOk = ENTITY::DOES_ENTITY_EXIST(t.cargo) && !ENTITY::IS_ENTITY_DEAD(t.cargo) && t.pilot &&
+                   !PED::IS_PED_DEAD_OR_DYING(t.pilot, TRUE);
+    if (t.state == 0) {
+        // plano B: se o gancho nao pegou, prende o tanque direto embaixo do Cargobob
+        if (cargoOk && !t.planB && g_st.now - t.at > 1500 && !VEHICLE::IS_VEHICLE_ATTACHED_TO_CARGOBOB(t.rhino, t.cargo)) {
+            ENTITY::ATTACH_ENTITY_TO_ENTITY(t.rhino, t.cargo, 0, 0.f, 0.f, -7.f, 0.f, 0.f, 0.f, FALSE, FALSE, FALSE, FALSE, 2, TRUE);
+            t.planB = true;
+            Log("  tanque: gancho nao pegou, preso direto no Cargobob (plano B).");
+        }
+        bool there = cargoOk && D2(ENTITY::GET_ENTITY_COORDS(t.cargo, TRUE), t.drop) < 18.f &&
+                     ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.cargo) < 42.f;
+        if (!cargoOk || there || g_st.now - t.at > 70000) {
+            ReleaseTankFromHook(t);
+            if (cargoOk) { // vai embora
+                float ax = s_ppos.x - t.drop.x, ay = s_ppos.y - t.drop.y, al = std::hypot(ax, ay) + 0.01f;
+                Vector3 away = V3(t.drop.x - ax / al * 900.f, t.drop.y - ay / al * 900.f, t.drop.z + 120.f);
+                AI::TASK_HELI_MISSION(t.pilot, t.cargo, 0, 0, away.x, away.y, away.z, 4, 50.f, 10.f, -1.f, 150, 80, -1.f, 0);
+            }
+            t.state = 1;
+            t.at = g_st.now;
+            Log(cargoOk ? "  tanque solto perto do jogador!" : "  Cargobob abatido: o tanque caiu.");
+        }
+    } else if (t.state == 1) {
+        if (ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.rhino) < 1.5f || g_st.now - t.at > 8000) {
+            ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, FALSE);
+            if (t.driver && !PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE)) AI::TASK_COMBAT_PED(t.driver, s_player, 0, 16);
+            t.state = 2;
+            Log("  tanque no chao, cacando o jogador.");
+        }
+    } else if (t.state == 2 && (!t.driver || PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE))) {
+        t.state = -1;
+        Log("Motorista do tanque abatido.");
+    }
+}
+
+// ---------- jato (v6) ----------
+// Lazer (padrao) ou Hydra (mais raro). Ataca alternando canhao e misseis e vai embora depois de um tempo.
+struct JetSt { Vehicle v = 0; Ped pilot = 0; int born = 0, nextSwap = 0, wi = 0; bool leaving = false; };
+static JetSt s_jet;
+static bool JetActive() {
+    if (s_jet.v) return true;
+    for (auto &p : s_q) if (p.k == P_JET) return true;
+    return false;
+}
+
+static void SpawnJet() {
+    Hash m = H("lazer");
+    if (Rand(100) < g_cfg.jetHydraPct && STREAMING::IS_MODEL_IN_CDIMAGE(H("hydra"))) m = H("hydra");
+    if (!STREAMING::IS_MODEL_IN_CDIMAGE(m)) { Log("  jato: modelo nao encontrado."); return; }
+    float camH = CAM::GET_GAMEPLAY_CAM_ROT(2).z, dx, dy, d = RandF(850.f, 1000.f);
+    Dir(camH + 180.f + RandF(-60.f, 60.f), dx, dy);
+    float base = s_ppos.z > s_pgz ? s_ppos.z : s_pgz;
+    Vector3 p = V3(s_ppos.x + dx * d, s_ppos.y + dy * d, base + 180.f);
+    JetSt j;
+    j.v = NewVehicle(m, p, HeadingTo(p, s_ppos), false);
+    if (!j.v) { Log("  jato: falha ao criar."); return; }
+    VEHICLE::SET_VEHICLE_ENGINE_ON(j.v, TRUE, TRUE, FALSE);
+    VEHICLE::_SET_VEHICLE_LANDING_GEAR(j.v, 3); // trem de pouso recolhido
+    VEHICLE::SET_VEHICLE_FORWARD_SPEED(j.v, 70.f);
+    j.pilot = NewPedIn(j.v, RandomPed(), -1);
+    if (!j.pilot) { VEHICLE::DELETE_VEHICLE(&j.v); return; }
+    SetupPed(j.pilot, s_level, WeaponFor(s_level));
+    PED::SET_PED_ACCURACY(j.pilot, g_cfg.explosiveAcc); // misseis e canhao do jato imprecisos
+    PED::SET_PED_COMBAT_ATTRIBUTES(j.pilot, 3, FALSE);
+    AddCrew(j.pilot);
+    AI::TASK_PLANE_MISSION(j.pilot, j.v, 0, s_player, 0.f, 0.f, 0.f, 6, 80.f, 0.f, -1.f, 2600.f, 40.f); // atacar
+    j.born = g_st.now;
+    j.nextSwap = g_st.now + 5000;
+    s_jet = j;
+    s_v.push_back({j.v, g_st.now, false});
+    Log("  JATO (%s) chegando a %.0fm", m == H("hydra") ? "Hydra" : "Lazer", D2(p, s_ppos));
+}
+
+static void UpdateJet() {
+    JetSt &j = s_jet;
+    if (!j.v) return;
+    if (!ENTITY::DOES_ENTITY_EXIST(j.v) || ENTITY::IS_ENTITY_DEAD(j.v) || !ENTITY::DOES_ENTITY_EXIST(j.pilot) ||
+        PED::IS_PED_DEAD_OR_DYING(j.pilot, TRUE)) {
+        Log("Jato abatido ou fora de combate.");
+        j = JetSt{};
+        return;
+    }
+    if (!j.leaving && g_st.now >= j.nextSwap) { // usa todas as armas: alterna canhao e misseis
+        static const char *kWeaps[] = {"VEHICLE_WEAPON_PLAYER_LAZER", "VEHICLE_WEAPON_PLANE_ROCKET",
+                                       "VEHICLE_WEAPON_SPACE_ROCKET"};
+        j.wi = (j.wi + 1) % 3;
+        WEAPON::SET_CURRENT_PED_VEHICLE_WEAPON(j.pilot, H(kWeaps[j.wi]));
+        j.nextSwap = g_st.now + 5000;
+    }
+    if (!j.leaving && g_st.now - j.born > g_cfg.jetDuration * 1000) {
+        Vector3 jp = ENTITY::GET_ENTITY_COORDS(j.v, TRUE);
+        float ax = jp.x - s_ppos.x, ay = jp.y - s_ppos.y, al = std::hypot(ax, ay) + 0.01f;
+        AI::TASK_PLANE_MISSION(j.pilot, j.v, 0, 0, jp.x + ax / al * 3000.f, jp.y + ay / al * 3000.f, jp.z + 300.f, 4,
+                               80.f, 0.f, -1.f, 2600.f, 200.f);
+        j.leaving = true;
+        Log("  jato indo embora.");
+    }
+}
 // ---------- waves ----------
 static void Queue(int delayMs, PKind k, int n = 0, int role = 0, bool bicycleOk = false) {
     s_q.push_back({g_st.now + delayMs, k, n, role, bicycleOk});
@@ -773,12 +988,20 @@ static void BuildWave() {
     float bonus = TopBonus();
     int heliCap = HeliLimit(air) - (int)s_helis.size() - HelisQueued();
 
+    // v6: jato (so no ultimo nivel, um por vez; mais chance se o jogador estiver voando)
+    if (g_cfg.jetEnabled && s_level >= g_cfg.jetMinLevel && !JetActive() && free >= 1 &&
+        Rand(100) < Pct(g_cfg.jetChance, (bonus + EscBonus() * 0.5f) * 0.3f, g_cfg.jetMax) + (air ? 5 : 0)) {
+        Queue(2000, P_JET);
+        free -= 1;
+    }
+
     // v5: jogador voando -> foco em helicopteros, e so alguns veiculos seguindo por terra
     if (air) {
         if (s_level >= 3 && heliCap > 0 && free >= 4) {
-            Queue(1000, P_HELI, 0, 1);
-            free -= 4;
-            if (s_level >= 6 && heliCap > 1 && free >= 4 && Rand(100) < 60) { Queue(8000, P_HELI, 0, 1); free -= 4; }
+            int n = HelisNow();
+            // voando: o 1o vem sempre, o 2o e comum, o 3o continua raro
+            int pct = n == 0 ? 100 : n == 1 ? 60 : Pct(g_cfg.heliThirdPct + 5, 0.f, g_cfg.heliThirdMax + 5);
+            if (Rand(100) < pct) { Queue(1000, P_HELI, 0, 1); free -= 4; }
         } else if (s_level < 3) {
             Log("  jogador voando: helicopteros a partir do nivel 3.");
         }
@@ -788,10 +1011,21 @@ static void BuildWave() {
 
     // helicoptero na wave (no chao ou de barco)
     bool hasHeli = !s_fac->helis.empty() || !s_fac->attackHelis.empty();
-    if (hasHeli && heliCap > 0 && free >= 4 && Rand(100) < g_cfg.heliChance[s_level - 1] + bonus + EscBonus() * 0.5f) {
-        Queue(4000, P_HELI);
-        free -= 4;
-        if (g_st.Pts() >= 90 && heliCap > 1 && free >= 4 && Rand(100) < 25) { Queue(12000, P_HELI); free -= 4; }
+    // cada helicoptero a mais no ar tem a sua chance: 1o normal, 2o baixa, 3o bem rara (so no nivel 8)
+    if (hasHeli && heliCap > 0 && free >= 4) {
+        int n = HelisNow();
+        if (Rand(100) < NextHeliPct(n)) {
+            Queue(4000, P_HELI);
+            free -= 4;
+            if (n == 0 && heliCap > 1 && free >= 4 && Rand(100) < NextHeliPct(1)) { Queue(12000, P_HELI); free -= 4; }
+        }
+    }
+
+    // v6: tanque no Cargobob (so no ultimo nivel, um por vez, com o jogador no chao)
+    if (!boat && g_cfg.tankEnabled && s_level >= g_cfg.tankMinLevel && !TankActive() && free >= 2 &&
+        Rand(100) < Pct(g_cfg.tankChance, (bonus + EscBonus() * 0.5f) * 0.4f, g_cfg.tankMax)) {
+        Queue(3000, P_TANK);
+        free -= 2;
     }
 
     if (boat) {
@@ -801,7 +1035,7 @@ static void BuildWave() {
     }
 
     if (g_cfg.jugEnabled && (s_level >= g_cfg.jugMinLevel || g_st.Pts() >= g_cfg.escStart) && !JuggAlive() &&
-        free >= 4 && Rand(100) < g_cfg.jugChance + bonus + EscBonus()) {
+        free >= 4 && Rand(100) < Pct(g_cfg.jugChance, (bonus + EscBonus()) * 0.4f, g_cfg.jugMax)) {
         Queue(2500, P_JUGG);
         free -= 4;
     }
@@ -817,8 +1051,9 @@ static void BuildWave() {
 
     // a pe: duplas chegando aos poucos, depois os veiculos de longe
     int foot = L.foot < free ? L.foot : free;
-    bool sniper = s_level >= 6 && SniperFor(s_level);
-    bool heavy = HeavyFor(s_level) != 0; // nivel 7+
+    // snipers e explosivos (RPG, lanca-granadas) sao raros: uma chance por wave
+    bool sniper = s_level >= 6 && SniperFor(s_level) && Rand(100) < g_cfg.sniperPct;
+    bool heavy = HeavyFor(s_level) != 0 && Rand(100) < Pct(g_cfg.heavyPct, EscBonus() * 0.2f, g_cfg.heavyMax); // nivel 7+
     for (int i = 0, k = 0; i < foot; i += 2, ++k) {
         int n = foot - i >= 2 ? 2 : 1;
         int role = k == 0 && sniper ? 1 : k == 1 && heavy ? 2 : 0;
@@ -840,6 +1075,8 @@ static void RunQueue() {
         case P_BOAT: SpawnBoat(); break;
         case P_JUGG: SpawnJuggernaut(); break;
         case P_HELI: SpawnHeli(p.role == 1); break;
+        case P_TANK: if (s_tank.state < 0) SpawnTank(); break;
+        case P_JET: if (!s_jet.v) SpawnJet(); break;
         case P_ROADBLOCK:
             if (!SpawnRoadblock()) { Log("  bloqueio: nenhuma rua a frente; vem um carro no lugar."); SpawnVehicle(false); }
             break;
@@ -909,6 +1146,8 @@ void DespawnAll(bool hard, const char *why) {
         ReleaseVeh(s, hard || !ENTITY::IS_ENTITY_ON_SCREEN(s.veh));
     }
     s_h.clear(); s_v.clear(); s_q.clear(); s_helis.clear();
+    s_tank = TankSt{};
+    s_jet = JetSt{};
     s_nextWave = 0;
     if (n) Log("Retaliadores removidos (%s): %d.", why, n);
 }
@@ -947,7 +1186,7 @@ static void UpdateHunters() {
         }
         bool timeout = !h.reached && !h.roadblock && g_st.now - h.born > g_cfg.arriveTimeout * 1000;
         bool rbOld = h.roadblock && g_st.now - h.born > (g_cfg.arriveTimeout + 60) * 1000 && d > 150.f;
-        if (d > g_cfg.despawnDist || timeout || rbOld) {
+        if (d > (h.farOk ? 1500.f : g_cfg.despawnDist) || timeout || rbOld) {
             ReleasePed(h, !ENTITY::IS_ENTITY_ON_SCREEN(h.ped) || d > 200.f);
             s_h.erase(s_h.begin() + i);
             continue;
@@ -1026,6 +1265,8 @@ void SpawnerTick(Ped player) {
         s_lastUpdate = g_st.now;
         UpdateHunters();
         UpdateHelis();
+        UpdateTank();
+        UpdateJet();
     }
     if (dead) return;
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.5"
+#define RETALIATION_VERSION "0.6"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -48,7 +48,7 @@ struct Config {
     int rbMinLevel = 3, rbChance = 30;
     // [Juggernaut]
     bool jugEnabled = true;
-    int jugMinLevel = 7, jugChance = 15, jugHealth = 3000, jugMinigunPct = 15;
+    int jugMinLevel = 7, jugChance = 10, jugHealth = 3000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
     float topBonusPerPoint = 1.5f;
     // [Gear] a partir desses pontos aumenta a chance de colete, capacete e armas melhores
@@ -57,8 +57,16 @@ struct Config {
     float rangeShort = 45, rangeMedium = 110;
     // [Heli] v5: chance (%) de helicoptero por wave em cada nivel, e limite ao mesmo tempo
     int heliChance[8] = {0, 0, 8, 12, 16, 22, 28, 35};
-    int heliMax = 1, heliMaxTop = 2, heliMaxAir = 3, heliAttackPct = 15, heliRappelPct = 40, heliLandPct = 30;
+    int heliMax = 1, heliMaxTop = 3, heliMaxAir = 3, heliAttackPct = 10, heliRappelPct = 40, heliLandPct = 30;
+    int heliAttackMax = 20, heliSecondPct = 10, heliSecondMax = 20, heliThirdPct = 3, heliThirdMax = 8;
+    // [Weapons] chance (%) por wave de vir um sniper e de vir alguem com RPG/lanca-granadas (com teto)
+    int sniperPct = 50, heavyPct = 12, heavyMax = 20;
+    int explosiveAcc = 8; // mira (0-100) de quem usa explosivos: RPG, lanca-granadas, tanque, jato, helicoptero de ataque
     // [Escalation] v5: a partir desses pontos, mais especiais (Juggernaut, minigun, ataque)
+    // [Tank] / [Jet] v6: so no ultimo nivel, um de cada por vez
+    bool tankEnabled = true, jetEnabled = true;
+    int tankMinLevel = 8, tankChance = 8, tankMax = 18, jetMinLevel = 8, jetChance = 5, jetMax = 15, jetDuration = 90,
+        jetHydraPct = 25;
     int escStart = 70;
     float escPerPoint = 1.0f;
 };

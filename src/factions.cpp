@@ -13,58 +13,66 @@ struct FactionDef {
     const char *ambientGroup; // gangue ambiente do jogo que e aliada (ou nullptr)
 };
 
+// v6: veiculos do Online "pe no chao" (lowriders e customizados nas gangues, off-road no interior,
+// blindados e com torreta na elite). Nada de veiculos com nitro, pulo ou misseis.
 static const std::vector<FactionDef> kDefs = {
     {"MARABUNTA", "Marabunta Grande",
      {"g_m_y_salvagoon_01", "g_m_y_salvagoon_02", "g_m_y_salvagoon_03", "g_m_y_salvaboss_01"},
-     {"voodoo2", "emperor2", "primo", "tornado3"}, {"faggio2"}, {"bmx", "cruiser"}, {}, 25, false,
-     "AMBIENT_GANG_SALVA"},
+     {"voodoo2", "emperor2", "primo", "tornado3", "primo2", "buccaneer2", "minivan2", "faction3"}, {"faggio2", "manchez"},
+     {"bmx", "cruiser"}, {}, 25, false, "AMBIENT_GANG_SALVA"},
     {"CAIPIRAS", "Caipiras de Sandy Shores",
      {"a_m_m_hillbilly_01", "a_m_m_hillbilly_02", "a_m_m_rurmeth_01", "a_m_y_methhead_01", "a_m_m_salton_02"},
-     {"bodhi2", "sadler", "rancherxl", "rebel"}, {"sanchez", "sanchez2", "blazer"}, {"bmx"}, {}, 40, false,
-     "AMBIENT_GANG_HILLBILLY"},
+     {"bodhi2", "sadler", "rancherxl", "rebel", "riata", "kalahari", "yosemite3", "bfinjection"},
+     {"sanchez", "sanchez2", "blazer", "verus", "manchez2"}, {"bmx"}, {}, 40, false, "AMBIENT_GANG_HILLBILLY"},
     {"VAGOS", "Vagos",
      {"g_m_y_mexgoon_01", "g_m_y_mexgoon_02", "g_m_y_mexgoon_03", "g_m_y_mexgang_01", "g_f_y_vagos_01"},
-     {"chino", "tornado", "peyote", "manana", "moonbeam"}, {"ruffian"}, {"scorcher"}, {}, 20, false,
-     "AMBIENT_GANG_MEXICAN"},
+     {"chino", "tornado", "peyote", "manana", "moonbeam", "chino2", "moonbeam2", "tornado5", "sabregt2", "virgo2",
+      "peyote2", "manana2"},
+     {"ruffian", "manchez"}, {"scorcher"}, {}, 20, false, "AMBIENT_GANG_MEXICAN"},
     {"ONEIL", "Irmaos O'Neil",
      {"a_m_m_farmer_01", "a_m_m_hillbilly_02", "a_m_m_salton_01", "a_m_m_salton_03", "a_m_m_rurmeth_01"},
-     {"rebel2", "bison", "bfinjection", "dloader", "marshall"}, {"sanchez"}, {"bmx"}, {}, 25, false,
-     "AMBIENT_GANG_HILLBILLY"},
+     {"rebel2", "bison", "bfinjection", "dloader", "marshall", "kamacho", "riata", "yosemite2"}, {"sanchez", "manchez2"},
+     {"bmx"}, {}, 25, false, "AMBIENT_GANG_HILLBILLY"},
     {"BALLAS", "Ballas",
      {"g_m_y_ballaorig_01", "g_m_y_ballasout_01", "g_m_y_ballaeast_01", "g_f_y_ballas_01"},
-     {"baller", "buccaneer", "faction", "virgo", "cavalcade"}, {"pcj", "bagger"}, {}, {}, 25, false,
-     "AMBIENT_GANG_BALLAS"},
+     {"baller", "buccaneer", "faction", "virgo", "cavalcade", "buccaneer2", "faction2", "virgo3", "voodoo", "baller3",
+      "glendale2"},
+     {"pcj", "bagger"}, {}, {}, 25, false, "AMBIENT_GANG_BALLAS"},
     {"ALTRUISTAS", "Altruistas",
      {"a_m_m_acult_01", "a_m_o_acult_01", "a_m_o_acult_02", "a_m_y_acult_01", "a_m_y_acult_02"},
-     {"dune", "rebel", "bodhi2"}, {"blazer", "sanchez"}, {}, {}, 35, false, "AMBIENT_GANG_CULT"},
+     {"dune", "rebel", "bodhi2", "outlaw", "vagrant"}, {"blazer", "sanchez", "verus", "manchez2"}, {}, {}, 35, false,
+     "AMBIENT_GANG_CULT"},
     {"KKANGPAE", "Kkangpae",
      {"g_m_y_korean_01", "g_m_y_korean_02", "g_m_y_korlieut_01", "g_m_m_korboss_01"},
-     {"sultan", "futo", "penumbra", "fusilade"}, {"akuma", "vader"}, {}, {"dinghy", "seashark"}, 30, false,
-     nullptr},
+     {"sultan", "futo", "penumbra", "fusilade", "sultan2", "futo2", "kuruma", "penumbra2"}, {"akuma", "vader"}, {},
+     {"dinghy", "seashark"}, 30, false, nullptr},
     {"LOST", "The Lost MC",
      {"g_m_y_lost_01", "g_m_y_lost_02", "g_m_y_lost_03", "g_f_y_lost_01"},
-     {"gburrito", "slamvan", "monster"}, {"daemon", "hexer", "innovation", "sovereign"}, {}, {}, 80, false,
-     "AMBIENT_GANG_LOST"},
+     {"gburrito", "slamvan", "monster", "gburrito2", "slamvan3"},
+     {"daemon", "hexer", "innovation", "sovereign", "zombiea", "zombieb", "chimera", "daemon2", "wolfsbane", "nightblade",
+      "avarus", "gargoyle"},
+     {}, {}, 80, false, "AMBIENT_GANG_LOST"},
     {"TRIADS", "Triads",
      {"g_m_m_chigoon_01", "g_m_m_chigoon_02", "g_m_m_chiboss_01", "g_m_m_chicold_01"},
-     {"fugitive", "washington", "elegy2", "feltzer2"}, {"bati", "double", "hakuchou"}, {}, {"squalo", "jetmax"},
-     35, false, "AMBIENT_GANG_WEICHENG"},
+     {"fugitive", "washington", "elegy2", "feltzer2", "schafter3", "elegy", "kuruma", "cog55"},
+     {"bati", "double", "hakuchou"}, {}, {"squalo", "jetmax"}, 35, false, "AMBIENT_GANG_WEICHENG"},
     {"MADRAZO", "Cartel Madrazo",
      {"g_m_m_mexboss_01", "g_m_m_mexboss_02", "a_m_y_mexthug_01", "csb_ramp_mex"},
-     {"cavalcade2", "granger", "dubsta", "baller2", "sandking"}, {"sanchez"}, {}, {"tropic", "seashark"}, 20,
-     false, nullptr},
+     {"cavalcade2", "granger", "dubsta", "baller2", "sandking", "baller6", "xls2", "contender", "toros"},
+     {"sanchez", "manchez"}, {}, {"tropic", "seashark"}, 20, false, nullptr},
     {"FIB", "Agentes FIB / IAA",
      {"s_m_m_fibsec_01", "s_m_m_fiboffice_01", "s_m_m_fiboffice_02", "s_m_m_ciasec_01"},
-     {"fbi", "fbi2", "washington"}, {}, {}, {"dinghy"}, 0, true, nullptr},
+     {"fbi", "fbi2", "washington", "granger2", "baller5"}, {}, {}, {"dinghy"}, 0, true, nullptr},
     {"CACADORES", "Cacadores de recompensa",
      {"ig_cletus", "ig_hunter", "s_m_y_marine_03", "s_m_m_marine_01", "g_m_m_cartelguards_01",
       "g_m_m_cartelguards_02", "s_m_y_blackops_03"},
-     {"kuruma", "buffalo", "granger", "mesa"}, {"bati", "sanchez"}, {}, {"jetmax"}, 20, false, nullptr},
+     {"kuruma", "buffalo", "granger", "mesa", "kuruma2", "technical", "caracara", "nightshark", "menacer"},
+     {"bati", "sanchez", "manchez2"}, {}, {"jetmax"}, 20, false, nullptr},
     {"MERRYWEATHER", "Merryweather",
      {"s_m_y_blackops_01", "s_m_y_blackops_02", "csb_mweather"},
-     {"mesa3", "crusader", "insurgent2"}, {}, {}, {"dinghy3", "dinghy"}, 0, false, nullptr},
+     {"mesa3", "crusader", "insurgent2", "insurgent", "menacer", "halftrack", "barrage", "caracara"}, {}, {},
+     {"dinghy3", "dinghy", "patrolboat"}, 0, false, nullptr},
 };
-
 // nivel (1..8) -> faccao na cidade / no interior (indices em kDefs)
 static const int kLevelFaction[8][2] = {
     {0, 1},   // 1: Marabunta | Caipiras
@@ -81,22 +89,25 @@ static const int kLevelFaction[8][2] = {
 // Corpo a corpo so nos niveis 1 e 2 (faca, taco, cacetete). Armas que o jogo nao conhece sao descartadas.
 static const std::vector<const char *> kWeapons[8] = {
     {"WEAPON_SNSPISTOL", "WEAPON_VINTAGEPISTOL", "WEAPON_PISTOL", "WEAPON_PISTOL", "WEAPON_CERAMICPISTOL",
-     "WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK"},
+     "WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK", "WEAPON_SNSPISTOL_MK2"},
     {"WEAPON_COMBATPISTOL", "WEAPON_PISTOL", "WEAPON_MICROSMG", "WEAPON_MINISMG", "WEAPON_SAWNOFFSHOTGUN",
-     "WEAPON_DBSHOTGUN", "WEAPON_KNIFE", "WEAPON_BAT"},
+     "WEAPON_DBSHOTGUN", "WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_PISTOLXM3"},
     {"WEAPON_SMG", "WEAPON_MACHINEPISTOL", "WEAPON_MINISMG", "WEAPON_PUMPSHOTGUN", "WEAPON_BULLPUPSHOTGUN",
-     "WEAPON_PISTOL50", "WEAPON_REVOLVER", "WEAPON_HEAVYPISTOL", "WEAPON_DOUBLEACTION", "WEAPON_NAVYREVOLVER"},
+     "WEAPON_PISTOL50", "WEAPON_REVOLVER", "WEAPON_HEAVYPISTOL", "WEAPON_DOUBLEACTION", "WEAPON_NAVYREVOLVER",
+     "WEAPON_APPISTOL", "WEAPON_TECPISTOL", "WEAPON_REVOLVER_MK2", "WEAPON_GADGETPISTOL"},
     {"WEAPON_COMPACTRIFLE", "WEAPON_ASSAULTRIFLE", "WEAPON_GUSENBERG", "WEAPON_ASSAULTSMG", "WEAPON_HEAVYSHOTGUN",
      "WEAPON_SMG", "WEAPON_COMBATPDW", "WEAPON_AUTOSHOTGUN", "WEAPON_PISTOL_MK2"},
     {"WEAPON_ASSAULTRIFLE", "WEAPON_CARBINERIFLE", "WEAPON_BULLPUPRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_MG",
-     "WEAPON_COMBATPDW", "WEAPON_COMBATSHOTGUN", "WEAPON_SMG_MK2", "WEAPON_MILITARYRIFLE"},
+     "WEAPON_COMBATPDW", "WEAPON_COMBATSHOTGUN", "WEAPON_SMG_MK2", "WEAPON_MILITARYRIFLE", "WEAPON_TACTICALRIFLE"},
     {"WEAPON_ADVANCEDRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_CARBINERIFLE",
      "WEAPON_MILITARYRIFLE", "WEAPON_TACTICALRIFLE", "WEAPON_HEAVYRIFLE", "WEAPON_COMBATMG",
-     "WEAPON_PUMPSHOTGUN_MK2"},
+     "WEAPON_PUMPSHOTGUN_MK2", "WEAPON_BATTLERIFLE"},
     {"WEAPON_SPECIALCARBINE_MK2", "WEAPON_CARBINERIFLE_MK2", "WEAPON_ASSAULTRIFLE_MK2", "WEAPON_BULLPUPRIFLE_MK2",
-     "WEAPON_ADVANCEDRIFLE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_COMBATMG", "WEAPON_HEAVYRIFLE", "WEAPON_MG"},
+     "WEAPON_ADVANCEDRIFLE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_COMBATMG", "WEAPON_HEAVYRIFLE", "WEAPON_MG",
+     "WEAPON_BATTLERIFLE", "WEAPON_MILITARYRIFLE"},
     {"WEAPON_CARBINERIFLE_MK2", "WEAPON_SPECIALCARBINE_MK2", "WEAPON_ASSAULTRIFLE_MK2", "WEAPON_COMBATMG_MK2",
-     "WEAPON_ASSAULTSHOTGUN", "WEAPON_HEAVYRIFLE", "WEAPON_TACTICALRIFLE", "WEAPON_COMBATSHOTGUN"},
+     "WEAPON_ASSAULTSHOTGUN", "WEAPON_HEAVYRIFLE", "WEAPON_TACTICALRIFLE", "WEAPON_COMBATSHOTGUN",
+     "WEAPON_BATTLERIFLE"},
 };
 // papeis especiais: sniper (nivel 6+) e armas pesadas (nivel 7+)
 static const std::vector<const char *> kSniper[8] = {
@@ -112,7 +123,15 @@ static const std::vector<const char *> kHeavy[8] = {
 };
 static const char *kMelee[] = {"WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK"};
 // v5: armas que nunca podem aparecer, mesmo se alguem colocar na lista
-static const char *kBanned[] = {"WEAPON_MUSKET", "WEAPON_MARKSMANPISTOL", "WEAPON_RAILGUN", "WEAPON_RAILGUNXM3"};
+static const char *kBanned[] = {"WEAPON_MUSKET",      "WEAPON_MARKSMANPISTOL", "WEAPON_RAILGUN",     "WEAPON_RAILGUNXM3",
+                                "WEAPON_RAYPISTOL",   "WEAPON_RAYCARBINE",     "WEAPON_RAYMINIGUN",  "WEAPON_EMPLAUNCHER",
+                                "WEAPON_STUNGUN",     "WEAPON_STUNGUN_MP",     "WEAPON_SNOWLAUNCHER", "WEAPON_FLAREGUN",
+                                "WEAPON_FIREWORK",    "WEAPON_CANDYCANE",      "WEAPON_ACIDPACKAGE", "WEAPON_HAZARDCAN"};
+// v6: veiculos "apeloes" que nunca entram (nitro, pulo, misseis, voadores)
+static const char *kBannedVeh[] = {"oppressor", "oppressor2", "toreador", "ruiner2",  "scramjet", "vigilante",
+                                   "deluxo",    "stromberg",  "thruster", "khanjali", "chernobog", "tampa3",
+                                   "dune3",     "dune4",      "dune5",    "apc",      "blazer5",  "boxville5",
+                                   "technical2", "technical3", "insurgent3", "zr380",  "imperator", "dominator4"};
 
 // v5: helicopteros por faccao. transport = atiradores ou rapel; attack = helicoptero de ataque (Buzzard).
 struct HeliDef { const char *id; std::vector<const char *> transport, attack; };
@@ -120,11 +139,12 @@ static const std::vector<HeliDef> kHelis = {
     {"ONEIL", {"frogger"}, {}},
     {"BALLAS", {"frogger"}, {}},
     {"KKANGPAE", {"maverick", "frogger"}, {}},
-    {"TRIADS", {"supervolito", "maverick"}, {}},
+    {"TRIADS", {"supervolito", "supervolito2", "maverick"}, {}},
     {"MADRAZO", {"maverick", "frogger"}, {}},
     {"FIB", {"maverick", "frogger"}, {}},
     {"CACADORES", {"maverick", "frogger"}, {"buzzard"}},
-    {"MERRYWEATHER", {"annihilator", "maverick"}, {"buzzard"}},
+    {"MERRYWEATHER", {"annihilator", "maverick", "valkyrie", "annihilator2"},
+     {"buzzard", "buzzard", "buzzard", "savage", "hunter"}}, // Buzzard mais comum
 };
 
 // ---------- estado resolvido ----------
