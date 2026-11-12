@@ -40,46 +40,49 @@ static const char *kDefaultIni =
     "; modo (tambem muda pelo menu, tecla Insert): 1 = junto com a policia, 2 = substitui a policia,\r\n"
     "; 3 = ciclo policia -> Retaliation -> livre\r\n"
     "Mode=1\r\n"
-    "; Modo Diretor (Rockstar Editor): 1 = Retaliation livre com qualquer NPC (comeca zerado, sobe por crimes ou\r\n"
-    "; pelas teclas de teste, sem o ciclo da policia); 0 = remove os retaliadores e pausa\r\n"
+    "; Modo Diretor (Rockstar Editor): 1 = Retaliation ativo (comeca zerado) e o modo do menu manda na policia,\r\n"
+    "; acima da configuracao de procurado do Modo Diretor; 0 = remove os retaliadores e pausa\r\n"
     "DirectorMode=1\r\n"
     "; Teclas de teste: segure PageDown e aperte PageUp para subir um nivel;\r\n"
     "; segure PageUp e aperte PageDown para descer um nivel\r\n"
     "DebugKeys=1\r\n"
+    "; trava de nivel (tambem pelo menu): 1 = o nivel nao sobe nem desce sozinho; so muda pelas teclas de teste\r\n"
+    "LevelLock=0\r\n"
     "\r\n"
     "[Points]\r\n"
-    "KillCivilian=2\r\n"
-    "KillCop=2\r\n"
-    "KillGang=2\r\n"
-    "StealVehicle=2\r\n"
-    "BlowVehicle=4\r\n"
+    "KillCivilian=4\r\n"
+    "KillCop=4\r\n"
+    "KillGang=4\r\n"
+    "StealVehicle=4\r\n"
+    "BlowVehicle=8\r\n"
     "; retaliador morto pelo jogador\r\n"
-    "KillHunter=2\r\n"
+    "KillHunter=4\r\n"
     "; helicoptero ou aviao destruido\r\n"
-    "BlowAircraft=6\r\n"
+    "BlowAircraft=12\r\n"
     "; segundos sem crimes para perder pontos, e quanto perde\r\n"
     "DecayInterval=45\r\n"
-    "DecayAmount=5\r\n"
-    "Max=100\r\n"
+    "DecayAmount=15\r\n"
+    "Max=500\r\n"
     "\r\n"
     "[Levels]\r\n"
     "; pontos em que cada nivel comeca (nivel 1, 2, 3...)\r\n"
-    "Start=10,21,32,43,54,65,76,88\r\n"
+    "Start=10,80,140,200,260,320,380,440\r\n"
     "\r\n"
     "[HotTimer]\r\n"
     "; acima de Points por Seconds sem morrer nem ser preso: cai de volta para o nivel do [Cycle] StartLevel\r\n"
+    "; (no modo Ciclo, encerra a retaliacao)\r\n"
     "Enabled=1\r\n"
-    "Points=70\r\n"
+    "Points=350\r\n"
     "Seconds=300\r\n"
     "\r\n"
     "[Cycle]\r\n"
-    "; ciclo policia -> Retaliation -> livre: com Wanted estrelas por Seconds sem morrer nem ser preso,\r\n"
-    "; o Retaliation comeca no nivel StartLevel. Por JointSeconds a policia mantem as estrelas mas ignora o\r\n"
-    "; jogador e so enfrenta os retaliadores; depois as estrelas somem e a policia fica bloqueada ate ficar livre\r\n"
+    "; ciclo (modo 3): com Wanted estrelas por Seconds sem morrer nem ser preso, a policia vai embora e o\r\n"
+    "; Retaliation comeca no nivel StartLevel. A policia so volta quando a retaliacao acabar (pontos zerados\r\n"
+    "; ou o [HotTimer] completado). JointSeconds > 0 = fase conjunta antiga (policia ignora o jogador)\r\n"
     "Wanted=5\r\n"
-    "Seconds=180\r\n"
+    "Seconds=300\r\n"
     "StartLevel=2\r\n"
-    "JointSeconds=300\r\n"
+    "JointSeconds=0\r\n"
     "\r\n"
     "[Hud]\r\n"
     "Enabled=1\r\n"
@@ -97,8 +100,8 @@ static const char *kDefaultIni =
     "\r\n"
     "[Spawn]\r\n"
     "; distancias (metros): grupos a pe, veiculos, remocao\r\n"
-    "FootMin=110\r\n"
-    "FootMax=170\r\n"
+    "FootMin=95\r\n"
+    "FootMax=150\r\n"
     "VehMin=320\r\n"
     "VehMax=450\r\n"
     "DespawnDist=600\r\n"
@@ -107,15 +110,15 @@ static const char *kDefaultIni =
     "; segundos ate a primeira wave depois de entrar no nivel 1\r\n"
     "FirstWaveDelay=8\r\n"
     "; distancia (m) em que o inimigo aparece no minimapa\r\n"
-    "BlipRadius=120\r\n"
+    "BlipRadius=180\r\n"
     "\r\n"
     "[Scaling]\r\n"
     "; mais dificil chegar a 100: a partir de Start pontos, cada Step pontos acima tiram PerStep de cada ganho\r\n"
     "; (matar, explodir, roubar). Cada acao vale no minimo MinGain. As fracoes se acumulam\r\n"
-    "Start=50\r\n"
-    "Step=5\r\n"
-    "PerStep=0.2\r\n"
-    "MinGain=0.2\r\n"
+    "Start=250\r\n"
+    "Step=25\r\n"
+    "PerStep=0.25\r\n"
+    "MinGain=0.5\r\n"
     "\r\n"
     "[Flow]\r\n"
     "; chegada aos poucos: o limite de inimigos comeca em RampStart e sobe ate o do nivel em RampSeconds\r\n"
@@ -142,7 +145,7 @@ static const char *kDefaultIni =
     "[Level5]\r\nInterval=40\r\nFoot=4\r\nVehicles=2\r\nAccuracy=35\r\nHealth=225\r\nArmor=50\r\nMaxAlive=18\r\n"
     "[Level6]\r\nInterval=38\r\nFoot=5\r\nVehicles=3\r\nAccuracy=40\r\nHealth=250\r\nArmor=75\r\nMaxAlive=21\r\n"
     "[Level7]\r\nInterval=35\r\nFoot=6\r\nVehicles=3\r\nAccuracy=45\r\nHealth=275\r\nArmor=100\r\nMaxAlive=24\r\n"
-    "[Level8]\r\nInterval=30\r\nFoot=6\r\nVehicles=4\r\nAccuracy=50\r\nHealth=300\r\nArmor=100\r\nMaxAlive=28\r\n"
+    "[Level8]\r\nInterval=30\r\nFoot=6\r\nVehicles=4\r\nAccuracy=50\r\nHealth=300\r\nArmor=100\r\nMaxAlive=30\r\n"
     "\r\n"
     "[Roadblock]\r\n"
     "; bloqueio de estrada a frente quando o jogador esta dirigindo (chance por wave, %)\r\n"
@@ -151,37 +154,69 @@ static const char *kDefaultIni =
     "Chance=30\r\n"
     "\r\n"
     "[Juggernaut]\r\n"
-    "; mini-boss com armadura pesada e minigun, chega no Insurgent (chance por wave, %)\r\n"
+    "; mini-boss blindado, chega no Insurgent (chance por wave, %)\r\n"
     "Enabled=1\r\n"
     "MinLevel=7\r\n"
     "; chance por wave: base e teto (sobe com os pontos ate o teto)\r\n"
     "Chance=10\r\n"
     "Max=30\r\n"
-    "Health=3000\r\n"
+    "Health=2000\r\n"
+    "; modelo do NPC. mp_m_freemode_01 = personagem do Online com o traje Noturno pesado e mascara de gas\r\n"
+    "Model=mp_m_freemode_01\r\n"
+    "; icone no mapa (303 = caveira), sempre vermelho\r\n"
+    "Blip=303\r\n"
+    "; mira (0-100) da minigun do Juggernaut: 0 = rajada bem espalhada\r\n"
+    "MinigunAccuracy=0\r\n"
     "; armas: Combat MG e escopeta automatica (comuns) ou minigun (rara: base e teto)\r\n"
     "MinigunChance=10\r\n"
     "MinigunMax=25\r\n"
-    "; a roupa do Juggernaut fica em [JuggernautOutfit]. Para copiar a armadura pesada do assalto de Paleto Bay:\r\n"
-    "; repita a missao The Paleto Score e, ja de armadura, segure PageDown e aperte End\r\n"
+    "\r\n"
+    "[Vehicles]\r\n"
+    "; 1 = a elite e o cartel usam veiculos com torreta (Technical, Insurgent, Halftrack...). Quando o jogador\r\n"
+    "; assume uma torreta, a tripulacao inimiga desce e ninguem consegue tirar ele de la. 0 = sem torretas\r\n"
+    "TurretVehicles=1\r\n"
+    "\r\n"
+    "[WeaponMods]\r\n"
+    "; acessorios aleatorios nas armas dos inimigos (lanterna, carregador estendido, mira, empunhadura, supressor)\r\n"
+    "; chance = Base no nivel 1 + PerLevel por nivel (nivel 8 = 80%). Mais acessorios juntos nos niveis altos\r\n"
+    "Enabled=1\r\n"
+    "Base=10\r\n"
+    "PerLevel=10\r\n"
+    "\r\n"
+    "[Paradrop]\r\n"
+    "; evento raro: com poucos inimigos vivos (FewAlive ou menos) e o jogador a pe, um Titan passa alto e solta\r\n"
+    "; paraquedistas no lugar da wave normal. Chance (%) por wave, so a partir de MinLevel, Cooldown em segundos\r\n"
+    "MinLevel=7\r\n"
+    "Chance=10\r\n"
+    "FewAlive=4\r\n"
+    "Cooldown=180\r\n"
     "\r\n"
     "[TopBonus]\r\n"
     "; % extra de chance dos especiais por ponto acima do inicio do ultimo nivel\r\n"
-    "PerPoint=1.5\r\n"
+    "PerPoint=0.3\r\n"
     "\r\n"
     "[Weapons]\r\n"
     "; chance (%) por wave de vir um sniper (nivel 6+) e alguem com RPG/lanca-granadas (nivel 7+, base e teto)\r\n"
     "SniperChance=50\r\n"
     "HeavyChance=12\r\n"
     "HeavyMax=20\r\n"
-    "; mira (0-100) de quem usa explosivos (RPG, lanca-granadas, tanque, jato, helicoptero de ataque).\r\n"
+    "; mira (0-100) do que mata rapido: RPG, lanca-granadas, tanque, jato, helicoptero de ataque e a minigun\r\n"
     "; baixa de proposito: os tiros passam perto e explodem em volta, mais cinematografico\r\n"
-    "ExplosiveAccuracy=8\r\n"
+    "; do Juggernaut\r\n"
+    "ExplosiveAccuracy=1\r\n"
     "\r\n"
     "[Range]\r\n"
-    "; distancia (m) em que comecam a atirar: pistolas/SMGs/escopetas e fuzis/metralhadoras.\r\n"
-    "; snipers e RPG atiram assim que veem o jogador\r\n"
-    "Short=45\r\n"
-    "Medium=110\r\n"
+    "; distancia maxima (m) em que atiram: pistolas/SMGs/escopetas, fuzis/metralhadoras, sniper, RPG/lanca-granadas,\r\n"
+    "; quem esta em veiculo (motorista, passageiros, torretas) e aeronaves. Quem esta a pe fora do alcance corre\r\n"
+    "; ate o jogador\r\n"
+    "Short=35\r\n"
+    "Medium=70\r\n"
+    "Sniper=130\r\n"
+    "Rpg=110\r\n"
+    "Vehicle=100\r\n"
+    "Air=220\r\n"
+    "; % dos inimigos comuns que arrastam companheiros feridos (a elite sempre arrasta)\r\n"
+    "DragChance=60\r\n"
     "\r\n"
     "[Heli]\r\n"
     "; chance (%) de helicoptero por wave, do nivel 1 ao 8\r\n"
@@ -196,36 +231,51 @@ static const char *kDefaultIni =
     "ThirdChance=3\r\n"
     "ThirdMax=8\r\n"
     "; % de ser helicoptero de ataque (Buzzard/Savage/Hunter, base e teto) e % de rapel (jogador no chao)\r\n"
-    "AttackChance=10\r\n"
-    "AttackMax=20\r\n"
-    "RappelChance=40\r\n"
+    "; helicopteros armados (Buzzard, Savage, Hunter, Akula) so a partir de AttackMinLevel\r\n"
+    "AttackMinLevel=7\r\n"
+    "AttackChance=6\r\n"
+    "AttackMax=12\r\n"
+    "RappelChance=50\r\n"
     "; % de o helicoptero de ataque ou de rapel pousar perto do jogador a pe e a tropa descer\r\n"
     "LandChance=30\r\n"
+    "; mira (0-100) de todos os helicopteros (piloto, atiradores e torretas como as do Valkyrie). Bem baixa:\r\n"
+    "; muito tiro passando perto, pouco acertando\r\n"
+    "Accuracy=2\r\n"
     "\r\n"
     "[Tank]\r\n"
     "; Rhino entregue pelo Cargobob (um por vez). Chance por wave (%)\r\n"
     "Enabled=1\r\n"
     "MinLevel=8\r\n"
-    "Chance=8\r\n"
-    "Max=18\r\n"
+    "Chance=5\r\n"
+    "Max=10\r\n"
+    "; segundos sem o mesmo tipo de tanque depois que um sai de combate (abatido ou roubado)\r\n"
+    "Cooldown=60\r\n"
+    "; segundos entre um tiro e outro do canhao do tanque\r\n"
+    "ShotInterval=10\r\n"
+    "; % fixa por wave de vir o tanque especial TM-02 Khanjali, por terra (so no nivel 8, um por vez)\r\n"
+    "KhanjaliChance=3\r\n"
+    "; altura do tanque preso embaixo do Cargobob (metros, negativo = abaixo)\r\n"
+    "HangZ=-4.6\r\n"
     "\r\n"
     "[Jet]\r\n"
     "; caca Lazer (ou Hydra, HydraChance %) que ataca por Duration segundos e vai embora. Um por vez\r\n"
     "Enabled=1\r\n"
     "MinLevel=8\r\n"
-    "Chance=5\r\n"
-    "Max=15\r\n"
+    "Chance=3\r\n"
+    "Max=8\r\n"
+    "; segundos sem caca depois que um for abatido ou for embora\r\n"
+    "Cooldown=60\r\n"
     "Duration=90\r\n"
     "HydraChance=25\r\n"
     "\r\n"
     "[Escalation]\r\n"
     "; a partir desses pontos, cada ponto a mais soma PerPoint % a Juggernaut, minigun e helicoptero de ataque\r\n"
-    "Start=70\r\n"
-    "PerPoint=1.0\r\n"
+    "Start=350\r\n"
+    "PerPoint=0.2\r\n"
     "\r\n"
     "[Gear]\r\n"
     "; a partir desses pontos aumenta a chance de colete, capacete e armas melhores\r\n"
-    "Start=40\r\n"
+    "Start=200\r\n"
 #endif
     ;
 
@@ -274,6 +324,7 @@ void ConfigLoad() {
     c.mode = IniInt("General", "Mode", 1);
     if (c.mode < 1 || c.mode > 3) c.mode = 3;
     c.directorMode = IniInt("General", "DirectorMode", 1);
+    c.levelLock = IniInt("General", "LevelLock", 0) != 0;
     c.debugKeys = IniInt("General", "DebugKeys", 1);
     c.killCivilian = IniInt("Points", "KillCivilian", c.killCivilian);
     c.killCop = IniInt("Points", "KillCop", c.killCop);
@@ -342,8 +393,28 @@ void ConfigLoad() {
     c.jugChance = IniInt("Juggernaut", "Chance", c.jugChance);
     c.jugHealth = IniInt("Juggernaut", "Health", c.jugHealth);
     c.jugMinigunPct = IniInt("Juggernaut", "MinigunChance", c.jugMinigunPct);
+    c.jugModel = IniStr("Juggernaut", "Model", c.jugModel.c_str());
+    c.modsEnabled = IniInt("WeaponMods", "Enabled", 1) != 0;
+    c.modsBase = IniInt("WeaponMods", "Base", c.modsBase);
+    c.modsPerLevel = IniInt("WeaponMods", "PerLevel", c.modsPerLevel);
+    c.paraMinLevel = IniInt("Paradrop", "MinLevel", c.paraMinLevel);
+    c.paraChance = IniInt("Paradrop", "Chance", c.paraChance);
+    c.paraFewAlive = IniInt("Paradrop", "FewAlive", c.paraFewAlive);
+    c.paraCooldown = IniInt("Paradrop", "Cooldown", c.paraCooldown);
+    c.turretVehicles = IniInt("Vehicles", "TurretVehicles", c.turretVehicles ? 1 : 0) != 0;
+    c.jugBlip = IniInt("Juggernaut", "Blip", c.jugBlip);
+    c.jugMinigunAcc = IniInt("Juggernaut", "MinigunAccuracy", c.jugMinigunAcc);
+    c.heliAccuracy = IniInt("Heli", "Accuracy", c.heliAccuracy);
+    c.tankShotInterval = IniInt("Tank", "ShotInterval", c.tankShotInterval);
+    c.khanChance = IniInt("Tank", "KhanjaliChance", c.khanChance);
+    c.tankHangZ = IniFloat("Tank", "HangZ", c.tankHangZ);
     c.rangeShort = IniFloat("Range", "Short", c.rangeShort);
     c.rangeMedium = IniFloat("Range", "Medium", c.rangeMedium);
+    c.rangeSniper = IniFloat("Range", "Sniper", c.rangeSniper);
+    c.rangeRpg = IniFloat("Range", "Rpg", c.rangeRpg);
+    c.rangeVehicle = IniFloat("Range", "Vehicle", c.rangeVehicle);
+    c.rangeAir = IniFloat("Range", "Air", c.rangeAir);
+    c.dragPct = IniInt("Range", "DragChance", c.dragPct);
     {
         std::vector<int> hc = IniInts("Heli", "Chance", std::vector<int>(c.heliChance, c.heliChance + 8));
         for (int i = 0; i < 8 && i < (int)hc.size(); ++i) c.heliChance[i] = hc[i];
@@ -355,6 +426,7 @@ void ConfigLoad() {
     c.heliRappelPct = IniInt("Heli", "RappelChance", c.heliRappelPct);
     c.heliLandPct = IniInt("Heli", "LandChance", c.heliLandPct);
     c.heliAttackMax = IniInt("Heli", "AttackMax", c.heliAttackMax);
+    c.heliAttackMinLevel = IniInt("Heli", "AttackMinLevel", c.heliAttackMinLevel);
     c.heliSecondPct = IniInt("Heli", "SecondChance", c.heliSecondPct);
     c.heliSecondMax = IniInt("Heli", "SecondMax", c.heliSecondMax);
     c.heliThirdPct = IniInt("Heli", "ThirdChance", c.heliThirdPct);
@@ -370,9 +442,11 @@ void ConfigLoad() {
     c.tankEnabled = IniInt("Tank", "Enabled", 1);
     c.tankMinLevel = IniInt("Tank", "MinLevel", c.tankMinLevel);
     c.tankChance = IniInt("Tank", "Chance", c.tankChance);
+    c.tankCooldown = IniInt("Tank", "Cooldown", c.tankCooldown);
     c.jetEnabled = IniInt("Jet", "Enabled", 1);
     c.jetMinLevel = IniInt("Jet", "MinLevel", c.jetMinLevel);
     c.jetChance = IniInt("Jet", "Chance", c.jetChance);
+    c.jetCooldown = IniInt("Jet", "Cooldown", c.jetCooldown);
     c.jetDuration = IniInt("Jet", "Duration", c.jetDuration);
     c.jetHydraPct = IniInt("Jet", "HydraChance", c.jetHydraPct);
     c.escStart = IniInt("Escalation", "Start", c.escStart);
@@ -415,9 +489,8 @@ const char *kOutfitSection[4] = {"JuggernautOutfit", "JuggernautOutfit_Michael",
 
 // v8/v9.3: copia a roupa que o protagonista esta vestindo (armadura pesada na missao The Paleto Score).
 // Cada protagonista tem a sua secao; o Juggernaut sorteia entre as que existirem.
-void OutfitCapture(Ped p) {
+void OutfitCapture(Ped p, int slot) {
     char buf[64];
-    int slot = g_st.ch == CH_MICHAEL ? 1 : g_st.ch == CH_FRANKLIN ? 2 : g_st.ch == CH_TREVOR ? 3 : 0;
     const char *sec = kOutfitSection[slot];
     snprintf(buf, sizeof buf, "%u", (unsigned)ENTITY::GET_ENTITY_MODEL(p));
     IniWrite(sec, "Model", buf);
@@ -432,8 +505,7 @@ void OutfitCapture(Ped p) {
         snprintf(buf, sizeof buf, "%d,%d", PED::GET_PED_PROP_INDEX(p, i), PED::GET_PED_PROP_TEXTURE_INDEX(p, i));
         IniWrite(sec, k, buf);
     }
-    Log("Roupa do Juggernaut copiada (%s, modelo %u) em [%s].", kCharName[g_st.ch],
-        (unsigned)ENTITY::GET_ENTITY_MODEL(p), sec);
+    Log("Visual do Juggernaut salvo (modelo %u) em [%s].", (unsigned)ENTITY::GET_ENTITY_MODEL(p), sec);
 }
 
 void OutfitApply(Ped p, const Config::Outfit &o) {
@@ -444,6 +516,9 @@ void OutfitApply(Ped p, const Config::Outfit &o) {
         if (o.prop[i][0] >= 0) PED::SET_PED_PROP_INDEX(p, i, o.prop[i][0], o.prop[i][1], TRUE);
 }
 
+void ConfigSetStr(const char *sec, const char *key, const char *v) {
+    WritePrivateProfileStringA(sec, key, v, g_ini.c_str());
+}
 void ConfigSetInt(const char *sec, const char *key, int v) {
     char buf[16];
     snprintf(buf, sizeof buf, "%d", v);

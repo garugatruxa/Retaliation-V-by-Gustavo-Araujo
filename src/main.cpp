@@ -30,23 +30,18 @@ static FILETIME IniTime() {
 // v7: sem Ctrl (que o jogo usa). Segurar PageDown e apertar PageUp sobe um nivel;
 // segurar PageUp e apertar PageDown desce um nivel.
 static void DebugKeys() {
-    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT), end = KeyPressed(VK_END);
+    // v10: a tecla End (copiar roupa do Juggernaut) saiu: o Juggernaut agora e o guarda pesado de Cayo Perico
+    bool up = KeyPressed(VK_PRIOR), dn = KeyPressed(VK_NEXT);
     bool holdUp = (GetAsyncKeyState(VK_PRIOR) & 0x8000) != 0, holdDn = (GetAsyncKeyState(VK_NEXT) & 0x8000) != 0;
     if (!g_cfg.debugKeys) return;
     const auto &ls = g_cfg.levelStart;
     int pts = g_st.Pts(), lv = LevelOf(pts);
-    if (end && holdDn) { // v8: copia a roupa atual como roupa do Juggernaut
-        OutfitCapture(PLAYER::PLAYER_PED_ID());
-        Notify(Tr("~r~Retaliation V~s~: roupa do Juggernaut copiada.", "~r~Retaliation V~s~: Juggernaut outfit saved.",
-                   "~r~Retaliation V~s~: ropa del Juggernaut guardada."));
-        return;
-    }
     if (up && holdDn) { // sobe um nivel
         int to = lv < (int)ls.size() ? ls[lv] : g_cfg.maxPoints;
         if (to > pts) AddPointsForce(to - pts, "(teste) segurar PageDown + PageUp: sobe nivel");
     } else if (dn && holdUp) { // desce um nivel
         int to = lv >= 2 ? ls[lv - 2] : 0;
-        if (pts > to) AddPoints(to - pts, "(teste) segurar PageUp + PageDown: desce nivel");
+        if (pts > to) AddPointsForce(to - pts, "(teste) segurar PageUp + PageDown: desce nivel");
     }
 }
 
@@ -145,7 +140,7 @@ static void ScriptMain() {
             g_st.hotSince = -1;
             g_st.lastCrime = g_st.lastDecay = g_st.now;
             g_st.director = director;
-            Log(director ? "Modo Diretor: Retaliation zerado e liberado (sobe por crimes ou teclas de teste)."
+            Log(director ? "Modo Diretor: Retaliation zerado; a policia segue o modo do menu (acima da configuracao do Modo Diretor)."
                          : "Fim do Modo Diretor: Retaliation zerado, ciclo da policia normal.");
         }
 
@@ -155,25 +150,6 @@ static void ScriptMain() {
             Log(paused ? "Emboscadas pausadas (%s)." : "Emboscadas retomadas.", why);
             g_st.paused = paused;
             g_st.pauseReason = why;
-        }
-
-        // v9.3: na missao The Paleto Score, lembra de copiar a armadura pesada para o Juggernaut
-        {
-            static const Hash paleto = GAMEPLAY::GET_HASH_KEY((char *)"rural_bank_heist");
-            static bool inPaleto = false;
-            static int hintAt = 0;
-            bool now = SCRIPT::_GET_NUMBER_OF_INSTANCES_OF_STREAMED_SCRIPT(paleto) > 0;
-            if (now && !inPaleto) { hintAt = g_st.now + 60000; Log("Missao The Paleto Score detectada."); }
-            if (now && g_cfg.debugKeys && hintAt && g_st.now >= hintAt) {
-                hintAt = g_st.now + 90000; // repete de vez em quando durante a missao
-                Notify(Tr("~r~Retaliation V~s~: de armadura pesada? Segure ~b~PageDown~s~ e aperte ~b~End~s~ para "
-                          "copiar a armadura para o Juggernaut.",
-                          "~r~Retaliation V~s~: wearing the heavy armor? Hold ~b~PageDown~s~ and press ~b~End~s~ to "
-                          "copy it to the Juggernaut.",
-                          "~r~Retaliation V~s~: ¿con la armadura pesada? Mantén ~b~AvPág~s~ y pulsa ~b~Fin~s~ para "
-                          "copiarla al Juggernaut."));
-            }
-            inPaleto = now;
         }
 
         PointsTick(player, pid);

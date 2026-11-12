@@ -47,8 +47,10 @@ void AddPointsForce(int amount, const char *why) { s_force = true; AddPoints(amo
 
 void AddPoints(int amount, const char *why) {
     State &s = g_st;
+    // v10: trava de nivel - so as teclas de teste (AddPointsForce) mudam os pontos
+    if (g_cfg.levelLock && !s_force) return;
     // so no modo ciclo (3) os crimes nao dao pontos fora do Retaliation
-    if (amount > 0 && s.Pts() <= 0 && !s_force && !s.director && g_cfg.mode == 3) return;
+    if (amount > 0 && s.Pts() <= 0 && !s_force && g_cfg.mode == 3) return; // v10: vale tambem no Modo Diretor
     if (amount > 0 && s.now < s.cooldownUntil) {
         Log("%s ignorado (cooldown do calor maximo).", why);
         return;
@@ -56,7 +58,7 @@ void AddPoints(int amount, const char *why) {
     int before = s.Pts();
     int lvBefore = LevelOf(before);
 
-    // v9: escala decrescente - a partir de 50 pontos, cada 5 pontos acima tiram 0,2 de cada ganho (minimo 0,2).
+    // v9: escala decrescente. v10: a partir de 250 pontos, cada 25 acima tiram 0,25 de cada ganho (minimo 0,5).
     // As fracoes se acumulam por personagem ate completar um ponto. Nao vale para teclas de teste nem o ciclo.
     static float frac[CH_COUNT] = {};
     if (amount > 0 && !s_force && g_cfg.scaleStep > 0 && before >= g_cfg.scaleStart) {
@@ -164,14 +166,18 @@ static int s_maxWantedApplied = -1;
 static bool s_wasActive = false;
 static bool s_ignoring = true; // comeca "ligado" para o 1o frame sempre desligar (ex.: mod recarregado no meio da fase)
 static int s_jointUntil = 0, s_nextCentre = 0;
+// v10: no Modo Diretor o mod manda na policia: reaplica tudo todo frame, por cima da configuracao de
+// procurado do Modo Diretor (que senao desfaz o que o mod pediu)
+static bool s_dmForce = false;
 
 static void ApplyMaxWanted(int v) {
-    if (v == s_maxWantedApplied) return;
+    if (s_dmForce) PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(PLAYER::PLAYER_ID(), v > 0);
+    if (v == s_maxWantedApplied && !s_dmForce) return;
     PLAYER::SET_MAX_WANTED_LEVEL(v);
     s_maxWantedApplied = v;
 }
 static void PoliceIgnore(Player pid, bool on) {
-    if (on == s_ignoring) return;
+    if (on == s_ignoring && !s_dmForce) return;
     PLAYER::SET_POLICE_IGNORE_PLAYER(pid, on);
     s_ignoring = on;
 }
@@ -181,6 +187,8 @@ static void ClearWanted(Player pid) {
 }
 
 void PoliceRestore(Player pid) {
+    s_dmForce = false;
+    PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(pid, TRUE);
     PoliceIgnore(pid, false);
     ApplyMaxWanted(5);
     s_jointUntil = 0;
@@ -191,9 +199,16 @@ void PoliceRestore(Player pid) {
 void CycleTick(Player pid) {
     State &s = g_st;
     bool missionPause0 = s.paused && strcmp(s.pauseReason, "interior") != 0;
-    // v8, modo 1: junto com a policia (original) - o mod nao mexe na policia
+    // v10: os 3 modos tambem valem no Modo Diretor, acima da configuracao de policia dele
+    if (s_dmForce && !s.director) { // saiu do Modo Diretor: devolve o despacho da policia e reaplica tudo
+        PLAYER::SET_DISPATCH_COPS_FOR_PLAYER(pid, TRUE);
+        s_maxWantedApplied = -1;
+        s_ignoring = !s_ignoring;
+    }
+    s_dmForce = s.director;
+    // v8, modo 1: junto com a policia (original) - o mod nao mexe na policia (no Modo Diretor, forca a policia normal)
     // v8, modo 2: substitui a policia - o jogador nunca ganha estrelas; os retaliadores vem no lugar
-    if (!s.director && g_cfg.mode != 3) {
+    if (g_cfg.mode != 3) {
         PoliceIgnore(pid, false);
         s_jointUntil = 0;
         s.wantedMaxSince = -1;
@@ -203,14 +218,6 @@ void CycleTick(Player pid) {
         bool active = s.Pts() > 0;
         if (s_wasActive && !active) DespawnAll(false, "jogador livre");
         s_wasActive = active;
-        return;
-    }
-    if (s.director) { // Modo Diretor: sem ciclo e sem mexer na policia (ele tem a propria configuracao)
-        PoliceIgnore(pid, false);
-        ApplyMaxWanted(5);
-        s_jointUntil = 0;
-        s_wasActive = s.Pts() > 0;
-        s.wantedMaxSince = -1;
         return;
     }
     bool active = s.Pts() > 0;
@@ -266,10 +273,18 @@ void CycleTick(Player pid) {
             int lv = g_cfg.cycleStartLevel;
             int start = lv >= 1 && lv <= (int)g_cfg.levelStart.size() ? g_cfg.levelStart[lv - 1] : 21;
             AddPointsForce(start, "o Retaliation assume; a policia passa a ignorar o jogador");
-            s_jointUntil = s.now + g_cfg.cycleJointSeconds * 1000;
             s_nextCentre = 0;
-            PoliceIgnore(pid, true);
-            Log("Fase conjunta por %ds: policia contra os retaliadores.", g_cfg.cycleJointSeconds);
+            if (g_cfg.cycleJointSeconds > 0) {
+                s_jointUntil = s.now + g_cfg.cycleJointSeconds * 1000;
+                PoliceIgnore(pid, true);
+                Log("Fase conjunta por %ds: policia contra os retaliadores.", g_cfg.cycleJointSeconds);
+            } else {
+                // v10: alterna direto - a policia vai embora e so volta quando a retaliacao acabar
+                s_jointUntil = 0;
+                ApplyMaxWanted(0);
+                ClearWanted(pid);
+                Log("Ciclo: a policia saiu, o Retaliation assume ate o jogador ficar livre.");
+            }
         }
     } else if (s.wantedMaxSince >= 0) {
         s.wantedMaxSince = -1;
@@ -281,8 +296,9 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
     // morte ou prisao zera os pontos do personagem atual
     bool dead = PLAYER::IS_PLAYER_DEAD(pid) || PLAYER::IS_PLAYER_BEING_ARRESTED(pid, TRUE);
     if (dead && !s_wasDead) {
-        if (s.Pts() > 0) Log("Jogador morreu ou foi preso: pontos zerados [%s].", kCharName[s.ch]);
-        s.Pts() = 0;
+        if (g_cfg.levelLock) Log("Jogador morreu ou foi preso: nivel mantido (trava de nivel).");
+        else if (s.Pts() > 0) Log("Jogador morreu ou foi preso: pontos zerados [%s].", kCharName[s.ch]);
+        if (!g_cfg.levelLock) s.Pts() = 0;
         s.maxHeatSince = -1;
         s.hotSince = -1;
         s.wantedMaxSince = -1;
@@ -290,8 +306,8 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
     s_wasDead = dead;
     if (dead) return;
 
-    // v7: acima de 70 pontos por 5 minutos sem morrer nem ser preso -> cai de volta para o nivel 2
-    if (g_cfg.hotEnabled) {
+    // v7: acima de HotTimer.Points (350 na escala de 500) por 5 minutos sem morrer nem ser preso -> cai de volta para o nivel 2
+    if (g_cfg.hotEnabled && !g_cfg.levelLock) { // v10: com a trava, o timer nao derruba o nivel
         if (s.Pts() >= g_cfg.hotPoints) {
             if (s.hotSince < 0) {
                 s.hotSince = s.now;
@@ -301,7 +317,9 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
                 // v7: volta para o nivel 2; o jogador escolhe entre voltar ao caos ou se esconder
                 int lv = g_cfg.cycleStartLevel;
                 int to = lv >= 1 && lv <= (int)g_cfg.levelStart.size() ? g_cfg.levelStart[lv - 1] : 21;
-                if (s.Pts() > to) AddPoints(to - s.Pts(), "sobreviveu 5 minutos acima do limite: volta ao nivel 2");
+                if (g_cfg.mode == 3) // v10: no ciclo, sobreviver ao timer encerra a retaliacao
+                    AddPoints(-s.Pts(), "sobreviveu ao timer acima do limite: fim da retaliacao");
+                else if (s.Pts() > to) AddPoints(to - s.Pts(), "sobreviveu 5 minutos acima do limite: volta ao nivel 2");
             }
         } else if (s.hotSince >= 0) {
             s.hotSince = -1;

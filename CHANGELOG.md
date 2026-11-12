@@ -91,3 +91,25 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Armas dos helicópteros funcionando: Annihilator, Valkyrie e helicópteros de ataque usam metralhadoras, canhões e mísseis; torretas tripuladas.
 - Rapel: o helicóptero só joga as cordas parado e fica fixo até todos descerem.
 - Juggernaut: armadura de Paleto guardada por protagonista, sorteada a cada Juggernaut, com aviso durante a missão.
+
+## v10 — escala 500, combate mais próximo e eventos
+- Escala de 0 a 500 pontos, níveis em 10, 80, 140, 200, 260, 320, 380 e 440. Ganhos: NPC +4, roubo +4, veículo +8, aeronave +12. Decaimento −15 a cada 45 s. Escala decrescente a partir de 250 (−0,25 a cada 25, mínimo 0,5). Timer de 5 min acima de 350.
+- Facções: saíram FIB/IAA e os militares. Nível 6: segurança de Cayo Perico (cidade) e Caçadores (interior). Nível 7: mercenários russos do Bogdan. Nível 8: Merryweather.
+- Veículos: saíram Menacer, Caracara, Halftrack, Barrage, Patrol Boat e Dinghy armado (o jogo expulsa o jogador da torreta) e os militares de Fort Zancudo. Entraram blindados (Insurgent, Kuruma blindado, Duke O'Death, Nightshark, Ardent, Dune FAV). Na torreta do Insurgent/Technical, ninguém tira o jogador e a tripulação inimiga desce.
+- Sem armas Mk II. Acessórios aleatórios nas armas (lanterna, carregador, mira, empunhadura, supressor), de 10% no nível 1 a 80% no nível 8.
+- Alcances de tiro: 35 m (curtas), 70 m (fuzis/metralhadoras), 110 m (RPG), 130 m (sniper), 100 m (veículos), 220 m (aeronaves). Fora do alcance, os inimigos a pé correm até o jogador.
+- Inimigos sem visão do jogador (fora de cobertura) procuram um caminho até ele.
+- Fora das estradas: IA agressiva e spawn nas estradas longe (até 650 m), vindo a pé.
+- Perseguição na estrada (acima de 65 km/h): perseguidores atrás, na mesma mão; bloqueios mais frequentes e sempre na pista do jogador.
+- Juggernaut: traje pesado do Online (camuflagens Noturno, Urbano, Aço, Tundra, Floresta), máscara de gás ou balística, capacete; 2.000 de vida; imune a corpo a corpo; caveira vermelha no mapa; minigun bem espalhada. Saiu a cópia da roupa de Paleto (tecla End).
+- Blips por tipo (a pé, Juggernaut, carro, moto, barco, helicóptero, jato, tanque); raio de 180 m.
+- Helicópteros armados só do nível 7 em diante, raros, só com o piloto atacando com as armas do helicóptero. Rapel mais comum e só com o jogador a pé.
+- Tanques: um tiro a cada 10 s, mira fraca, Rhino mais alto no Cargobob, solto se o Cargobob perder o motor (PEM) ou baixar demais, nunca dentro do chão; tanque roubado atira. Novo tanque especial Khanjali (3%, por terra). Espera de 1 min entre tanques e entre caças. Caça mais raro.
+- Modo avião: pilotando qualquer avião, só aviões armados perseguidores conforme o nível.
+- Evento raro do Titan com paraquedistas (nível 7+, poucos inimigos vivos, jogador a pé, 10%).
+- Limite de 30 inimigos ativos somando tudo.
+- Menu: Trava de nível, Nível (até Máximo), Ciclo com nome curto, título centrado, suporte a controle (RB + ←).
+- Ciclo: 5 estrelas por 5 min, a polícia sai e só volta quando a retaliação acaba.
+- Modo Diretor: o modo do menu manda na polícia.
+- Mira "stormtrooper" em tudo que mata rápido. Inimigos comuns também arrastam feridos.
+- Novas seções/chaves no .ini: [Vehicles], [WeaponMods], [Paradrop], [Range] (Sniper, Rpg, Vehicle, Air, DragChance), [Tank] (ShotInterval, HangZ, KhanjaliChance, Cooldown), [Jet] Cooldown, [Heli] (AttackMinLevel, Accuracy), [Juggernaut] (Model, Blip, MinigunAccuracy), [General] LevelLock.

@@ -5,8 +5,9 @@ Mod para **GTA V Enhanced (PC)**, só no **modo história**, que faz o submundo 
 
 Quando a polícia não consegue te pegar, o submundo assume. Cada NPC que você mata, cada carro que você rouba
 ou explode aumenta a **pressão de retaliação**. Quanto maior a pressão, mais pesados ficam os grupos que vêm
-te caçar: gangues de rua, caipiras, The Lost MC, Triads, cartel, agentes federais, caçadores de recompensa e,
-no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque entregue por Cargobob e caça a jato.
+te caçar: gangues de rua, caipiras, The Lost MC, Triads, cartel, a segurança de Cayo Perico, caçadores de
+recompensa, os mercenários russos do Bogdan e, no limite, a **Merryweather**, com helicópteros armados,
+Juggernauts, tanques, caças e paraquedistas.
 
 É a continuação, para o GTA V, do
 [Retaliation Mod do GTA San Andreas](https://github.com/garugatruxa/Retaliation-Mod-by-Gustavo-Araujo).
@@ -20,16 +21,18 @@ no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque 
 ## Índice
 
 - [Como funciona](#como-funciona)
-  - [Menu e modos (tecla Insert)](#menu-e-modos-tecla-insert)
-  - [O ciclo: polícia → Retaliation → livre](#o-ciclo-polícia--retaliation--livre)
+  - [Menu (Insert ou controle)](#menu-insert-ou-controle)
+  - [Modos e o ciclo](#modos-e-o-ciclo)
   - [Pontos de retaliação](#pontos-de-retaliação)
   - [Níveis e facções](#níveis-e-facções)
   - [Waves](#waves)
+  - [Combate e IA](#combate-e-ia)
   - [Arsenal e equipamento](#arsenal-e-equipamento)
   - [Helicópteros](#helicópteros)
   - [Juggernaut](#juggernaut)
-  - [Tanque no Cargobob e caça a jato](#tanque-no-cargobob-e-caça-a-jato)
-  - [Barra de retaliação](#barra-de-retaliação)
+  - [Tanques e caça](#tanques-e-caça)
+  - [Evento: Titan com paraquedistas](#evento-titan-com-paraquedistas)
+  - [Minimapa e barra](#minimapa-e-barra)
   - [Modo Diretor](#modo-diretor)
 - [Requisitos](#requisitos)
 - [Guia de instalação](#guia-de-instalação)
@@ -45,41 +48,45 @@ no limite, a **Merryweather**, com helicópteros de ataque, Juggernauts, tanque 
 
 ## Como funciona
 
-### Menu e modos (tecla Insert)
+### Menu (Insert ou controle)
 
-> **O mod vem desligado.** Na primeira vez, aperte **Insert** e mude a linha **Mod** para **Ativado**.
+> **O mod vem desligado.** Na primeira vez, abra o menu e mude a linha **Mod** para **Ativado**.
 
-Aperte **Insert** para abrir o menu do mod, no canto superior esquerdo da tela. Use **↑ / ↓** para escolher a
-linha e **← / →** para mudar o valor. Com o menu aberto, as setas não mexem no celular nem no jogo. A escolha
-fica salva no `Retaliation.ini`. O menu segue o **idioma do jogo**: português, espanhol ou, nos outros idiomas,
-inglês.
+| | Teclado | Controle (Xbox / PlayStation) |
+|---|---|---|
+| Abrir / fechar | **Insert** | **RB + ←** (R1 + ← no PlayStation) |
+| Escolher a linha | **↑ / ↓** | direcional **↑ / ↓** |
+| Mudar o valor | **← / →** | direcional **← / →** |
+| Fechar | **Insert** | **B** (Círculo) |
+
+Com o menu aberto, as setas e o direcional não mexem no celular nem no jogo. As escolhas ficam salvas no
+`Retaliation.ini`. O menu segue o **idioma do jogo**: português, espanhol ou, nos outros idiomas, inglês.
 
 | Opção | Valores |
 |---|---|
 | **Mod** | Ativado / Desativado |
-| **Modo** | Junto com a polícia / Substitui a polícia / Ciclo (polícia → Retaliation) |
+| **Modo** | Junto com a polícia / Substitui a polícia / Ciclo |
+| **Trava de nível** | Ligada / Desligada |
+| **Nível** | Nenhum, 1 a 8 ou **Máximo** (barra cheia) |
 
-- **Junto com a polícia** (padrão, o original): os crimes dão pontos sempre, e a polícia age normalmente ao
-  mesmo tempo. É uma guerra de três lados o tempo todo.
-- **Substitui a polícia:** você nunca ganha estrelas. Quem vem atrás de você são os retaliadores.
-- **Ciclo:** explicado logo abaixo.
+- **Nível:** muda a pressão direto pelo menu. **Máximo** enche a barra (500 pontos) e deixa as chances dos
+  especiais no topo.
+- **Trava de nível:** com ela ligada, o nível não sobe nem desce sozinho. Crimes não dão pontos, a pressão não
+  cai com o tempo, o timer não derruba e morrer não zera. Só o menu e as teclas de teste mudam o nível.
 
 Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devolve a polícia ao normal.
 
-### O ciclo: polícia → Retaliation → livre
+### Modos e o ciclo
 
-1. **Livre.** O Retaliation fica desligado. Quem age é só a polícia, normalmente.
-2. **Polícia.** Com **5 estrelas** de procurado, sobreviva **3 minutos** sem morrer nem ser preso.
-3. **Fase conjunta (5 minutos).** O Retaliation começa no **nível 2**. Você **continua com as 5 estrelas** e a
-   polícia continua vindo, mas passa a **ignorar você**: como se você estivesse invisível, ela só enfrenta os
-   retaliadores. É uma guerra de três lados, e você pode atirar em quem quiser.
-4. **Retaliation sozinho.** Depois da fase conjunta, as estrelas somem e a polícia fica bloqueada até você ficar
-   livre. Agora é você contra o submundo.
-5. **A escolha.**
-   - **Se esconder:** sem crimes, a pressão cai (−5 a cada 45 s) até zerar, e você fica livre.
-   - **Continuar o caos:** os pontos sobem e os grupos ficam cada vez mais pesados.
-   - **Sobreviver 5 minutos acima de 70 pontos** faz a pressão voltar ao **nível 2**, e você escolhe de novo.
-6. **Morrer ou ser preso** zera tudo. Livre, o ciclo recomeça.
+- **Junto com a polícia** (padrão): os crimes dão pontos sempre, e a polícia age normalmente ao mesmo tempo.
+- **Substitui a polícia:** você nunca ganha estrelas. Quem vem atrás de você são os retaliadores.
+- **Ciclo:** alterna entre a polícia e o Retaliation.
+  1. **Livre.** Só a polícia age, normalmente. Fora do ciclo, os crimes não dão pontos.
+  2. **Polícia.** Com **5 estrelas**, sobreviva **5 minutos** sem morrer nem ser preso.
+  3. **Retaliation.** A polícia vai embora e o Retaliation começa no **nível 2**. A polícia não volta até a
+     retaliação acabar.
+  4. **Fim.** A retaliação acaba quando você despista (a pressão cai até zerar) ou **sobrevive aos 5 minutos
+     acima de 350 pontos**. Morrer ou ser preso também zera. Livre, o ciclo recomeça.
 
 Os pontos são **separados por personagem** (Michael, Franklin e Trevor). Trocar de personagem remove os
 retaliadores, e a pressão de cada um fica guardada. As emboscadas **pausam em missões da história, cutscenes
@@ -87,75 +94,94 @@ e interiores**, e durante as missões a polícia funciona normalmente.
 
 ### Pontos de retaliação
 
+A pressão vai de **0 a 500**.
+
 | Ação | Pontos |
 |---|---|
-| Matar qualquer NPC (pedestre, gangue, policial ou retaliador) | +2 |
-| Roubar veículo | +2 |
-| Explodir veículo | +4 |
-| Destruir helicóptero ou avião | +6 |
-| 45 s sem crimes | −5 (repete) |
-| 5 min acima de 70 pontos | volta ao nível 2 |
+| Matar qualquer NPC (pedestre, gangue, policial ou retaliador) | +4 |
+| Roubar veículo | +4 |
+| Explodir veículo | +8 |
+| Destruir helicóptero ou avião | +12 |
+| 45 s sem crimes | −15 (repete) |
+| 5 min acima de 350 pontos | volta ao nível 2 (no Ciclo, encerra a retaliação) |
 | Morrer ou ser preso | zera |
 
-- O máximo é 100. Fora do ciclo, os crimes não dão pontos.
-- **Escala decrescente:** a partir de 50 pontos, cada 5 pontos acima tiram **0,2** de cada ganho. Com 70 pontos,
-  um NPC vale 1,2 e um veículo vale 3,2. Cada ação vale no mínimo 0,2, e as frações se acumulam. Chegar a 100 é
-  bem mais difícil.
+- **Escala decrescente:** a partir de 250 pontos, cada 25 pontos acima tiram **0,25** de cada ganho, com
+  mínimo de 0,5 por ação. As frações se acumulam. Chegar a 500 é possível, mas demora.
 - NPCs de missão não contam. Os veículos e aeronaves dos retaliadores contam.
 
 ### Níveis e facções
 
-Do nível 1 ao 5, a facção depende da região: **cidade** (Los Santos) ou **interior** (Blaine County: Sandy
-Shores, Grapeseed, Paleto, deserto e montanhas). Cada facção aparece em um único nível.
+Do nível 1 ao 6, a facção depende da região: **cidade** (Los Santos) ou **interior** (Blaine County: Sandy
+Shores, Grapeseed, Paleto, deserto e montanhas). Cada facção fica bastante tempo em campo antes da próxima.
 
 | Nível | Pontos | Cidade | Interior |
 |---|---|---|---|
-| 1 | 10–20 | Marabunta Grande | Caipiras de Sandy Shores |
-| 2 | 21–31 | Vagos | Irmãos O'Neil |
-| 3 | 32–42 | Ballas | Altruístas |
-| 4 | 43–53 | Kkangpae | The Lost MC |
-| 5 | 54–64 | Triads (Wei Cheng) | Cartel Madrazo |
-| 6 | 65–75 | Agentes FIB / IAA | Agentes FIB / IAA |
-| 7 | 76–87 | Caçadores de recompensa | Caçadores de recompensa |
-| 8 | 88–100 | Merryweather | Merryweather |
+| 1 | 10–79 | Marabunta Grande | Caipiras de Sandy Shores |
+| 2 | 80–139 | Vagos | Irmãos O'Neil |
+| 3 | 140–199 | Ballas | Altruístas |
+| 4 | 200–259 | Kkangpae | The Lost MC |
+| 5 | 260–319 | Triads (Wei Cheng) | Cartel Madrazo |
+| 6 | 320–379 | Segurança de Cayo Perico (El Rubio) | Caçadores de recompensa |
+| 7 | 380–439 | Mercenários russos do Bogdan | Mercenários russos do Bogdan |
+| 8 | 440–500 | Merryweather | Merryweather |
 
 - A cada nível aumentam a quantidade de inimigos, a mira, a vida, o colete e a frequência das waves.
+- Nenhuma facção é do governo: não há FIB, IAA nem militares. Todas brigam com a polícia e com você, mas não
+  entre si.
 - Cada facção tem os seus veículos: lowriders e personalizados nas gangues, off-road no interior, motos custom
-  no Lost MC, SUVs blindados no cartel e na FIB, e blindados com torreta na elite (Technical, Caracara,
-  Menacer, Halftrack, Insurgent). Quando o veículo tem torreta, um atirador vem nela.
-- As facções não brigam entre si, só com você e com a polícia. A FIB é aliada da polícia.
-- **Merryweather e Caçadores** lutam no estilo da NOOSE: ficam a média distância, usam cobertura, flanqueiam e
-  trocam **sinais de mão**. As gangues partem para cima.
+  no Lost MC, SUVs blindados no cartel, e blindados na elite (Insurgent, Kuruma blindado, Nightshark, Duke
+  O'Death, Ardent, Dune FAV, Technical). Nada de veículos militares de Fort Zancudo.
+- **Caçadores, Bogdan e Merryweather** lutam no estilo da NOOSE: média distância, cobertura, flanqueio e
+  **sinais de mão**. As gangues partem para cima.
 
 ### Waves
 
 | Onde você está | O que vem |
 |---|---|
-| **A pé** | Duplas a pé a média distância, fora do campo de visão, e veículos de longe. Bicicletas nos níveis 1–2. |
-| **De carro ou moto** | Só veículos. A partir do nível 3, **bloqueios de estrada** à frente: carros atravessados e atiradores atrás. |
+| **A pé** | Grupos a pé, fora do campo de visão, e veículos de longe. Bicicletas nos níveis 1–2. |
+| **No mato, montanha ou campo** (a mais de 60 m de uma estrada) | Os grupos a pé nascem **numa estrada longe** (até 650 m) e vêm correndo. Ninguém aparece em volta de você. |
+| **De carro devagar** | Só veículos. A partir do nível 3, **bloqueios de estrada** à frente, na sua mão da pista. |
+| **De carro rápido** (acima de 65 km/h) | **Perseguição:** carros nascem atrás de você, na sua mão, já na sua velocidade, e os bloqueios ficam bem mais frequentes. |
 | **De barco** | Lanchas e jet skis das facções que têm (nível 4+) e helicópteros. |
-| **Voando** | Foco em helicópteros (atiradores e ataque, nunca rapel), o caça no nível 8 e só um veículo por terra. |
+| **De helicóptero** | Helicópteros (atiradores e armados) e só um veículo por terra. |
+| **De avião** (qualquer um) | Só **aviões armados perseguidores**: metralhadora nos níveis baixos (Ultraleve, Seabreeze, Rogue, Starling), mísseis nos altos (Nokota, Molotok, Pyro, Lazer, Hydra, B-11). 1 a 3 ao mesmo tempo. |
 
-- Até **28 inimigos** ao mesmo tempo no nível máximo (10 no nível 1).
-- Tudo nasce **no chão e no mesmo nível do mapa** que você: ninguém aparece em cima de um viaduto quando você
-  está embaixo, nem cai do céu.
-- Os inimigos **chegam aos poucos**: saem de uma fila com espaçamento, o limite cresce com o tempo e só uma
-  parte pode ficar perto de você ao mesmo tempo. O resto vem a caminho.
+- No máximo **30 inimigos ativos** ao mesmo tempo, somando tudo (10 no nível 1).
+- Tudo nasce **no chão e no mesmo nível do mapa** que você, e os inimigos **chegam aos poucos**, em fila.
 - Inimigos longe demais, ou que não chegam a tempo, são removidos.
-- Os **blips vermelhos** só aparecem no minimapa quando o inimigo está a até 120 m.
+
+### Combate e IA
+
+- **Lutas de perto:** cada arma tem um alcance máximo de tiro. Quem está a pé e fora do alcance **corre até
+  você** em vez de atirar de longe.
+
+  | Quem | Alcance |
+  |---|---|
+  | Pistolas, submetralhadoras e escopetas | 35 m |
+  | Fuzis, metralhadoras e minigun | 70 m |
+  | RPG e lança-granadas | 110 m |
+  | Snipers | 130 m |
+  | Atiradores em veículos e torretas | 100 m |
+  | Helicópteros e aviões | 220 m |
+
+- **Sem visão de você:** se você estiver atrás de uma parede ou objeto, **fora de cobertura**, os inimigos
+  procuram um caminho até você e voltam a atirar quando te enxergam. Em cobertura, eles mantêm a posição.
+- **Mato e montanha:** longe das estradas, os inimigos a pé ficam agressivos e avançam atirando.
+- **Feridos:** a elite sempre arrasta companheiros feridos para a cobertura; nas gangues e no cartel, 60%.
+- **Mira "stormtrooper":** tudo que mata rápido erra bastante e espalha os tiros: RPG, lança-granadas,
+  tanques, caças, helicópteros, torretas do Valkyrie e a minigun do Juggernaut.
 
 ### Arsenal e equipamento
 
-- Quase todas as armas do jogo, incluindo as do GTA Online (Service Carbine, Battle Rifle, Tactical SMG,
-  armas Mk II...). Corpo a corpo (faca, taco e cacetete) só nos níveis 1 e 2.
+- Quase todas as armas do jogo, incluindo as do GTA Online (Service Carbine, Battle Rifle, Tactical SMG...),
+  mas **sem as versões Mk II**. Corpo a corpo (faca, taco e cacetete) só nos níveis 1 e 2.
 - **Fuzis e carabinas** a partir do nível 4. **Snipers** a partir do 6. **RPG e lança-granadas** só nos
   níveis 7 e 8, e são raros.
 - **Nunca aparecem:** mosquete, Marksman Pistol, Railgun, Up-n-Atomizer, Widowmaker, armas de choque e similares.
-- **Alcance por arma:** pistolas, submetralhadoras e escopetas só atiram de perto (45 m). Fuzis e metralhadoras
-  atiram mais longe (110 m). Só snipers e RPG atiram assim que te veem.
-- A partir dos **40 pontos**, cresce a chance de inimigos com **colete, capacete e armas melhores**.
-- **Mira cinematográfica:** quem usa explosivos (RPG, lança-granadas, tanque, caça e helicóptero de ataque) erra
-  de propósito. Os tiros passam perto e explodem em volta.
+- **Acessórios:** as armas podem vir com lanterna, carregador estendido ou de tambor, mira, empunhadura e,
+  raramente, supressor. A chance vai de 10% no nível 1 a 80% no nível 8, com até 3 acessórios na mesma arma.
+- A partir dos **200 pontos**, cresce a chance de inimigos com **colete, capacete e armas melhores**.
 
 ### Helicópteros
 
@@ -163,51 +189,60 @@ A partir do nível 3, cada facção usa os helicópteros que combinam com ela (F
 Annihilator, Valkyrie).
 
 - **Atiradores:** rondam você com a tropa atirando pelas portas.
-- **Rapel:** param perto de você e a tropa desce de corda.
-- **Ataque:** Buzzard, e na Merryweather também Savage e Hunter. São mais raros.
-- Helicópteros de ataque e de rapel podem decidir **pousar perto de você** (se você estiver a pé). A tropa
-  desembarca e vai atrás de você.
-- Até **3 helicópteros** ao mesmo tempo, mas o 2º é pouco comum e o 3º é bem raro.
-- Matar o piloto derruba o helicóptero.
+- **Rapel:** com você a pé, param no ar perto de você e a tropa desce de corda. É o tipo mais comum.
+- **Armados** (Buzzard, Savage, Hunter, Akula): só do **nível 7** em diante e raros. Vêm só com o piloto, que
+  ataca com as armas do helicóptero, alternando metralhadora/canhão e mísseis.
+- O helicóptero de rapel pode **pousar perto de você** para a tropa desembarcar.
+- Até **3 helicópteros** ao mesmo tempo, mas o 2º é pouco comum e o 3º é bem raro. Matar o piloto derruba o
+  helicóptero.
 
 ### Juggernaut
 
-Mini-boss dos níveis 7 e 8, com a armadura pesada do assalto de Paleto Bay. Chega **sentado na caçamba de um
-Insurgent**, com motorista e um atirador na torreta .50, e desce perto de você. Vem com **Combat MG** ou com a
-**escopeta automática de tambor**. A **minigun** é rara.
+Mini-boss dos níveis 7 e 8, com **2.000 de vida**, imune a ataques corpo a corpo (a coronhada não mata ele).
+Chega num **Insurgent** blindado e desce perto de você, com **Combat MG**, **escopeta automática** ou, mais
+raro, **minigun** (com a rajada bem espalhada). No minimapa, ele aparece como uma **caveira vermelha**.
 
-O Juggernaut é um **humano com a armadura pesada do modo história** (a da missão The Paleto Score), e não o
-robô do Online. Essa armadura só existe nas roupas dos protagonistas, então o mod copia a roupa direto do jogo:
+Ele usa o traje pesado do GTA Online, montado com as peças do próprio jogo, com variações sorteadas:
 
-1. Repita a missão **The Paleto Score** pelo replay de missões. Durante a missão, o mod mostra um aviso na tela.
-2. Quando o personagem estiver com a armadura pesada, **segure PageDown e aperte End**.
-3. O mod salva a armadura **daquele protagonista** no `Retaliation.ini` (`[JuggernautOutfit_Michael]`,
-   `_Trevor` ou `_Franklin`). Copie com mais de um para ter variedade: cada Juggernaut sorteia uma das armaduras
-   salvas.
+| Peça | Opções |
+|---|---|
+| Camuflagem | Noturno (preto, a mais comum), Urbano, Aço, Tundra ou Floresta |
+| Máscara | Máscara de gás, balística carbono preta ou forças especiais carbono |
+| Capacete | O capacete do traje pesado (na mesma camuflagem) ou o balístico Merryweather |
 
-Até a roupa ser copiada, o Juggernaut é um mercenário da Merryweather com capacete e colete pesado.
+### Tanques e caça
 
-### Tanque no Cargobob e caça a jato
+Só no nível 8, um de cada por vez, cada um com **1 minuto de espera** depois de sair de combate:
 
-Só no nível 8, um de cada por vez:
-
-- **Tanque:** um Cargobob chega com o Rhino pendurado no gancho e solta o tanque perto de você. Ele só
-  começa a atirar depois de tocar o chão. Se você **abater o Cargobob antes da entrega**, o tanque cai junto.
+- **Rhino no Cargobob:** o Cargobob solta o tanque perto de você. Abater o Cargobob antes da entrega derruba o
+  tanque junto. Se o Cargobob perder o motor (PEM) ou baixar demais, o tanque é solto e nunca fica dentro do
+  chão.
+- **TM-02 Khanjali:** o tanque especial do Online, mais raro (3% por wave, a partir dos 440 pontos). Vem **por
+  terra**. As metralhadoras dele erram bastante.
+- Os dois disparam o canhão **no máximo a cada 10 segundos**, e só a até 130 m de você.
+- **Tanque roubado:** se você entrar num tanque dos retaliadores, todas as armas ficam liberadas para você.
 - **Caça:** um Lazer (ou Hydra, mais raro) alterna canhão e mísseis, ataca por 90 s e vai embora.
 
-As chances dos especiais crescem a partir dos 70 pontos, sempre com um teto.
+### Evento: Titan com paraquedistas
 
-### Barra de retaliação
+Um evento raro, **do nível 7 em diante**: com **poucos inimigos vivos** (4 ou menos) e você **a pé e no
+chão**, há 10% de chance de, no lugar da wave normal, um **Titan** passar bem alto por cima de você e soltar de
+4 a 8 inimigos de **paraquedas**. Eles pousam a 20–60 m e partem para o combate. Depois, 3 minutos de espera.
 
-Uma barra vermelha embaixo do minimapa, na largura das barras de vida, fôlego e especial, no mesmo estilo
-delas. O fundo é escuro, o preenchimento é forte, e o trecho novo **brilha** quando a barra enche. Nos
-últimos 30 s do timer de 5 minutos, ela pisca.
+### Minimapa e barra
+
+- Os blips só aparecem quando o inimigo está a até **180 m** (aeronaves a até 450 m). Cada tipo tem o seu
+  ícone: **bolinha vermelha** (a pé), **caveira** (Juggernaut), **carro**, **moto**, **barco**, **helicóptero com
+  a hélice girando**, **jato** e **tanque**.
+- A **barra de retaliação** fica embaixo do minimapa, na largura das barras de vida e especial, no mesmo estilo
+  delas. Nos últimos 30 s do timer de 5 minutos, ela pisca.
 
 ### Modo Diretor
 
-No Modo Diretor (Rockstar Editor), o Retaliation funciona com **qualquer NPC**. Ao entrar ou sair, ele zera.
-Lá dentro, os pontos sobem direto pelos crimes ou pelas [teclas de teste](#teclas-de-teste), sem o ciclo da
-polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
+No Modo Diretor (Rockstar Editor), o Retaliation funciona com **qualquer NPC** e zera ao entrar ou sair. O
+**modo escolhido no menu manda na polícia**, acima da configuração de procurado do Modo Diretor: em "Substitui a
+polícia", por exemplo, a polícia não vem mesmo que o Modo Diretor esteja com ela ligada. Para pausar o mod no
+Modo Diretor, use `DirectorMode=0`.
 
 ---
 
@@ -224,14 +259,19 @@ polícia. Para pausar o mod no Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v9.3.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
-3. Copie o **`Retaliation.asi`** para a mesma pasta do jogo.
+2. Baixe o `RetaliationV_v10.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
-   Ele **vem desligado**: aperte **Insert** e ative pelo menu.
+   Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
 5. **Atualizando de outra versão:** substitua o `.asi` e apague o `Retaliation.ini` antigo, para o mod criar um
    novo com as opções atuais.
 
 Pasta padrão da Steam: `C:\Program Files (x86)\Steam\steamapps\common\Grand Theft Auto V Enhanced`
+
+> **Usando junto com o Simple Trainer?** Alguns atalhos dele usam as mesmas teclas do Retaliation (Insert,
+> PageUp, PageDown e End). Desligue esses atalhos no `trainerV.ini` do trainer, que no Enhanced fica em
+> `%appdata%\trainerv\Enhanced\`. Deixe também o "Never Wanted" dele desligado, ou ele briga com os modos de
+> polícia do Retaliation.
 
 ## Configuração (`Retaliation.ini`)
 
@@ -239,33 +279,35 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 
 | Seção | O que controla |
 |---|---|
-| `[General]` | Liga/desliga, modo (1, 2 ou 3, também pelo menu), ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
+| `[General]` | Liga/desliga, modo (1, 2 ou 3), trava de nível, ativo em missões (por sua conta e risco), Modo Diretor, teclas de teste |
 | `[Points]` | Pontos de cada crime e decaimento |
-| `[Scaling]` | Escala decrescente dos ganhos acima de 50 pontos |
+| `[Scaling]` | Escala decrescente dos ganhos acima de 250 pontos |
 | `[Levels]` | Em que pontos cada nível começa |
-| `[HotTimer]` | Timer de 5 min acima de 70 pontos |
-| `[Cycle]` | Estrelas e tempo para o Retaliation assumir, nível inicial e duração da fase conjunta |
+| `[HotTimer]` | Timer de 5 min acima de 350 pontos |
+| `[Cycle]` | Estrelas e tempo para o Retaliation assumir no Ciclo, e o nível inicial |
 | `[Hud]` | Posição, tamanho e cor da barra |
 | `[Spawn]` | Distâncias de spawn e remoção, raio dos blips |
 | `[Flow]` | Chegada aos poucos: pressão crescente, espaço entre unidades, teto de inimigos por perto |
 | `[Level1]`…`[Level8]` | Intervalo das waves, inimigos a pé, veículos, mira, vida, colete e limite de inimigos |
 | `[Roadblock]` | Bloqueios de estrada |
-| `[Juggernaut]` | Chance, teto, vida e chance de minigun |
-| `[Heli]` | Chance por nível, 2º e 3º helicóptero, ataque, rapel e pouso |
-| `[Tank]` / `[Jet]` | Chance e teto do tanque e do caça |
-| `[Weapons]` | Chance de sniper e de RPG/lança-granadas, mira dos explosivos |
-| `[Range]` | Alcance de tiro das armas curtas e médias |
+| `[Juggernaut]` | Chance, teto, vida, modelo, ícone, chance e mira da minigun |
+| `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
+| `[WeaponMods]` | Chance de acessórios nas armas |
+| `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
+| `[Heli]` | Chance por nível, 2º e 3º helicóptero, armados (nível mínimo, chance, teto), rapel, pouso e mira |
+| `[Tank]` / `[Jet]` | Chance, teto e espera do Rhino, do Khanjali e do caça; intervalo de tiro e altura do tanque no Cargobob |
+| `[Weapons]` | Chance de sniper e de RPG/lança-granadas, mira das armas pesadas |
+| `[Range]` | Alcance de tiro de cada tipo de arma, de veículos e de aeronaves; chance de arrastar feridos |
 | `[Gear]` / `[Escalation]` | A partir de quantos pontos crescem o equipamento e os especiais |
 
 Apague o `.ini` para voltar aos valores padrão.
 
 ## Teclas de teste
 
-Com `DebugKeys=1` (padrão), dá para mudar a pressão sem cometer crimes:
+Com `DebugKeys=1` (padrão), dá para mudar a pressão sem cometer crimes (também dá pelo menu, na linha **Nível**):
 
 - **Subir um nível:** segure **PageDown** e aperte **PageUp**.
 - **Descer um nível:** segure **PageUp** e aperte **PageDown**.
-- **Copiar a roupa atual para o Juggernaut:** segure **PageDown** e aperte **End**.
 
 O `Retaliation.log` registra cada crime, cada nível, cada wave e cada especial, além dos modelos e armas que o
 jogo não reconheceu.
@@ -275,9 +317,46 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v9`, com as correções `v6.1`, `v7.1`, `v9.2` e `v9.3`).
+(`v1` a `v10`, com as correções `v6.1`, `v7.1`, `v9.2` e `v9.3`).
 
-### v9 — atual (v9.3)
+### v10 — atual
+
+Comparado à v9.3:
+- **Escala de 0 a 500 pontos**, com os níveis bem mais largos (10, 80, 140, 200, 260, 320, 380, 440): cada facção
+  fica mais tempo em campo. Ganhos dobrados (NPC +4, veículo +8, aeronave +12), decaimento de −15 a cada 45 s e
+  escala decrescente a partir de 250 pontos.
+- **Facções novas:** saíram FIB/IAA e os militares (não brigam com a polícia). Entraram a **segurança de Cayo
+  Perico** (nível 6, cidade) e os **mercenários russos do Bogdan** (nível 7).
+- **Veículos:** saíram os veículos com torreta que expulsam o jogador no modo história (Menacer, Caracara,
+  Halftrack, Barrage, Patrol Boat, Dinghy armado) e os veículos militares de Fort Zancudo. Entraram mais
+  blindados: Insurgent, Kuruma blindado, Duke O'Death e os veículos do Bunker (Nightshark, Ardent, Dune FAV).
+  Torretas que ficaram (Insurgent, Technical): quando você assume uma, ninguém te tira de lá e a tripulação
+  inimiga desce.
+- **Sem armas Mk II.** As armas podem vir com **acessórios** sorteados por nível.
+- **Combate mais próximo:** alcances de tiro menores para todos (incluindo snipers, RPG, veículos e aeronaves),
+  e quem está fora do alcance corre até você. Inimigos **procuram você** quando perdem a visão (fora de
+  cobertura). No mato e na montanha, ficam agressivos e nascem nas estradas longe.
+- **Perseguição na estrada:** correndo de carro, perseguidores nascem atrás de você na sua mão, e os bloqueios
+  ficam mais frequentes e sempre na sua pista.
+- **Juggernaut:** traje pesado do Online com variações de camuflagem, máscara e capacete; 2.000 de vida; imune a
+  corpo a corpo; caveira vermelha no mapa.
+- **Blips por tipo** (a pé, Juggernaut, carro, moto, barco, helicóptero, jato e tanque), visíveis a até 180 m.
+- **Helicópteros armados** só do nível 7 em diante, raros, só com o piloto usando as armas do helicóptero. Rapel
+  mais comum e só com você a pé.
+- **Tanques:** tiro a cada 10 s, mira fraca, tanque mais alto no Cargobob, nunca dentro do chão, e o tanque
+  roubado atira. Novo tanque especial **Khanjali**, por terra. Espera de 1 minuto entre tanques e entre caças.
+- **Modo avião:** pilotando qualquer avião, vêm só aviões armados perseguidores, conforme o nível.
+- **Evento raro:** um **Titan** solta paraquedistas (nível 7+, poucos inimigos vivos, você a pé).
+- **Limite de 30 inimigos** ativos, somando tudo.
+- **Menu:** novas linhas **Trava de nível** e **Nível** (até **Máximo**), Ciclo com nome curto, título centrado e
+  **suporte a controle** de Xbox e PlayStation.
+- **Ciclo simplificado:** 5 estrelas por 5 minutos, a polícia vai embora e só volta quando a retaliação acaba.
+- **Modo Diretor:** o modo do menu manda na polícia, acima da configuração do Modo Diretor.
+- **Mira "stormtrooper"** em tudo que mata rápido, com os tiros bem espalhados.
+- Inimigos comuns também **arrastam feridos** para a cobertura.
+- Saiu a cópia da roupa de Paleto (tecla End).
+
+### v9 (v9.3)
 
 **v9.3:**
 - **Armas dos helicópteros:** o Annihilator, o Valkyrie e os helicópteros de ataque usam as metralhadoras, os
@@ -436,6 +515,9 @@ Comparado à v1:
 - Depois de cada atualização do jogo, é preciso esperar o **Script Hook V** ser atualizado.
 - Partes que dependem da física e da IA do jogo podem variar: o tanque no gancho do Cargobob (se o gancho
   falhar, o tanque vai preso direto no helicóptero), os pousos dos helicópteros e a pontaria do caça.
+- No modo história, o jogo expulsa o jogador da torreta de alguns veículos do Online (Menacer, Halftrack...).
+  Por isso eles saíram. O Dune FAV ainda está em observação.
+- O **Ctrl+R** do `ScriptHookV.dev` não recarrega o mod no Enhanced: feche o jogo para trocar o `.asi`.
 - Alguns modelos de NPC, veículos ou armas podem não existir em todas as versões do jogo. O mod descarta
   esses modelos sozinho e registra no `Retaliation.log` o que não encontrou.
 - `ActiveInMissions=1` é **por sua conta e risco**: os retaliadores podem atrapalhar missões. Salve o jogo antes.
@@ -456,7 +538,7 @@ O mod é uma DLL `.asi` de 64 bits em C++, compilada com o [llvm-mingw](https://
 .\build.ps1 -Install   # compila e copia para a pasta do jogo
 ```
 
-Com o arquivo vazio `ScriptHookV.dev` na pasta do jogo, **Ctrl+R** recarrega o mod sem fechar o jogo.
+Feche o jogo antes de instalar: o `-Install` não copia com o GTA V aberto.
 
 | Arquivo | Conteúdo |
 |---|---|
@@ -465,6 +547,7 @@ Com o arquivo vazio `ScriptHookV.dev` na pasta do jogo, **Ctrl+R** recarrega o m
 | `src/factions.cpp` | Facções, veículos, helicópteros, arsenal por nível, relações com a polícia |
 | `src/spawner.cpp` | Waves, IA, bloqueios, Juggernaut, helicópteros, tanque e caça |
 | `src/hud.cpp` | Barra de retaliação |
+| `src/menu.cpp` | Menu (teclado e controle), idioma |
 | `src/config.cpp` | `Retaliation.ini` e `Retaliation.log` |
 
 ## Créditos

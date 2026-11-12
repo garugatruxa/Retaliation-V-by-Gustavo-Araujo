@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.9.3"
+#define RETALIATION_VERSION "10"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -19,11 +19,13 @@ struct Config {
     int mode = 1; // v9.2: padrao = junto com a policia
     bool directorMode = true; // v7: 1 = Retaliation livre no Modo Diretor (comeca zerado); 0 = limpa e pausa ao entrar
     bool debugKeys = true;
+    bool levelLock = false; // v10: trava de nivel (menu): os pontos so mudam pelas teclas PageUp/PageDown
     // [Points]
-    int killCivilian = 2, killCop = 2, killGang = 2, stealVehicle = 2, blowVehicle = 4, blowAircraft = 6;
-    int decayInterval = 45, decayAmount = 5, maxPoints = 100;
+    // v10: escala de 0 a 500 pontos
+    int killCivilian = 4, killCop = 4, killGang = 4, stealVehicle = 4, blowVehicle = 8, blowAircraft = 12;
+    int decayInterval = 45, decayAmount = 15, maxPoints = 500;
     // [Levels] pontos em que cada nivel comeca (nivel 1..N)
-    std::vector<int> levelStart{10, 21, 32, 43, 54, 65, 76, 88};
+    std::vector<int> levelStart{10, 80, 140, 200, 260, 320, 380, 440};
     // [Hud]
     bool hudEnabled = true;
     float hudOffsetX = 0.0f, hudOffsetY = 0.0085f, hudHeight = 0.0055f;
@@ -31,15 +33,15 @@ struct Config {
     int hudR = 200, hudG = 25, hudB = 25;
     bool hudShowLevel = false;
     // [Spawn]
-    float footMin = 110, footMax = 170, vehMin = 320, vehMax = 450, despawnDist = 600; // v9: mais longe
+    float footMin = 95, footMax = 150, vehMin = 320, vehMax = 450, despawnDist = 600; // v9: mais longe
     // v9: longe de estrada (> RemoteRoadDist m) = +RemoteHeliBonus % de helicoptero; agua perto = WaterBoatChance % de barco
     float remoteRoadDist = 150;
     int remoteHeliBonus = 30, waterBoatPct = 35;
     int arriveTimeout = 150, firstWaveDelay = 8;
-    float blipRadius = 120; // blips vermelhos so aparecem nesse raio
+    float blipRadius = 180; // v10: era 120. blips vermelhos so aparecem nesse raio
     // [Scaling] v9: a partir de Start pontos, cada Step pontos acima tiram PerStep de cada ganho (minimo MinGain)
-    int scaleStart = 50, scaleStep = 5;
-    float scalePerStep = 0.2f, scaleMinGain = 0.2f;
+    int scaleStart = 250, scaleStep = 25;
+    float scalePerStep = 0.25f, scaleMinGain = 0.5f;
     // [Flow] v9: chegada aos poucos
     int flowRampSeconds = 180, flowRampStart = 4, flowNearBase = 3, flowFarFootPct = 35;
     float flowGapScale = 1.0f;
@@ -48,14 +50,14 @@ struct Config {
     struct Lv { int interval, foot, vehicles, accuracy, health, armor, maxAlive; };
     Lv lv[8] = {{50, 2, 1, 15, 150, 0, 10},  {45, 3, 1, 20, 175, 0, 12},  {45, 3, 2, 25, 200, 10, 14},
                 {42, 4, 2, 30, 200, 25, 16}, {40, 4, 2, 35, 225, 50, 18}, {38, 5, 3, 40, 250, 75, 21},
-                {35, 6, 3, 45, 275, 100, 24}, {30, 6, 4, 50, 300, 100, 28}};
+                {35, 6, 3, 45, 275, 100, 24}, {30, 6, 4, 50, 300, 100, 30}};
     // [HotTimer] acima desses pontos por X segundos sem morrer/ser preso: perde metade dos pontos
     bool hotEnabled = true;
-    int hotPoints = 70, hotSeconds = 300;
+    int hotPoints = 350, hotSeconds = 300;
     // [Cycle] v7: com Wanted estrelas por Seconds, a policia desiste e o Retaliation comeca em StartLevel
-    int cycleWanted = 5, cycleSeconds = 180, cycleStartLevel = 2;
-    int cycleJointSeconds = 300; // fase conjunta: policia mantem as estrelas mas so enfrenta os retaliadores
-    int killHunter = 2; // [Points] retaliador morto
+    int cycleWanted = 5, cycleSeconds = 300, cycleStartLevel = 2; // v10: 5 minutos de policia
+    int cycleJointSeconds = 0; // v10: 0 = sem fase conjunta (alterna direto). >0 = policia ignora o jogador e enfrenta os retaliadores
+    int killHunter = 4; // [Points] retaliador morto
     // [Roadblock]
     bool rbEnabled = true;
     int rbMinLevel = 3, rbChance = 30;
@@ -64,29 +66,52 @@ struct Config {
     // [JuggernautOutfit] v8: roupa copiada do jogo (armadura do assalto de Paleto Bay vestida por um protagonista)
     struct Outfit { bool valid = false; unsigned model = 0; int comp[12][3] = {}; int prop[8][2] = {}; };
     Outfit jugOutfits[4]; // v9.3: 0 = antiga (v8), 1 = Michael, 2 = Franklin, 3 = Trevor
-    int jugMinLevel = 7, jugChance = 10, jugHealth = 3000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
+    int jugMinLevel = 7, jugChance = 10, jugHealth = 2000, jugMinigunPct = 10, jugMax = 30, jugMinigunMax = 25;
+    // v10: modelo do Juggernaut (NPC blindado do Online, todo preto) e icone de caveira vermelha no mapa
+    std::string jugModel = "mp_m_freemode_01"; // v10: personagem do Online com o traje pesado "Noturno pesado"
+    int jugBlip = 303;
+    int jugMinigunAcc = 0; // v10: minigun do Juggernaut: mira minima = rajada bem espalhada
+    // v10: mira dos helicopteros (atiradores, torretas e piloto) - "stormtrooper"
+    int heliAccuracy = 2;
+    // v10: tanque: segundos entre tiros do canhao e altura do tanque preso no Cargobob
+    int tankShotInterval = 10;
+    int khanChance = 3; // v10: % fixa por wave do tanque especial Khanjali (nivel 8 ate o maximo)
+    float tankHangZ = -4.6f;
+    // v10: [Vehicles] veiculos com torreta (com a protecao contra o jogador ser tirado da torreta)
+    bool turretVehicles = true;
+    // v10: [WeaponMods] chance (%) de a arma vir com acessorios: Base no nivel 1 + PerLevel por nivel acima
+    bool modsEnabled = true;
+    int modsBase = 10, modsPerLevel = 10;
+    // v10: [Paradrop] evento raro do Titan com paraquedistas
+    int paraMinLevel = 7, paraChance = 10, paraFewAlive = 4, paraCooldown = 180;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
-    float topBonusPerPoint = 1.5f;
+    float topBonusPerPoint = 0.3f;
     // [Gear] a partir desses pontos aumenta a chance de colete, capacete e armas melhores
-    int gearStart = 40;
+    int gearStart = 200;
     // [Range] v5: alcance (m) em que cada classe de arma comeca a atirar
-    float rangeShort = 45, rangeMedium = 110;
+    // v10: lutas mais proximas. Sniper e RPG acima dos outros; veiculos e aeronaves com limite proprio
+    float rangeShort = 35, rangeMedium = 70, rangeSniper = 130, rangeRpg = 110, rangeVehicle = 100, rangeAir = 220;
+    int dragPct = 60; // v10: % dos inimigos comuns que arrastam companheiros feridos (a elite sempre arrasta)
     // [Heli] v5: chance (%) de helicoptero por wave em cada nivel, e limite ao mesmo tempo
     int heliChance[8] = {0, 0, 8, 12, 16, 22, 28, 35};
-    int heliMax = 1, heliMaxTop = 3, heliMaxAir = 3, heliAttackPct = 10, heliRappelPct = 40, heliLandPct = 30;
-    int heliAttackMax = 20, heliSecondPct = 10, heliSecondMax = 20, heliThirdPct = 3, heliThirdMax = 8;
+    int heliMax = 1, heliMaxTop = 3, heliMaxAir = 3, heliAttackPct = 6, heliRappelPct = 50, heliLandPct = 30;
+    int heliAttackMinLevel = 7; // v10: helicopteros armados so a partir deste nivel
+    int heliAttackMax = 12, heliSecondPct = 10, heliSecondMax = 20, heliThirdPct = 3, heliThirdMax = 8;
     // [Weapons] chance (%) por wave de vir um sniper e de vir alguem com RPG/lanca-granadas (com teto)
     int sniperPct = 50, heavyPct = 12, heavyMax = 20;
-    int explosiveAcc = 8; // mira (0-100) de quem usa explosivos: RPG, lanca-granadas, tanque, jato, helicoptero de ataque
+    int explosiveAcc = 1; // v10: era 8. mira (0-100) de quem usa explosivos: RPG, lanca-granadas, tanque, jato, helicoptero de ataque
     // [Escalation] v5: a partir desses pontos, mais especiais (Juggernaut, minigun, ataque)
     // [Tank] / [Jet] v6: so no ultimo nivel, um de cada por vez
     bool tankEnabled = true, jetEnabled = true;
-    int tankMinLevel = 8, tankChance = 8, tankMax = 18, jetMinLevel = 8, jetChance = 5, jetMax = 15, jetDuration = 90,
+    int tankMinLevel = 8, tankChance = 5, tankMax = 10, tankCooldown = 60, jetMinLevel = 8, jetChance = 3, jetMax = 8, jetDuration = 90, jetCooldown = 60,
         jetHydraPct = 25;
-    int escStart = 70;
-    float escPerPoint = 1.0f;
+    int escStart = 350;
+    float escPerPoint = 0.2f;
 };
+static const int kHardCap = 30; // v10: nunca mais de 30 inimigos ativos ao mesmo tempo, somando tudo
 extern Config g_cfg;
+// v10: fator da escala de pontos (1.0 = escala antiga de 100 pontos, 5.0 = 500 pontos)
+inline float PtsScale() { return g_cfg.maxPoints > 0 ? g_cfg.maxPoints / 100.f : 1.f; }
 extern std::string g_dir; // pasta do .asi (raiz do jogo)
 void ConfigLoad();
 
@@ -123,7 +148,8 @@ void CycleTick(Player pid);
 void PoliceRestore(Player pid); // devolve a policia ao normal (mod desligado ou troca de modo)
 void ConfigSetInt(const char *sec, const char *key, int v); // grava no .ini
 extern const char *kOutfitSection[4];
-void OutfitCapture(Ped p);  // salva a roupa atual do jogador como roupa do Juggernaut
+void OutfitCapture(Ped p, int slot); // salva a roupa do ped como roupa do Juggernaut (slot 0 = provador)
+void ConfigSetStr(const char *sec, const char *key, const char *v);
 void OutfitApply(Ped p, const Config::Outfit &o);
 void MenuTick(); // menu do Insert (v8)
 extern const char *kModeName[4];

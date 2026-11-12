@@ -16,13 +16,11 @@ Write-Host "OK: build\Retaliation.asi"
 
 if ($Install) {
     if (-not (Test-Path "$GameDir")) { throw "Pasta do jogo nao encontrada: $GameDir" }
-    # com o jogo aberto o .asi fica travado, mas pode ser renomeado; depois e so apertar Ctrl+R no jogo
+    # v10: sem recarregar com o jogo aberto (o Ctrl+R do ScriptHookV.dev nao funciona no Enhanced).
+    # Feche o jogo antes de instalar.
+    if (Get-Process GTA5_Enhanced -ErrorAction SilentlyContinue) { throw "Feche o GTA V antes de instalar." }
     $dst = "$GameDir\Retaliation.asi"
     Get-ChildItem "$GameDir\Retaliation.asi.old*" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
-    if (Test-Path $dst) {
-        try { Remove-Item $dst -ErrorAction Stop }
-        catch { Rename-Item $dst ("Retaliation.asi.old" + (Get-Date -Format "HHmmss")) }
-    }
     Copy-Item "$root\build\Retaliation.asi" $dst -Force
     Write-Host "Instalado em $GameDir"
 }

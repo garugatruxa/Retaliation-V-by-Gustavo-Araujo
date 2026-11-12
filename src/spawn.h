@@ -20,6 +20,7 @@ Faction *FactionFor(int level, Region r);
 Hash WeaponFor(int level, int betterPct = 0);
 Hash SniperFor(int level);
 Hash HeavyFor(int level);
+void ApplyWeaponMods(Ped ped, Hash weapon, int level); // v10
 
 int Rand(int n);          // 0..n-1
 float RandF(float a, float b);
