@@ -91,8 +91,7 @@ void AddPoints(int amount, const char *why) {
     if (amount > 0) { s.lastCrime = s.now; s.lastDecay = s.now; }
     int lv = LevelOf(v);
     Log("%+d %s -> %d pontos (nivel %d) [%s]", amount, why, v, lv, kCharName[s.ch]);
-    // v11.4: na Desordem, toda morte ou destruicao sobe as duas barras igualmente (mesmo ganho da vermelha)
-    if (amount > 0 && !s_force && DisorderOn()) PolicePtsAdd(amount, why);
+    // v12: na Desordem a barra azul segue a vermelha (PoliceSync), nos ganhos e nas perdas
     if (lv != lvBefore) Log("Nivel %d -> %d", lvBefore, lv); // v4: sem aviso na tela, so a barra
 }
 
@@ -539,13 +538,12 @@ static void DisorderTick(Player pid, bool missionPause) {
     if (s_wasActive && !active) DespawnAll(false, "jogador livre");
     s_wasActive = active;
     if (on) DisorderScan(PLAYER::PLAYER_PED_ID());
-    // v11.3: a policia baixa com o tempo sem violencia, como a retaliacao (nada baixa no primeiro minuto)
-    if (on && s_polPts > 0 && !g_cfg.levelLock && !DisorderHold() &&
-        s.now - s_polLastGain >= g_cfg.decayInterval * 1000 && s.now - s_polLastDecay >= g_cfg.decayInterval * 1000) {
-        s_polLastDecay = s.now;
-        PoliceSet(s_polPts - g_cfg.decayAmount, "tempo sem violencia");
-    }
+    // v12: a policia ganha e perde pontos exatamente como os retaliadores: a barra azul acompanha a vermelha
+    // (mortes, destruicao, escala, decaimento, timer, teclas de teste, morte do jogador e trava de nivel)
+    if (on) PoliceSet(s.Pts(), "acompanha a retaliacao");
 }
+// v12: chamado depois dos ganhos do frame, para a barra azul nao ficar um frame atras
+void PoliceSync() { if (DisorderOn() && s_polPts != g_st.Pts()) PoliceSet(g_st.Pts(), "acompanha a retaliacao"); }
 
 void CycleTick(Player pid) {
     State &s = g_st;
@@ -705,6 +703,7 @@ void PointsTick(Ped player, Player pid) {    State &s = g_st;
         s.lastDecay = s.now;
         AddPoints(-g_cfg.decayAmount, "tempo sem crimes");
     }
+    PoliceSync(); // v12
 
     // v4: o calor maximo foi removido; quem manda agora e o timer de 5 minutos (HotTimer) acima.
 }

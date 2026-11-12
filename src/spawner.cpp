@@ -2196,16 +2196,40 @@ static Hash FirstModel(std::initializer_list<const char *> names) {
     for (const char *m : names) if (STREAMING::IS_MODEL_IN_CDIMAGE(H(m))) return H(m);
     return 0;
 }
+// v12: viaturas por nivel da policia, so de policia e orgaos do governo (o que nao existir no jogo e pulado).
+// A patrulha ganha a moto (policeb) desde o nivel 1 e as viaturas interceptadoras nos niveis mais altos.
+struct PolCar { const char *m; int minL; };
+static Hash PickPolCar(const PolCar *list, int n, int pl) {
+    std::vector<Hash> ok;
+    for (int i = 0; i < n; ++i)
+        if (pl >= list[i].minL && STREAMING::IS_MODEL_IN_CDIMAGE(H(list[i].m))) ok.push_back(H(list[i].m));
+    return ok.empty() ? 0 : ok[Rand((int)ok.size())];
+}
+static const PolCar kPolCity[] = {
+    {"police", 1}, {"police2", 1}, {"policeb", 1}, {"policeb", 2},
+    {"police3", 2}, {"police5", 2},
+    {"police4", 3}, {"polgauntlet", 3}, {"polbuffalo", 3},
+    {"polcaracara", 4}, {"polgreenwood", 4}, {"poldominator10", 4}, {"polimpaler5", 4}, {"polimpaler6", 4},
+    {"polcoquette4", 4}, {"polfaction2", 4}, {"poldorado", 4}, {"polterminus", 4}};
+static const PolCar kPolCountry[] = {
+    {"sheriff", 1}, {"policeb", 1}, {"pranger", 1}, {"sheriff2", 2}, {"policeb", 2},
+    {"police4", 3}, {"polgauntlet", 3}, {"poldorado", 3},
+    {"polcaracara", 4}, {"polterminus", 4}, {"polgreenwood", 4}};
+static const PolCar kPolSwat[] = {{"riot", 5}, {"policet", 5}, {"fbi2", 5}, {"police4", 5}, {"riot2", 7}};
+static const PolCar kPolFib[] = {{"fbi", 6}, {"fbi2", 6}, {"police4", 6}};
+static const PolCar kPolIaa[] = {{"fbi2", 7}, {"fbi", 7}, {"police4", 7}};
+static const PolCar kPolArmy[] = {{"crusader", 8}, {"barracks", 8}, {"mesa3", 8}};
+#define POLN(a) (int)(sizeof(a) / sizeof(a[0]))
 static void SpawnCopCar() {
     bool country = RegionAt(s_ppos.x, s_ppos.y) == RG_COUNTRY;
     PolTier tier = PickTier();
     bool swat = tier != PT_PATROL;
-    static const char *kCity[] = {"police", "police2", "police3"}, *kCountry[] = {"sheriff", "sheriff2"};
-    Hash car = tier == PT_ARMY ? FirstModel({Rand(2) ? "crusader" : "barracks", "crusader", "mesa3"})
-             : tier == PT_IAA ? FirstModel({"fbi2", "fbi"})
-             : tier == PT_FIB ? FirstModel({Rand(2) ? "fbi" : "fbi2", "fbi2"})
-             : tier == PT_SWAT ? FirstModel({"riot", "policet"})
-             : country ? H(kCountry[Rand(2)]) : H(kCity[Rand(3)]);
+    int pl = PoliceLevel() < 1 ? 1 : PoliceLevel();
+    Hash car = tier == PT_ARMY ? PickPolCar(kPolArmy, POLN(kPolArmy), 8)
+             : tier == PT_IAA ? PickPolCar(kPolIaa, POLN(kPolIaa), 8)
+             : tier == PT_FIB ? PickPolCar(kPolFib, POLN(kPolFib), 8)
+             : tier == PT_SWAT ? PickPolCar(kPolSwat, POLN(kPolSwat), pl)
+             : country ? PickPolCar(kPolCountry, POLN(kPolCountry), pl) : PickPolCar(kPolCity, POLN(kPolCity), pl);
     if (!car || !STREAMING::IS_MODEL_IN_CDIMAGE(car)) { tier = PT_PATROL; swat = false; car = H(country ? "sheriff" : "police"); }
     Hash pedM = tier == PT_ARMY ? FirstModel({Rand(2) ? "s_m_y_marine_03" : "s_m_y_marine_01", "s_m_y_marine_01"})
               : tier == PT_IAA ? FirstModel({"s_m_m_ciasec_01", "s_m_y_swat_01"})
@@ -2217,6 +2241,9 @@ static void SpawnCopCar() {
     if (!v) return;
     VEHICLE::SET_VEHICLE_SIREN(v, TRUE);
     int seats = swat ? 4 : 2, made = 0;
+    int cap = VEHICLE::GET_VEHICLE_MAX_NUMBER_OF_PASSENGERS(v) + 1; // v12: moto leva 1 ou 2
+    if (seats > cap) seats = cap < 1 ? 1 : cap;
+    bool bike = VEHICLE::IS_THIS_MODEL_A_BIKE(car) != 0;
     if (tier == PT_ARMY) VEHICLE::SET_VEHICLE_SIREN(v, FALSE);
     for (int s = -1; s < seats - 1; ++s) {
         const char *pm = country ? (Rand(4) == 0 ? "s_f_y_sheriff_01" : "s_m_y_sheriff_01")
@@ -2234,8 +2261,8 @@ static void SpawnCopCar() {
     if (!made) { VEHICLE::DELETE_VEHICLE(&v); return; }
     s_polVeh.push_back(v);
     static const char *kTierName[] = {"patrulha", "SWAT", "FIB", "IAA", "Exercito"};
-    Log("Desordem: policia a caminho (%s%s, %d, %.0f m).", kTierName[tier],
-        tier == PT_PATROL ? (country ? " do xerife" : " LSPD") : "", made, D2(p, s_ppos));
+    Log("Desordem: policia a caminho (%s%s%s, %d, %.0f m).", kTierName[tier],
+        tier == PT_PATROL ? (country ? " do xerife" : " LSPD") : "", bike ? ", de moto" : "", made, D2(p, s_ppos));
 }
 static void SpawnCopHeli() {
     float dx, dy, d = RandF(280.f, 360.f);
@@ -2274,23 +2301,106 @@ static bool PolRoleAlive(bool tank) {
     return false;
 }
 static int s_armyTankCd = 0, s_armyJetCd = 0;
+// v12: o tanque do Exercito chega como o dos retaliadores: pendurado no Cargobob, que solta perto do jogador e
+// vai embora. Pendurado, o motorista espera (heliWait); no chao, vai atras do retaliador mais perto.
+static TankSt s_polTank;
 static void SpawnArmyTank() {
-    Vector3 p; float h;
-    if (!FindRoadPos(220.f, 320.f, p, h)) return;
-    Vehicle v = NewVehicle(H("rhino"), p, h);
-    if (!v) return;
-    Ped d = NewCopIn(v, H("s_m_y_marine_01"), -1);
-    if (!d) { VEHICLE::DELETE_VEHICLE(&v); return; }
-    SetupCop(d, true, PT_ARMY);
-    PED::SET_PED_COMBAT_ATTRIBUTES(d, 3, FALSE); // nao sai do tanque
-    PED::SET_PED_ACCURACY(d, g_cfg.explosiveAcc);
-    CopU u{d, v, g_st.now};
+    Hash cb = H("cargobob"), rh = H("rhino");
+    if (!STREAMING::IS_MODEL_IN_CDIMAGE(cb) || !STREAMING::IS_MODEL_IN_CDIMAGE(rh)) return;
+    float dx, dy, d = RandF(300.f, 360.f);
+    Dir(RandF(0.f, 360.f), dx, dy);
+    Vector3 p = V3(s_ppos.x + dx * d, s_ppos.y + dy * d, s_pgz + 85.f);
+    TankSt t;
+    t.cargo = NewVehicle(cb, p, HeadingTo(p, s_ppos), false);
+    if (!t.cargo) return;
+    VEHICLE::SET_VEHICLE_ENGINE_ON(t.cargo, TRUE, TRUE, FALSE);
+    VEHICLE::SET_HELI_BLADES_FULL_SPEED(t.cargo);
+    VEHICLE::_ENABLE_CARGOBOB_HOOK(t.cargo, 0);
+    t.rhino = NewVehicle(rh, V3(p.x, p.y, p.z - 10.f), HeadingTo(p, s_ppos), false);
+    if (!t.rhino) { VEHICLE::DELETE_VEHICLE(&t.cargo); return; }
+    ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, TRUE); // imune ate tocar o chao
+    VEHICLE::ATTACH_VEHICLE_TO_CARGOBOB(t.rhino, t.cargo, -1, 0.f, 0.f, 0.f);
+    t.pilot = NewCopIn(t.cargo, H("s_m_y_pilot_01"), -1);
+    if (!t.pilot) t.pilot = NewCopIn(t.cargo, H("s_m_y_marine_01"), -1);
+    t.driver = NewCopIn(t.rhino, H("s_m_y_marine_01"), -1);
+    if (!t.pilot || !t.driver) {
+        if (t.pilot) PED::DELETE_PED(&t.pilot);
+        if (t.driver) PED::DELETE_PED(&t.driver);
+        VEHICLE::DELETE_VEHICLE(&t.rhino); VEHICLE::DELETE_VEHICLE(&t.cargo);
+        return;
+    }
+    SetupCop(t.pilot, true, PT_ARMY);
+    PED::SET_PED_COMBAT_ATTRIBUTES(t.pilot, 3, FALSE);
+    CopU up{t.pilot, t.cargo, g_st.now};
+    up.pilot = up.army = true;
+    s_pol.push_back(up);
+    SetupCop(t.driver, true, PT_ARMY);
+    PED::SET_PED_COMBAT_ATTRIBUTES(t.driver, 3, FALSE); // nao sai do tanque
+    PED::SET_PED_ACCURACY(t.driver, g_cfg.explosiveAcc);
+    PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, TRUE); // pendurado, nao atira
+    VehAmmo(t.rhino, 0, 0); // sem canhao enquanto pendurado
+    CopU u{t.driver, t.rhino, g_st.now};
     u.tank = u.army = u.driver = true;
+    u.heliWait = true;
     s_pol.push_back(u);
-    s_polVeh.push_back(v);
-    PolDriveIn(d, v);
+    VEHICLE::SET_VEHICLE_FORWARD_SPEED(t.cargo, 20.f);
+    t.drop = PointAround(110.f, 140.f);
+    PilotGoTo(t.pilot, t.cargo, t.drop);
+    t.state = 0;
+    t.at = g_st.now;
+    s_polTank = t;
+    s_polVeh.push_back(t.cargo);
+    s_polVeh.push_back(t.rhino);
     s_armyTankCd = g_st.now + 120000;
-    Log("Desordem: tanque do Exercito a caminho (%.0f m).", D2(p, s_ppos));
+    Log("Desordem: tanque do Exercito a caminho no Cargobob (%.0f m).", D2(p, s_ppos));
+}
+static void UpdatePolTank() {
+    TankSt &t = s_polTank;
+    if (t.state < 0) return;
+    if (!ENTITY::DOES_ENTITY_EXIST(t.rhino) || ENTITY::IS_ENTITY_DEAD(t.rhino) ||
+        !ENTITY::DOES_ENTITY_EXIST(t.driver) || PED::IS_PED_DEAD_OR_DYING(t.driver, TRUE)) {
+        if (ENTITY::DOES_ENTITY_EXIST(t.rhino)) {
+            if (t.state == 0) ReleaseTankFromHook(t);
+            ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, FALSE);
+        }
+        t.state = -1;
+        return;
+    }
+    bool cargoOk = ENTITY::DOES_ENTITY_EXIST(t.cargo) && !ENTITY::IS_ENTITY_DEAD(t.cargo) &&
+                   ENTITY::DOES_ENTITY_EXIST(t.pilot) && !PED::IS_PED_DEAD_OR_DYING(t.pilot, TRUE);
+    if (t.state == 0) {
+        if (cargoOk && !t.planB && g_st.now - t.at > 1500 && !VEHICLE::IS_VEHICLE_ATTACHED_TO_CARGOBOB(t.rhino, t.cargo)) {
+            ENTITY::ATTACH_ENTITY_TO_ENTITY(t.rhino, t.cargo, 0, 0.f, 0.f, g_cfg.tankHangZ, 0.f, 0.f, 0.f, FALSE, FALSE, FALSE, FALSE, 2, TRUE);
+            t.planB = true;
+        }
+        bool there = cargoOk && D2(ENTITY::GET_ENTITY_COORDS(t.cargo, TRUE), t.drop) < 18.f &&
+                     ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.cargo) < 42.f;
+        bool engineOff = cargoOk && !VEHICLE::_IS_VEHICLE_ENGINE_ON(t.cargo);
+        bool low = g_st.now - t.at > 3000 && ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.rhino) < 4.f;
+        if (!cargoOk || there || engineOff || low || g_st.now - t.at > 70000) {
+            ReleaseTankFromHook(t);
+            FixUnderground(t.rhino);
+            if (cargoOk) {
+                float ax = s_ppos.x - t.drop.x, ay = s_ppos.y - t.drop.y, al = std::hypot(ax, ay) + 0.01f;
+                Vector3 away = V3(t.drop.x - ax / al * 900.f, t.drop.y - ay / al * 900.f, t.drop.z + 120.f);
+                AI::TASK_HELI_MISSION(t.pilot, t.cargo, 0, 0, away.x, away.y, away.z, 4, 50.f, 10.f, -1.f, 150, 80, -1.f, 0);
+            }
+            t.state = 1;
+            t.at = g_st.now;
+            Log(cargoOk ? "Desordem: tanque do Exercito solto perto do jogador." : "Desordem: Cargobob do Exercito abatido, o tanque caiu.");
+        }
+    } else if (t.state == 1) {
+        FixUnderground(t.rhino);
+        if (ENTITY::GET_ENTITY_HEIGHT_ABOVE_GROUND(t.rhino) < 1.5f || g_st.now - t.at > 8000) {
+            ENTITY::SET_ENTITY_INVINCIBLE(t.rhino, FALSE);
+            PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(t.driver, FALSE);
+            VehAmmoRestore(t.rhino); // no chao, canhao normal
+            for (CopU &u : s_pol) if (u.ped == t.driver) { u.heliWait = false; u.nextAct = 0; u.target = -1; u.born = g_st.now; }
+            PolDriveIn(t.driver, t.rhino);
+            FixUnderground(t.rhino);
+            t.state = -1; // daqui em diante o motorista segue a logica do Exercito em UpdateOwnPolice
+        }
+    }
 }
 static void SpawnArmyJet() {
     float dx, dy, d = RandF(850.f, 1000.f);
@@ -2452,6 +2562,7 @@ static void PolDespawn(bool hard) {
     }
     PolBlipsClear(); // v11.3
     DropsClear(true); // v11.4
+    s_polTank.state = -1; // v12
     s_pol.clear();
     s_polVeh.clear();
     if (n) Log("Policia da Desordem removida: %d.", n);
@@ -2496,7 +2607,10 @@ static void PolBlipsTick() {
         int sp = VehBlipSprite(v);
         float vr = br * (sp == 353 || sp == 424 ? 2.5f : 1.f);
         bool show = crew && !ENTITY::IS_ENTITY_DEAD(v) && D2(ENTITY::GET_ENTITY_COORDS(v, TRUE), s_ppos) < vr;
-        PolBlip(v, show, sp, sp == 421 || sp == 424 || sp == 353 ? 1.0f : 0.85f, show && sp != 353);
+        // v12: o 353 (helicoptero inimigo) ja e vermelho e com o azul por cima ficava roxo; a policia usa o 43
+        // (helicoptero da policia, com a helice girando)
+        bool heli = sp == 353;
+        PolBlip(v, show, heli ? 43 : sp, sp == 421 || sp == 424 || heli ? 1.0f : 0.85f, show && !heli);
         if (show) live.insert(v);
     }
     for (auto it = s_polBlips.begin(); it != s_polBlips.end();) { // quem saiu da lista (morto, removido)
@@ -2508,6 +2622,7 @@ static void UpdateOwnPolice() {
     if (!DisorderOn() || !g_cfg.disOwnPolice) { if (!s_pol.empty() || !s_polVeh.empty()) PolDespawn(false); return; }
     bool calm = DisorderPoliceCalm();
     float R = g_cfg.disFightRadius;
+    UpdatePolTank(); // v12: tanque do Exercito no Cargobob
     Vehicle pv0 = PED::GET_VEHICLE_PED_IS_IN(s_player, TRUE);
     int alive = 0;
     for (size_t i = 0; i < s_pol.size();) {
@@ -2529,7 +2644,7 @@ static void UpdateOwnPolice() {
             continue;
         }
         bool gone = u.jet ? (d > 1500.f || g_st.now - u.born > (g_cfg.jetDuration + 30) * 1000)
-                          : (d > 450.f || (!u.pilot && !u.gunner && !u.tank && g_st.now - u.born > 240000 && d > 150.f));
+                          : (!u.heliWait && (d > 450.f || (!u.pilot && !u.gunner && !u.tank && g_st.now - u.born > 240000 && d > 150.f)));
         if (gone) { // longe ou perdido (o caca vai embora depois do tempo de ataque)
             PolRelease(u.ped, !ENTITY::IS_ENTITY_ON_SCREEN(u.ped));
             s_pol.erase(s_pol.begin() + i);

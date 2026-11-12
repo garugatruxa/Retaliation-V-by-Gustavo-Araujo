@@ -143,6 +143,12 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Nova chave [Disorder] FightRadius=50.
 - Saiu a regra de "muito perto" (NearDist=12): na Desordem, polícia e retaliadores só atacam o jogador se ele atacar aquele lado.
 
+## v12 — polícia igual aos retaliadores, Rhino no Cargobob e polícia variada
+- Desordem: a barra azul (polícia) acompanha a vermelha (retaliação) em ganhos e perdas: mesma escala, decaimento, timer, teclas de teste, morte e trava de nível (PoliceSync no points.cpp). Saíram o decaimento separado da polícia e o PolicePtsAdd do AddPoints.
+- Helicóptero da polícia da Desordem com o blip 43 (helicóptero da polícia) em azul; o 353 (helicóptero inimigo, vermelho) pintado de azul ficava roxo.
+- Tanque do Exército (polícia no nível 8) chega pendurado no Cargobob, com piloto e motorista do Exército; pendurado ele não atira, no chão segue a lógica do Exército. O Rhino no Cargobob dos retaliadores continua igual.
+- Polícia da Desordem com viaturas por nível, só de polícia e governo: moto policeb desde o nível 1, police/police2/police3/police5, police4 (descaracterizada), polgauntlet, polbuffalo e as interceptadoras do Online (nível 4), sheriff/sheriff2/pranger no interior, riot/policet/fbi2/police4 na SWAT (riot2 do nível 7), fbi/fbi2/police4 no FIB e IAA, crusader/barracks/mesa3 no Exército. Modelos ausentes no jogo são pulados.
+
 ## v11.4 — Desordem calibrada
 - Na Desordem, todo ganho de pontos da barra vermelha vale igual para a azul (mesma escala decrescente): mortes e destruição de qualquer um a até DeathRadius, e as do jogador. Saiu o bônus separado da polícia (+4 por policial morto).
 - Viaturas e aeronaves da polícia do mod destruídas contam: +4 na desordem, ou os pontos normais de explosão se foi o jogador.

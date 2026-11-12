@@ -103,22 +103,25 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
   - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe **as duas barras igualmente**
     (+2 por pessoa, +4 por veículo; as suas mortes e explosões valem os pontos normais, também nas duas).
+  - **A polícia ganha e perde pontos exatamente como os retaliadores:** a barra azul acompanha a vermelha em
+    tudo (ganhos, escala decrescente, decaimento, timer de 5 minutos, teclas de teste, morte e trava de nível).
   - **A força da polícia segue a barra azul**:
 
     | Nível da polícia | Quem vem |
     |---|---|
-    | 1 a 4 | Patrulha: LSPD na cidade, xerife no interior (pistola, escopeta, a partir do nível 3 a **submetralhadora da NOOSE** e, mais alto, carabina) |
+    | 1 a 4 | Patrulha: LSPD na cidade, xerife e guarda-florestal no interior, também de **moto da polícia** (pistola, escopeta, a partir do nível 3 a **submetralhadora da NOOSE** e, mais alto, carabina). A cada nível entram mais viaturas: Stanier, Buffalo e Interceptor no 1–2, viatura descaracterizada e Gauntlet Interceptor no 3, as interceptadoras do Online no 4 |
     | 3 a 6 | **Heavy da polícia**: 1.000 de vida, colete pesado e arma de cadência alta com carregador estendido |
-    | 5 | **SWAT** na van blindada |
+    | 5 | **SWAT** na van blindada, no transporte da polícia ou em SUV do FIB (o RCV a partir do nível 7) |
     | 6 | **FIB**, o **helicóptero da polícia** e o **Juggernaut da polícia** (traje pesado preto com a máscara azul e preta) |
     | 7 | **IAA** |
-    | 8 | **Exército**: fuzileiros no Crusader ou no Barracks, **tanque Rhino** e **caça Lazer** (um de cada por vez) |
+    | 8 | **Exército**: fuzileiros no Crusader, no Barracks ou no Mesa, **tanque Rhino pendurado no Cargobob** e **caça Lazer** (um de cada por vez) |
 
   - Os policiais aparecem no minimapa com **blips azuis**, iguais aos dos retaliadores.
   - Os retaliadores **também atacam civis**, e 15% dos civis, a pé ou dirigindo, andam com **arma curta**
     (pistola, Micro SMG, Mini SMG ou Machine Pistol). Os **civis armados revidam**: não fogem, enfrentam a
     polícia e os retaliadores, e os dois lados atacam eles também. Com você, eles só brigam se você atacar.
   - Os carros dos retaliadores vêm até a sua área e a tropa desce para lutar.
+  - Os dois lados chamam o **Rhino no Cargobob**, como nos outros modos: o Cargobob solta o tanque perto de você.
   - Os retaliadores também trazem os **tanques e o caça** deles, que miram a polícia e o Exército (nunca você, a não
     ser que você ataque os retaliadores). Dos helicópteros com mísseis ou canhão explosivo, só vem o **Buzzard**,
     até o Exército chegar (polícia no nível 8). Aviões perseguidores não vêm.
@@ -292,7 +295,8 @@ chão**, há 10% de chance de, no lugar da wave normal, um **Titan** passar bem 
 - A **barra de retaliação** fica embaixo do minimapa, na largura das barras de vida e especial, no mesmo estilo
   delas. Nos últimos 30 s do timer de 5 minutos, ela pisca.
 - No modo **Desordem**, a barra vermelha sobe um pouco e a **barra azul** da polícia aparece logo abaixo. Os
-  policiais têm os mesmos blips dos retaliadores, só que **azuis**.
+  policiais têm os mesmos blips dos retaliadores, só que **azuis** (o helicóptero da polícia usa o ícone de
+  helicóptero da polícia, azul).
 
 ### Modo Diretor
 
@@ -316,7 +320,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v11.4.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v12.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -369,7 +373,7 @@ Com `DebugKeys=1` (padrão), dá para mudar a pressão sem cometer crimes (tamb�
 
 - **Subir um nível:** segure **PageDown** e aperte **PageUp**.
 - **Descer um nível:** segure **PageUp** e aperte **PageDown**.
-- Na **Desordem**, as teclas sobem ou descem **as duas barras** (vermelha e azul) um nível cada.
+- Na **Desordem**, a barra azul acompanha a vermelha, então as teclas mudam **as duas barras**.
 
 O `Retaliation.log` registra cada crime, cada nível, cada wave e cada especial, além dos modelos e armas que o
 jogo não reconheceu.
@@ -379,9 +383,21 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1`, `v11.2`, `v11.3` e `v11.4`).
+(`v1` a `v12`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1`, `v11.2`, `v11.3` e `v11.4`).
 
-### v11.4 — atual
+### v12 — atual
+
+Comparado à v11.4:
+- **Desordem:** a polícia **ganha e perde pontos igual aos retaliadores**. A barra azul acompanha a vermelha em
+  tudo: mortes, destruição, escala decrescente, decaimento, timer de 5 minutos, teclas de teste e morte.
+- **Helicóptero da polícia** da Desordem com o **blip azul** (antes ficava roxo no minimapa).
+- **Tanque Rhino do Exército** chega **pendurado no Cargobob**, como o dos retaliadores e como nos outros modos.
+  Os dois lados chamam o tanque.
+- **Polícia mais variada:** **motos da polícia** desde o nível 1 e mais viaturas a cada nível, só de polícia e de
+  órgãos do governo (LSPD, xerife, guarda-florestal, viatura descaracterizada, interceptadoras do Online, SWAT,
+  FIB, IAA e Exército). Modelos que o jogo não tiver são pulados.
+
+### v11.4
 
 Comparado à v11.3:
 - **Desordem calibrada:** toda morte ou destruição sobe **as duas barras igualmente** (vermelha e azul). As
