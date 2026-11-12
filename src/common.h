@@ -96,7 +96,6 @@ struct Config {
     // v11: [Disorder] modo 4 (Desordem)
     int disStartLevel = 3;     // nivel inicial sem nivel escolhido no menu
     int disHoldSeconds = 60;   // nada baixa no comeco (e ao escolher o nivel no menu)
-    float disNearDist = 12.f;  // mais perto que isso, policiais e retaliadores atacam o jogador
     float disFightRadius = 50.f; // v11.2: so se enfrentam ate essa distancia do jogador; mais longe, vem ate ele
     int disAggroSeconds = 60;  // quanto tempo um lado fica contra o jogador depois que ele ataca esse lado
     float disDeathRadius = 200.f; // mortes e destruicao de qualquer um ate essa distancia sobem a pressao

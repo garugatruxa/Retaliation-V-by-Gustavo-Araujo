@@ -141,3 +141,4 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 ## v11.2 — zona de combate na Desordem
 - Polícia, retaliadores e civis armados só se enfrentam a até FightRadius (50 m) do jogador. Fora da zona, quem está a pé ignora o que vê (SET_BLOCKING_OF_NON_TEMPORARY_EVENTS) e anda até ~25 m do jogador; os alvos (policial, retaliador ou civil armado mais perto) só valem dentro da zona.
 - Nova chave [Disorder] FightRadius=50.
+- Saiu a regra de "muito perto" (NearDist=12): na Desordem, polícia e retaliadores só atacam o jogador se ele atacar aquele lado.

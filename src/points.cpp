@@ -311,7 +311,6 @@ static void DisorderScan(Ped player) {
                                     H("WEAPON_MACHINEPISTOL")};
     Vehicle pveh = PED::IS_PED_IN_ANY_VEHICLE(player, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(player, FALSE) : 0;
     Vector3 pp = ENTITY::GET_ENTITY_COORDS(player, TRUE);
-    float nearD = g_cfg.disNearDist;
     int armed = 0;
     s_cops.clear();
     s_armedCivs.clear();
@@ -367,14 +366,8 @@ static void DisorderScan(Ped player) {
                 continue;
             }
             s_copGo.erase(p);
-            // muito perto do jogador: esse policial vai para cima dele
-            if (!cv && g_st.now >= s_polAggro && d2 < nearD * nearD) {
-                auto c = s_copNear.find(p);
-                if (c == s_copNear.end() || g_st.now - c->second > 6000) {
-                    AI::TASK_COMBAT_PED(p, player, 0, 16);
-                    s_copNear[p] = g_st.now;
-                }
-            } else if (g_st.now >= s_polAggro && (HuntersAlive() > 0 || !s_armedCivs.empty())) {
+            // v11.2: chegar perto nao provoca mais ninguem; a policia so vai atras do jogador se ele atacar
+            if (g_st.now >= s_polAggro && (HuntersAlive() > 0 || !s_armedCivs.empty())) {
                 // v11.1: longe do jogador, o policial vai atras do retaliador mais perto dele. Troca de alvo
                 // quando o retaliador morre ou aparece outro mais perto (no maximo a cada 2,5 s)
                 auto c = s_copHunt.find(p);

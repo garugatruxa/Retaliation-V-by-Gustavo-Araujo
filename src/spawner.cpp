@@ -92,9 +92,8 @@ static float BlipRadius() { return g_cfg.blipRadius > 0 ? g_cfg.blipRadius : kBl
 static bool s_wild = false; // v10: jogador a pe fora das estradas (ver UpdateWild)
 // ---------- v11: alvo na Desordem ----------
 // Fora da Desordem (ou com os retaliadores contra o jogador) todos atacam o jogador, como sempre. Na Desordem
-// calma, quem esta longe do jogador luta contra os inimigos em volta (policia e civis); de perto, ataca ele.
+// calma, ninguem mira no jogador (v11.2: nem de perto): lutam contra a policia, os civis armados e os civis.
 static bool Calm() { return DisorderCalm(); }
-static bool NearPlayer(Ped p) { return D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) < g_cfg.disNearDist; }
 // v11.1: na Desordem calma, vai para cima do policial mais perto. Sem policial por perto, vai para o ponto de
 // encontro (perto do jogador) e luta com quem estiver em volta; nunca mira no jogador de longe.
 // v11.2: so luta dentro da zona de combate (FightRadius m do jogador). A lista de alvos (NearestCopTo) ja so tem
@@ -105,7 +104,7 @@ static Ped CalmTarget(Ped p) {
     return NearestCopTo(ENTITY::GET_ENTITY_COORDS(p, TRUE), 300.f);
 }
 static void Engage(Ped p) {
-    if (!Calm() || NearPlayer(p)) { AI::TASK_COMBAT_PED(p, s_player, 0, 16); return; }
+    if (!Calm()) { AI::TASK_COMBAT_PED(p, s_player, 0, 16); return; }
     bool inVeh = PED::IS_PED_IN_ANY_VEHICLE(p, FALSE) != 0;
     if (!InZone(p)) { // fora da zona: vem ate o jogador sem lutar (no veiculo, o motorista traz)
         if (!inVeh) AI::TASK_GO_TO_ENTITY(p, s_player, -1, g_cfg.disFightRadius * 0.5f, 2.0f, 0, 0);
@@ -118,7 +117,7 @@ static void Engage(Ped p) {
 // motorista: persegue o jogador; na Desordem calma, so dirige ate a area dele (e desce para lutar)
 static void Chase(Ped p) {
     Vehicle v = PED::GET_VEHICLE_PED_IS_IN(p, FALSE);
-    if (Calm() && v && !NearPlayer(p))
+    if (Calm() && v)
         AI::TASK_VEHICLE_DRIVE_TO_COORD_LONGRANGE(p, v, s_ppos.x, s_ppos.y, s_ppos.z, 30.f, 786469, 35.f);
     else
         AI::TASK_VEHICLE_CHASE(p, s_player);
@@ -2211,7 +2210,7 @@ static void UpdateHunters() {
             Hash hm0 = hv0 ? ENTITY::GET_ENTITY_MODEL(hv0) : 0;
             bool air0 = hv0 && (VEHICLE::IS_THIS_MODEL_A_HELI(hm0) || VEHICLE::IS_THIS_MODEL_A_PLANE(hm0));
             bool driver = hv0 && VEHICLE::GET_PED_IN_VEHICLE_SEAT(hv0, -1) == h.ped;
-            int want = (!Calm() || d < g_cfg.disNearDist) ? 1 : 0;
+            int want = !Calm() ? 1 : 0; // v11.2: so se o jogador atacou os retaliadores
             if (!(air0 && driver)) { // pilotos ficam com o controle do helicoptero
                 // v11.2: a pe, fora da zona de combate, ignora o que ve e vem ate o jogador; dentro, luta
                 bool onFoot0 = !hv0;

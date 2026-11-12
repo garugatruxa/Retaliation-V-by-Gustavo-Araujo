@@ -95,8 +95,8 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
     acontece numa **zona de 50 m em volta de você**: quem está mais longe vem andando até ela sem brigar no
     caminho. Dentro da zona, cada retaliador vai atrás do **policial mais perto** dele, e cada policial vai atrás
     do **retaliador mais perto**, trocando de alvo quando o dele cai ou aparece outro mais perto.
-  - A polícia e os retaliadores **brigam entre si**. Eles só vêm para cima de você se você chegar **muito perto**
-    (12 m) ou **atacar primeiro**: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
+  - A polícia e os retaliadores **brigam entre si** e **só atacam você se você atacar primeiro**, mesmo que você
+    passe colado neles: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
   - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe a retaliação (+2 por pessoa, +4 por
     veículo). As estrelas acompanham o nível até o máximo.
@@ -328,7 +328,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 | `[Heavy]` | Heavy (Juggernaut leve): níveis, chance, teto e vida |
 | `[VehicleGuns]` | Rajadas das armas de veículo: segundos atirando e parado |
 | `[Population]` | Civis e trânsito com estrelas, e % do limite de retaliadores com a polícia junto |
-| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, distância "muito perto", zona de combate, tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
+| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, zona de combate, tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
 | `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
 | `[WeaponMods]` | Chance de acessórios nas armas |
 | `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
@@ -363,6 +363,8 @@ Comparado à v11.1:
 - **Desordem com a briga perto de você:** a polícia, os retaliadores e os civis armados só se enfrentam **a até
   50 m de você**. Quem está mais longe vem andando até a zona sem brigar no caminho, e só então escolhe o
   inimigo mais perto. Assim o confronto nunca fica distante. Ajustável em `[Disorder] FightRadius`.
+- **Ninguém te ataca por chegar perto:** na Desordem, polícia e retaliadores só revidam se você atacar eles.
+  Saiu a regra dos 12 m (`NearDist`).
 
 ### v11.1
 

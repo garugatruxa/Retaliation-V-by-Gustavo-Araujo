@@ -196,12 +196,11 @@ static const char *kDefaultIni =
     "WithPolicePct=75\r\n"
     "\r\n"
     "[Disorder]\r\n"
-    "; modo 4 (Desordem): policia e retaliadores se enfrentam; o jogador so e atacado se chegar muito perto\r\n"
-    "; (NearDist m) ou atacar primeiro (aquele lado fica contra ele por AggroSeconds). Nivel N = N estrelas (max 5)\r\n"
+    "; modo 4 (Desordem): policia e retaliadores se enfrentam; o jogador so e atacado se atacar primeiro\r\n"
+    "; (aquele lado fica contra ele por AggroSeconds). Nivel N = N estrelas (max 5)\r\n"
     "; sem jatos, avioes e tanques; helicopteros com misseis ou canhao explosivo, so o Buzzard\r\n"
     "StartLevel=3\r\n"
     "HoldSeconds=60\r\n"
-    "NearDist=12\r\n"
     "; policia, retaliadores e civis armados so se enfrentam ate FightRadius m do jogador; mais longe, vem ate ele\r\n"
     "FightRadius=50\r\n"
     "AggroSeconds=60\r\n"
@@ -494,7 +493,6 @@ void ConfigLoad() {
     c.vehGunRest = IniInt("VehicleGuns", "RestSeconds", c.vehGunRest);
     c.disStartLevel = IniInt("Disorder", "StartLevel", c.disStartLevel);
     c.disHoldSeconds = IniInt("Disorder", "HoldSeconds", c.disHoldSeconds);
-    c.disNearDist = (float)IniInt("Disorder", "NearDist", (int)c.disNearDist);
     c.disFightRadius = (float)IniInt("Disorder", "FightRadius", (int)c.disFightRadius);
     c.disAggroSeconds = IniInt("Disorder", "AggroSeconds", c.disAggroSeconds);
     c.disDeathRadius = (float)IniInt("Disorder", "DeathRadius", (int)c.disDeathRadius);
