@@ -71,6 +71,7 @@ struct Hunter {
     int lastHp = -1;          // v11: vida no ultimo exame (para saber se o jogador atacou)
     int onPlayer = -1;        // v11: na Desordem, 1 = atacando o jogador, 0 = outros alvos
     int nextChase = 0;        // v11: motorista na Desordem renova o destino
+    Ped calmTarget = -1;      // v11.1: policial que ele esta atacando na Desordem (0 = nenhum)
 };
 struct SquadVeh { Vehicle veh; int born; bool roadblock; bool scored = false; Blip blip = 0; int lastHp = -1; };
 enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI, P_TANK, P_JET, P_KHAN, P_AIR, P_PARA };
@@ -93,9 +94,18 @@ static bool s_wild = false; // v10: jogador a pe fora das estradas (ver UpdateWi
 // calma, quem esta longe do jogador luta contra os inimigos em volta (policia e civis); de perto, ataca ele.
 static bool Calm() { return DisorderCalm(); }
 static bool NearPlayer(Ped p) { return D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) < g_cfg.disNearDist; }
+// v11.1: na Desordem calma, vai para cima do policial mais perto. Sem policial por perto, vai para o ponto de
+// encontro (perto do jogador) e luta com quem estiver em volta; nunca mira no jogador de longe.
+static Ped CalmTarget(Ped p) {
+    return NearestCopTo(ENTITY::GET_ENTITY_COORDS(p, TRUE), 300.f);
+}
 static void Engage(Ped p) {
-    if (Calm() && !NearPlayer(p)) AI::TASK_COMBAT_HATED_TARGETS_AROUND_PED(p, 300.f, 0);
-    else AI::TASK_COMBAT_PED(p, s_player, 0, 16);
+    if (!Calm() || NearPlayer(p)) { AI::TASK_COMBAT_PED(p, s_player, 0, 16); return; }
+    Ped cop = CalmTarget(p);
+    if (cop) AI::TASK_COMBAT_PED(p, cop, 0, 16);
+    else if (D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) > 45.f && !PED::IS_PED_IN_ANY_VEHICLE(p, FALSE))
+        AI::TASK_GO_TO_ENTITY(p, s_player, -1, 30.f, 2.0f, 0, 0); // ponto de encontro: perto do jogador
+    else AI::TASK_COMBAT_HATED_TARGETS_AROUND_PED(p, 120.f, 0);
 }
 // motorista: persegue o jogador; na Desordem calma, so dirige ate a area dele (e desce para lutar)
 static void Chase(Ped p) {
@@ -124,6 +134,16 @@ static int VehBlipSprite(Vehicle v) {
 }
 
 int HuntersAlive() { return (int)s_h.size(); }
+// v11.1: Desordem - o retaliador vivo mais perto de um ponto (ate maxD m), para o policial ir atras dele
+Ped NearestHunterTo(const Vector3 &at, float maxD) {
+    Ped best = 0;
+    for (const auto &h : s_h) {
+        if (!ENTITY::DOES_ENTITY_EXIST(h.ped) || PED::IS_PED_DEAD_OR_DYING(h.ped, TRUE)) continue;
+        float d = D2(ENTITY::GET_ENTITY_COORDS(h.ped, TRUE), at);
+        if (d < maxD) { maxD = d; best = h.ped; }
+    }
+    return best;
+}
 static int Queued() {
     int n = 0;
     for (auto &p : s_q) n += p.k == P_FOOT ? p.n : (p.k == P_ROADBLOCK || p.k == P_JUGG || p.k == P_HELI) ? 4 : 2;
@@ -2186,10 +2206,21 @@ static void UpdateHunters() {
                 if (want != h.onPlayer) {
                     h.onPlayer = want;
                     if (driver) Chase(h.ped); else Engage(h.ped);
-                    h.nextChase = g_st.now + 8000;
+                    h.calmTarget = want || driver ? -1 : CalmTarget(h.ped);
+                    h.nextChase = g_st.now + (driver ? 8000 : 2500);
                 } else if (driver && !want && g_st.now >= h.nextChase) { // renova o destino (o jogador anda)
                     h.nextChase = g_st.now + 8000;
                     Chase(h.ped);
+                } else if (!driver && !want && g_st.now >= h.nextChase) {
+                    // v11.1: a pe, troca de alvo quando o policial morre ou aparece outro mais perto
+                    h.nextChase = g_st.now + 2500;
+                    Ped t = CalmTarget(h.ped);
+                    bool dead = h.calmTarget > 0 && (!ENTITY::DOES_ENTITY_EXIST(h.calmTarget) ||
+                                                    PED::IS_PED_DEAD_OR_DYING(h.calmTarget, TRUE));
+                    if (t != h.calmTarget || dead || (!t && !PED::IS_PED_IN_COMBAT(h.ped, 0))) {
+                        h.calmTarget = t;
+                        Engage(h.ped);
+                    }
                 }
             }
         }

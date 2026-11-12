@@ -261,6 +261,31 @@ void RelationsApply() {
     }
 }
 
+// v11.1: civis armados da Desordem ficam num grupo proprio (o grupo comum dos civis tem tambem os desarmados)
+Hash ArmedCivGroup() {
+    static Hash g = 0;
+    if (!g) PED::ADD_RELATIONSHIP_GROUP((char *)"RET_ARMED_CIV", &g);
+    return g;
+}
+
+// v11.1: guerra com a policia. So na Desordem (modo 4) os retaliadores e a policia se enfrentam. Nos outros modos
+// ficam do mesmo lado: nao se atacam e todos vao atras do jogador. Reaplica a cada 5 s.
+void RelationsPolice(bool war) {
+    static int last = -1, lastAt = 0;
+    int now = (int)GAMEPLAY::GET_GAME_TIMER();
+    if ((int)war == last && now - lastAt < 5000) return;
+    if ((int)war != last) Log(war ? "Retaliadores em guerra com a policia." : "Retaliadores e policia do mesmo lado (todos contra o jogador).");
+    last = war;
+    lastAt = now;
+    for (Faction &f : g_factions) {
+        int pol = f.policeAlly || !war ? 1 : 5;
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(pol, f.group, s_cop);
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(pol, s_cop, f.group);
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(pol, f.group, s_army);
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(pol, s_army, f.group);
+    }
+}
+
 // v11: modo Desordem. on: os retaliadores odeiam os civis (e os civis armados revidam); calm: ficam neutros com
 // o jogador, para so atacarem quem estiver perto ou se o jogador atacar primeiro. Reaplica a cada 5 s.
 void RelationsDisorder(bool on, bool calm) {
@@ -271,7 +296,17 @@ void RelationsDisorder(bool on, bool calm) {
     last = key;
     lastAt = now;
     static const Hash civm = H("CIVMALE"), civf = H("CIVFEMALE");
+    // civis armados: odeiam a policia e os retaliadores, e sao odiados por eles; neutros com o jogador
+    Hash ac = ArmedCivGroup();
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, ac, s_cop);
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, s_cop, ac);
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, ac, s_army);
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, s_army, ac);
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(3, ac, s_player);
+    PED::SET_RELATIONSHIP_BETWEEN_GROUPS(0, ac, ac);
     for (Faction &f : g_factions) {
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, f.group, ac);
+        PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on ? 5 : 3, ac, f.group);
         PED::SET_RELATIONSHIP_BETWEEN_GROUPS(on && calm ? 3 : 5, f.group, s_player);
         for (Hash c : {civm, civf}) {
             if (on) {

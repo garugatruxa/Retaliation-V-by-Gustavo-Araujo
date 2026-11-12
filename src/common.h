@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "11"
+#define RETALIATION_VERSION "11.1"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);

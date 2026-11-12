@@ -30,9 +30,13 @@ void SpawnerInit();
 void SpawnerTick(Ped player);
 void DespawnAll(bool hard, const char *why);
 int HuntersAlive();
+Ped NearestHunterTo(const Vector3 &at, float maxD); // v11.1
+Ped NearestCopTo(const Vector3 &at, float maxD);    // v11.1 (points.cpp)
 
 // points.cpp: retaliadores nao dao pontos
 void PointsIgnorePed(Ped p);
 void PointsIgnoreVeh(Vehicle v);
 // v11: Desordem - retaliadores neutros com o jogador (calm) e contra os civis
 void RelationsDisorder(bool on, bool calm);
+void RelationsPolice(bool war);
+Hash ArmedCivGroup(); // v11.1: grupo dos civis armados da Desordem // v11.1: false = retaliadores e policia do mesmo lado (modo 1)

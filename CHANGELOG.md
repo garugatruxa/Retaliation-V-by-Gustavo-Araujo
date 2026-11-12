@@ -132,3 +132,8 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Sem tanques (Rhino, Khanjali), caça e aviões perseguidores. Helicópteros com mísseis ou canhão explosivo: só o Buzzard (Valkyrie, Savage, Hunter e Akula trocados).
 - Morrer ou ser preso recomeça a Desordem no nível inicial depois de 10 s.
 - Nova seção [Disorder] no .ini: StartLevel, HoldSeconds, NearDist, AggroSeconds, DeathRadius, DeathPoints, VehiclePoints, ArmedCiviliansPct, RestartOnDeath, RestartDelay.
+
+## v11.1 — alvos na Desordem e civis armados
+- Desordem: ponto de encontro no jogador (centro do procurado nele). Cada retaliador ataca o policial ou civil armado mais perto (até 300 m); cada policial ataca o retaliador ou civil armado mais perto. Troca de alvo a cada 2,5 s se o alvo morrer ou houver outro mais perto. Sem alvo, o retaliador vem até ~30 m do jogador e luta com quem estiver em volta.
+- Civis armados num grupo próprio (RET_ARMED_CIV): odeiam e são odiados pela polícia e pelos retaliadores, neutros com o jogador, sem fuga (flee 0) e sempre lutando (atributos 46 e 5).
+- Modos 1, 2 e 3: polícia e retaliadores do mesmo lado (relação 1), todos contra o jogador. Só na Desordem eles se enfrentam.

@@ -79,6 +79,7 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
 ### Modos e o ciclo
 
 - **Junto com a polícia** (padrão): os crimes dão pontos sempre, e a polícia age normalmente ao mesmo tempo.
+  Polícia e retaliadores ficam do mesmo lado: não se atacam e vêm todos atrás de você.
 - **Substitui a polícia:** você nunca ganha estrelas. Quem vem atrás de você são os retaliadores.
 - **Ciclo:** alterna entre a polícia e o Retaliation.
   1. **Livre.** Só a polícia age, normalmente. Fora do ciclo, os crimes não dão pontos.
@@ -90,13 +91,17 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
 - **Desordem:** a polícia e os retaliadores entram em guerra, com você no meio.
   - Começa no **nível 3 com 3 estrelas**, ou no nível escolhido no menu: nível N vale N estrelas (no máximo 5).
     No **primeiro minuto** nada baixa; depois, a pressão e as estrelas baixam normalmente.
+  - **Ponto de encontro: você.** A polícia é chamada para a sua área e os retaliadores vêm para lá. Chegando,
+    cada retaliador vai atrás do **policial mais perto** dele, e cada policial vai atrás do **retaliador mais
+    perto**, trocando de alvo quando o dele cai ou aparece outro mais perto.
   - A polícia e os retaliadores **brigam entre si**. Eles só vêm para cima de você se você chegar **muito perto**
     (12 m) ou **atacar primeiro**: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
   - **Qualquer morte ou destruição** a até 200 m de você, sua ou não, sobe a retaliação (+2 por pessoa, +4 por
     veículo). As estrelas acompanham o nível até o máximo.
-  - Os retaliadores **também atacam civis**, e parte dos civis, a pé ou dirigindo, anda com **arma curta**
-    (pistola, Micro SMG, Mini SMG ou Machine Pistol).
+  - Os retaliadores **também atacam civis**, e 15% dos civis, a pé ou dirigindo, andam com **arma curta**
+    (pistola, Micro SMG, Mini SMG ou Machine Pistol). Os **civis armados revidam**: não fogem, enfrentam a
+    polícia e os retaliadores, e os dois lados atacam eles também. Com você, eles só brigam se você atacar.
   - Os carros dos retaliadores vêm até a sua área e a tropa desce para lutar.
   - **Sem jatos, aviões perseguidores e tanques.** Dos helicópteros com mísseis ou canhão explosivo, só vem o
     **Buzzard**.
@@ -141,8 +146,8 @@ Shores, Grapeseed, Paleto, deserto e montanhas). Cada facção fica bastante tem
 | 8 | 440–500 | Merryweather | Merryweather |
 
 - A cada nível aumentam a quantidade de inimigos, a mira, a vida, o colete e a frequência das waves.
-- Nenhuma facção é do governo: não há FIB, IAA nem militares. Todas brigam com a polícia e com você, mas não
-  entre si.
+- Nenhuma facção é do governo: não há FIB, IAA nem militares. As facções não brigam entre si. Com a polícia,
+  só brigam no modo **Desordem**; nos outros modos, polícia e retaliadores ficam do mesmo lado, contra você.
 - Cada facção tem os seus veículos: lowriders e personalizados nas gangues, off-road no interior, motos custom
   no Lost MC, SUVs blindados no cartel, e blindados na elite (Insurgent, Kuruma blindado, Nightshark, Duke
   O'Death, Ardent, Dune FAV, Technical). Nada de veículos militares de Fort Zancudo.
@@ -287,7 +292,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v11.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v11.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -349,9 +354,21 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3` e `v10.1`).
+(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1` e `v11.1`).
 
-### v11 — atual
+### v11.1 — atual
+
+Comparado à v11:
+- **Desordem com alvos de verdade:** cada retaliador vai atrás do **policial (ou civil armado) mais perto** dele, e
+  cada policial vai atrás do **retaliador (ou civil armado) mais perto**, trocando de alvo quando o dele morre ou
+  aparece outro mais perto. O **ponto de encontro é você**: a polícia é chamada para a sua área e os retaliadores
+  vêm para lá, mas a briga não é com você.
+- **Civis armados revidam:** na Desordem, eles não fogem, enfrentam a polícia e os retaliadores, e os dois lados
+  atacam eles de volta. Os civis desarmados continuam normais, e os armados só atacam você se você atacar eles.
+- **Polícia e retaliadores do mesmo lado fora da Desordem:** em **Junto com a polícia**, **Substitui a polícia** e
+  **Ciclo**, eles não se atacam mais. É todo mundo contra você.
+
+### v11
 
 Comparado à v10.1:
 - **Novo modo Desordem** (modo 4, no menu). A cidade vira uma guerra entre a polícia e os retaliadores, e você

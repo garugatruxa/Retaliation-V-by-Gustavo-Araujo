@@ -228,6 +228,30 @@ static int s_polAggro = 0, s_hunAggro = 0;
 static std::unordered_set<int> s_civChecked;           // civis ja sorteados (arma ou nao)
 static std::unordered_map<int, int> s_copNear;          // policial perto do jogador -> quando foi mandado atacar
 static std::unordered_map<int, int> s_copHp;            // vida do policial no ultimo exame
+static std::unordered_map<int, int> s_copHunt;          // v11.1: policial -> quando recebeu o alvo
+static std::unordered_map<int, int> s_copTarget;        // v11.1: policial -> retaliador que ele esta cacando
+static std::vector<int> s_cops;                        // v11.1: policiais vivos perto do jogador (a cada 0,5 s)
+static std::vector<int> s_armedCivs;                    // v11.1: civis armados vivos perto do jogador
+static std::unordered_set<int> s_armedSet;              // v11.1: todos os civis que receberam arma
+static Ped NearestIn(const std::vector<int> &list, const Vector3 &at, float maxD, Ped best = 0) {
+    float bd = maxD * maxD;
+    if (best) {
+        Vector3 q = ENTITY::GET_ENTITY_COORDS(best, TRUE);
+        float dx = q.x - at.x, dy = q.y - at.y;
+        bd = dx * dx + dy * dy;
+    }
+    for (int c : list) {
+        if (!ENTITY::DOES_ENTITY_EXIST(c) || ENTITY::IS_ENTITY_DEAD(c)) continue;
+        Vector3 q = ENTITY::GET_ENTITY_COORDS(c, TRUE);
+        float dx = q.x - at.x, dy = q.y - at.y, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = c; }
+    }
+    return best;
+}
+// alvo de um retaliador: o policial ou civil armado mais perto
+Ped NearestCopTo(const Vector3 &at, float maxD) {
+    return NearestIn(s_armedCivs, at, maxD, NearestIn(s_cops, at, maxD));
+}
 
 static bool MissionPaused() { return g_st.paused && strcmp(g_st.pauseReason, "interior") != 0; }
 bool DisorderOn() { return g_cfg.mode == 4 && s_disOn && !MissionPaused(); }
@@ -251,7 +275,7 @@ void DisorderMenuLevel() {
 static void DisorderReset() {
     s_disOn = false;
     s_disHold = s_disRestartAt = s_polAggro = s_hunAggro = 0;
-    s_civChecked.clear(); s_copNear.clear(); s_copHp.clear();
+    s_civChecked.clear(); s_copNear.clear(); s_copHp.clear(); s_copHunt.clear(); s_copTarget.clear(); s_cops.clear(); s_armedCivs.clear(); s_armedSet.clear();
 }
 // morte ou prisao: recomeca no nivel inicial depois de RestartDelay segundos (contados depois de voltar)
 static void DisorderOnDeath() {
@@ -272,6 +296,19 @@ static void DisorderScan(Ped player) {
     Vector3 pp = ENTITY::GET_ENTITY_COORDS(player, TRUE);
     float nearD = g_cfg.disNearDist;
     int armed = 0;
+    s_cops.clear();
+    s_armedCivs.clear();
+    // primeiro a lista dos policiais e dos civis armados (o alvo de cada policial sai dela)
+    int n0 = worldGetAllPeds(s_buf, kMaxEnt);
+    for (int i = 0; i < n0; ++i) {
+        Ped p = s_buf[i];
+        if (p == player || ENTITY::IS_ENTITY_DEAD(p)) continue;
+        if (s_armedSet.count(p)) {
+            Vector3 q = ENTITY::GET_ENTITY_COORDS(p, TRUE);
+            float dx = q.x - pp.x, dy = q.y - pp.y;
+            if (dx * dx + dy * dy < 200.f * 200.f) s_armedCivs.push_back(p);
+        }
+    }
     int n = worldGetAllPeds(s_buf, kMaxEnt);
     for (int i = 0; i < n; ++i) {
         Ped p = s_buf[i];
@@ -282,6 +319,7 @@ static void DisorderScan(Ped player) {
         if (d2 > 160.f * 160.f) continue;
         Victim v = Classify(p);
         if (v == V_COP) {
+            s_cops.push_back(p);
             Vehicle cv = PED::IS_PED_IN_ANY_VEHICLE(p, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(p, FALSE) : 0;
             int hp = ENTITY::GET_ENTITY_HEALTH(p);
             auto it = s_copHp.find(p);
@@ -302,10 +340,35 @@ static void DisorderScan(Ped player) {
                     AI::TASK_COMBAT_PED(p, player, 0, 16);
                     s_copNear[p] = g_st.now;
                 }
+            } else if (g_st.now >= s_polAggro && (HuntersAlive() > 0 || !s_armedCivs.empty())) {
+                // v11.1: longe do jogador, o policial vai atras do retaliador mais perto dele. Troca de alvo
+                // quando o retaliador morre ou aparece outro mais perto (no maximo a cada 2,5 s)
+                auto c = s_copHunt.find(p);
+                if (c == s_copHunt.end() || g_st.now - c->second > 2500) {
+                    s_copHunt[p] = g_st.now;
+                    // retaliador ou civil armado, o que estiver mais perto do policial
+                    Ped t = NearestHunterTo(q, 300.f);
+                    Ped ac = NearestIn(s_armedCivs, q, 300.f, t);
+                    if (ac) t = ac;
+                    auto ct = s_copTarget.find(p);
+                    Ped cur = ct == s_copTarget.end() ? -1 : ct->second;
+                    bool curDead = cur > 0 && (!ENTITY::DOES_ENTITY_EXIST(cur) || PED::IS_PED_DEAD_OR_DYING(cur, TRUE));
+                    if (t && (t != cur || curDead)) {
+                        AI::TASK_COMBAT_PED(p, t, 0, 16);
+                        s_copTarget[p] = t;
+                    }
+                }
             }
         } else if (v == V_CIV && g_cfg.disArmedCivPct > 0 && s_civChecked.insert(p).second) {
             if (Rand(100) < g_cfg.disArmedCivPct) {
                 WEAPON::GIVE_WEAPON_TO_PED(p, kCivGuns[Rand(4)], 200, FALSE, FALSE);
+                // v11.1: revida de verdade: grupo proprio (contra policia e retaliadores), sem fugir
+                PED::SET_PED_RELATIONSHIP_GROUP_HASH(p, ArmedCivGroup());
+                PED::SET_PED_FLEE_ATTRIBUTES(p, 0, FALSE);
+                PED::SET_PED_COMBAT_ATTRIBUTES(p, 46, TRUE); // sempre luta
+                PED::SET_PED_COMBAT_ATTRIBUTES(p, 5, TRUE);  // enfrenta gente armada
+                PED::SET_PED_COMBAT_ABILITY(p, 1);
+                s_armedSet.insert(p);
                 ++armed;
             }
         }
@@ -319,6 +382,12 @@ static void DisorderScan(Ped player) {
             it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copNear.erase(it);
         for (auto it = s_copHp.begin(); it != s_copHp.end();)
             it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copHp.erase(it);
+        for (auto it = s_copHunt.begin(); it != s_copHunt.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copHunt.erase(it);
+        for (auto it = s_copTarget.begin(); it != s_copTarget.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copTarget.erase(it);
+        for (auto it = s_armedSet.begin(); it != s_armedSet.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(*it) ? std::next(it) : s_armedSet.erase(it);
     }
 }
 
@@ -361,6 +430,8 @@ static void DisorderTick(Player pid, bool missionPause) {
     PoliceIgnore(pid, polCalm);
     if (polCalm && s.now >= s_disCentre) {
         s_disCentre = s.now + 3000;
+        // v11.1: ponto de encontro = o jogador. A policia e chamada para a area dele e, chegando, vai atras do
+        // retaliador mais perto (DisorderScan); os retaliadores fazem o mesmo com os policiais.
         Vector3 p = ENTITY::GET_ENTITY_COORDS(PLAYER::PLAYER_PED_ID(), TRUE);
         invoke<Void>(0x520E541A97A13354, pid, &p, FALSE, FALSE); // SET_PLAYER_WANTED_CENTRE_POSITION
     }
@@ -381,6 +452,8 @@ void CycleTick(Player pid) {
         s_ignoring = !s_ignoring;
     }
     s_dmForce = s.director;
+    // v11.1: nos modos 1, 2 e 3 policia e retaliadores nao se atacam: todos contra o jogador
+    RelationsPolice(g_cfg.mode == 4); // v11.1: so na Desordem policia e retaliadores brigam
     // v11, modo 4: Desordem
     if (g_cfg.mode == 4) { DisorderTick(pid, missionPause0); return; }
     RelationsDisorder(false, false);
