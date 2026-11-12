@@ -137,3 +137,7 @@ Cada versão fica publicada separadamente, para mostrar a evolução do mod. As 
 - Desordem: ponto de encontro no jogador (centro do procurado nele). Cada retaliador ataca o policial ou civil armado mais perto (até 300 m); cada policial ataca o retaliador ou civil armado mais perto. Troca de alvo a cada 2,5 s se o alvo morrer ou houver outro mais perto. Sem alvo, o retaliador vem até ~30 m do jogador e luta com quem estiver em volta.
 - Civis armados num grupo próprio (RET_ARMED_CIV): odeiam e são odiados pela polícia e pelos retaliadores, neutros com o jogador, sem fuga (flee 0) e sempre lutando (atributos 46 e 5).
 - Modos 1, 2 e 3: polícia e retaliadores do mesmo lado (relação 1), todos contra o jogador. Só na Desordem eles se enfrentam.
+
+## v11.2 — zona de combate na Desordem
+- Polícia, retaliadores e civis armados só se enfrentam a até FightRadius (50 m) do jogador. Fora da zona, quem está a pé ignora o que vê (SET_BLOCKING_OF_NON_TEMPORARY_EVENTS) e anda até ~25 m do jogador; os alvos (policial, retaliador ou civil armado mais perto) só valem dentro da zona.
+- Nova chave [Disorder] FightRadius=50.

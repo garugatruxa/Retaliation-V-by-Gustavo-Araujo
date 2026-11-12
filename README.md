@@ -91,9 +91,10 @@ Desligar o mod ou trocar de modo remove os retaliadores, zera a pressão e devol
 - **Desordem:** a polícia e os retaliadores entram em guerra, com você no meio.
   - Começa no **nível 3 com 3 estrelas**, ou no nível escolhido no menu: nível N vale N estrelas (no máximo 5).
     No **primeiro minuto** nada baixa; depois, a pressão e as estrelas baixam normalmente.
-  - **Ponto de encontro: você.** A polícia é chamada para a sua área e os retaliadores vêm para lá. Chegando,
-    cada retaliador vai atrás do **policial mais perto** dele, e cada policial vai atrás do **retaliador mais
-    perto**, trocando de alvo quando o dele cai ou aparece outro mais perto.
+  - **Ponto de encontro: você.** A polícia é chamada para a sua área e os retaliadores vêm para lá. A briga só
+    acontece numa **zona de 50 m em volta de você**: quem está mais longe vem andando até ela sem brigar no
+    caminho. Dentro da zona, cada retaliador vai atrás do **policial mais perto** dele, e cada policial vai atrás
+    do **retaliador mais perto**, trocando de alvo quando o dele cai ou aparece outro mais perto.
   - A polícia e os retaliadores **brigam entre si**. Eles só vêm para cima de você se você chegar **muito perto**
     (12 m) ou **atacar primeiro**: ferir um policial ou uma viatura põe a polícia contra você por 60 s, e ferir um
     retaliador ou um veículo dele põe os retaliadores contra você por 60 s.
@@ -292,7 +293,7 @@ Modo Diretor, use `DirectorMode=0`.
 1. Baixe o **Script Hook V** no [site oficial](http://www.dev-c.com/gtav/scripthookv/) e copie o conteúdo da
    pasta `bin` (menos o `NativeTrainer.asi`, se não quiser) para a pasta do jogo, onde fica o `GTA5_Enhanced.exe`.
    Siga o `HOW_TO_INSTALL` que vem com ele.
-2. Baixe o `RetaliationV_v11.1.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
+2. Baixe o `RetaliationV_v11.2.zip` (ou outra versão) na aba [Releases](../../releases) e extraia.
 3. **Com o jogo fechado**, copie o **`Retaliation.asi`** para a mesma pasta do jogo.
 4. Abra o jogo e entre no modo história. O mod cria o `Retaliation.ini` e o `Retaliation.log` ao lado do `.asi`.
    Ele **vem desligado**: abra o menu (Insert ou RB + ←) e ative.
@@ -327,7 +328,7 @@ Todo número do mod fica no `.ini`. Ele **recarrega sozinho** quando você salva
 | `[Heavy]` | Heavy (Juggernaut leve): níveis, chance, teto e vida |
 | `[VehicleGuns]` | Rajadas das armas de veículo: segundos atirando e parado |
 | `[Population]` | Civis e trânsito com estrelas, e % do limite de retaliadores com a polícia junto |
-| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, distância "muito perto", tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
+| `[Disorder]` | Modo Desordem: nível inicial, minuto sem baixar, distância "muito perto", zona de combate, tempo contra o jogador, raio e pontos das mortes, % de civis armados, recomeço depois de morrer |
 | `[Vehicles]` | Veículos com torreta (Insurgent e Technical) ligados ou não |
 | `[WeaponMods]` | Chance de acessórios nas armas |
 | `[Paradrop]` | Evento do Titan: nível mínimo, chance, quantos inimigos vivos no máximo e espera |
@@ -354,9 +355,16 @@ jogo não reconheceu.
 ## Histórico de versões
 
 Todas as versões estão na aba [Releases](../../releases). O código de cada uma fica na tag correspondente
-(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1` e `v11.1`).
+(`v1` a `v11`, com as correções `v6.1`, `v7.1`, `v9.2`, `v9.3`, `v10.1`, `v11.1` e `v11.2`).
 
-### v11.1 — atual
+### v11.2 — atual
+
+Comparado à v11.1:
+- **Desordem com a briga perto de você:** a polícia, os retaliadores e os civis armados só se enfrentam **a até
+  50 m de você**. Quem está mais longe vem andando até a zona sem brigar no caminho, e só então escolhe o
+  inimigo mais perto. Assim o confronto nunca fica distante. Ajustável em `[Disorder] FightRadius`.
+
+### v11.1
 
 Comparado à v11:
 - **Desordem com alvos de verdade:** cada retaliador vai atrás do **policial (ou civil armado) mais perto** dele, e

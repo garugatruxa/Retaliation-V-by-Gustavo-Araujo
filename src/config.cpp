@@ -202,6 +202,8 @@ static const char *kDefaultIni =
     "StartLevel=3\r\n"
     "HoldSeconds=60\r\n"
     "NearDist=12\r\n"
+    "; policia, retaliadores e civis armados so se enfrentam ate FightRadius m do jogador; mais longe, vem ate ele\r\n"
+    "FightRadius=50\r\n"
     "AggroSeconds=60\r\n"
     "; qualquer morte ou veiculo destruido ate DeathRadius m do jogador sobe a pressao (mesmo sem ser ele)\r\n"
     "DeathRadius=200\r\n"
@@ -493,6 +495,7 @@ void ConfigLoad() {
     c.disStartLevel = IniInt("Disorder", "StartLevel", c.disStartLevel);
     c.disHoldSeconds = IniInt("Disorder", "HoldSeconds", c.disHoldSeconds);
     c.disNearDist = (float)IniInt("Disorder", "NearDist", (int)c.disNearDist);
+    c.disFightRadius = (float)IniInt("Disorder", "FightRadius", (int)c.disFightRadius);
     c.disAggroSeconds = IniInt("Disorder", "AggroSeconds", c.disAggroSeconds);
     c.disDeathRadius = (float)IniInt("Disorder", "DeathRadius", (int)c.disDeathRadius);
     c.disDeathPts = IniInt("Disorder", "DeathPoints", c.disDeathPts);

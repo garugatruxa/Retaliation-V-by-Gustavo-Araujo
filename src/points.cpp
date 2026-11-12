@@ -18,6 +18,7 @@ static int s_buf[kMaxEnt];
 
 static Hash H(const char *s) { return GAMEPLAY::GET_HASH_KEY((char *)s); }
 static void DisorderReset();
+static void UnblockAll();
 static void DisorderOnDeath();
 static bool DisorderHold();
 
@@ -230,6 +231,15 @@ static std::unordered_map<int, int> s_copNear;          // policial perto do jog
 static std::unordered_map<int, int> s_copHp;            // vida do policial no ultimo exame
 static std::unordered_map<int, int> s_copHunt;          // v11.1: policial -> quando recebeu o alvo
 static std::unordered_map<int, int> s_copTarget;        // v11.1: policial -> retaliador que ele esta cacando
+static std::unordered_set<int> s_blocked;               // v11.2: policiais/civis armados vindo ate a zona (sem reagir)
+static std::unordered_map<int, int> s_copGo;            // v11.2: policial fora da zona -> quando foi mandado vir
+// v11.2: liga/desliga o "ignorar o que ve" de um ped fora/dentro da zona de combate
+static void ZoneBlock(Ped p, bool block) {
+    bool is = s_blocked.count(p) != 0;
+    if (block == is) return;
+    PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(p, block);
+    if (block) s_blocked.insert(p); else s_blocked.erase(p);
+}
 static std::vector<int> s_cops;                        // v11.1: policiais vivos perto do jogador (a cada 0,5 s)
 static std::vector<int> s_armedCivs;                    // v11.1: civis armados vivos perto do jogador
 static std::unordered_set<int> s_armedSet;              // v11.1: todos os civis que receberam arma
@@ -260,6 +270,7 @@ static bool DisorderHold() { return DisorderOn() && g_st.now < s_disHold; }
 void DisorderProvoke(bool police) {
     if (!DisorderOn()) return;
     int &until = police ? s_polAggro : s_hunAggro;
+    if (police && g_st.now >= until) UnblockAll(); // v11.2: a policia toda volta a reagir (vai atras do jogador)
     if (g_st.now >= until)
         Log("Desordem: o jogador atacou %s; eles ficam contra ele por %ds.", police ? "a policia" : "os retaliadores",
             g_cfg.disAggroSeconds);
@@ -272,7 +283,13 @@ void DisorderMenuLevel() {
     s_disHold = g_st.now + g_cfg.disHoldSeconds * 1000;
     Log("Desordem: nivel %d escolhido no menu; nada baixa por %ds.", LevelOf(g_st.Pts()), g_cfg.disHoldSeconds);
 }
+static void UnblockAll() {
+    for (int p : s_blocked) if (ENTITY::DOES_ENTITY_EXIST(p)) PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(p, FALSE);
+    s_blocked.clear();
+    s_copGo.clear();
+}
 static void DisorderReset() {
+    UnblockAll(); // v11.2
     s_disOn = false;
     s_disHold = s_disRestartAt = s_polAggro = s_hunAggro = 0;
     s_civChecked.clear(); s_copNear.clear(); s_copHp.clear(); s_copHunt.clear(); s_copTarget.clear(); s_cops.clear(); s_armedCivs.clear(); s_armedSet.clear();
@@ -305,8 +322,10 @@ static void DisorderScan(Ped player) {
         if (p == player || ENTITY::IS_ENTITY_DEAD(p)) continue;
         if (s_armedSet.count(p)) {
             Vector3 q = ENTITY::GET_ENTITY_COORDS(p, TRUE);
-            float dx = q.x - pp.x, dy = q.y - pp.y;
-            if (dx * dx + dy * dy < 200.f * 200.f) s_armedCivs.push_back(p);
+            float dx = q.x - pp.x, dy = q.y - pp.y, zr = g_cfg.disFightRadius;
+            bool in = dx * dx + dy * dy <= zr * zr;
+            if (in) s_armedCivs.push_back(p); // v11.2: so e alvo dentro da zona de combate
+            if (dx * dx + dy * dy < 200.f * 200.f ) ZoneBlock(p, !in); // fora: nao briga
         }
     }
     int n = worldGetAllPeds(s_buf, kMaxEnt);
@@ -319,7 +338,9 @@ static void DisorderScan(Ped player) {
         if (d2 > 160.f * 160.f) continue;
         Victim v = Classify(p);
         if (v == V_COP) {
-            s_cops.push_back(p);
+            float zr = g_cfg.disFightRadius;
+            bool copIn = d2 <= zr * zr;
+            if (copIn) s_cops.push_back(p); // v11.2: so e alvo dentro da zona de combate
             Vehicle cv = PED::IS_PED_IN_ANY_VEHICLE(p, FALSE) ? PED::GET_VEHICLE_PED_IS_IN(p, FALSE) : 0;
             int hp = ENTITY::GET_ENTITY_HEALTH(p);
             auto it = s_copHp.find(p);
@@ -333,6 +354,19 @@ static void DisorderScan(Ped player) {
                 ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(cv);
             }
             if (byPlayer) ENTITY::CLEAR_ENTITY_LAST_DAMAGE_ENTITY(p);
+            // v11.2: a pe e fora da zona (com folga de 10 m): vem ate o jogador sem brigar no caminho
+            bool goIn = !cv && g_st.now >= s_polAggro && d2 > (zr + 10.f) * (zr + 10.f);
+            ZoneBlock(p, goIn);
+            if (goIn) {
+                auto g = s_copGo.find(p);
+                if (g == s_copGo.end() || g_st.now - g->second > 4000) {
+                    AI::TASK_GO_TO_ENTITY(p, player, -1, zr * 0.5f, 2.0f, 0, 0);
+                    s_copGo[p] = g_st.now;
+                    s_copTarget.erase(p);
+                }
+                continue;
+            }
+            s_copGo.erase(p);
             // muito perto do jogador: esse policial vai para cima dele
             if (!cv && g_st.now >= s_polAggro && d2 < nearD * nearD) {
                 auto c = s_copNear.find(p);
@@ -347,7 +381,7 @@ static void DisorderScan(Ped player) {
                 if (c == s_copHunt.end() || g_st.now - c->second > 2500) {
                     s_copHunt[p] = g_st.now;
                     // retaliador ou civil armado, o que estiver mais perto do policial
-                    Ped t = NearestHunterTo(q, 300.f);
+                    Ped t = NearestHunterTo(q, 300.f, g_cfg.disFightRadius);
                     Ped ac = NearestIn(s_armedCivs, q, 300.f, t);
                     if (ac) t = ac;
                     auto ct = s_copTarget.find(p);
@@ -388,6 +422,10 @@ static void DisorderScan(Ped player) {
             it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copTarget.erase(it);
         for (auto it = s_armedSet.begin(); it != s_armedSet.end();)
             it = ENTITY::DOES_ENTITY_EXIST(*it) ? std::next(it) : s_armedSet.erase(it);
+        for (auto it = s_blocked.begin(); it != s_blocked.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(*it) ? std::next(it) : s_blocked.erase(it);
+        for (auto it = s_copGo.begin(); it != s_copGo.end();)
+            it = ENTITY::DOES_ENTITY_EXIST(it->first) ? std::next(it) : s_copGo.erase(it);
     }
 }
 

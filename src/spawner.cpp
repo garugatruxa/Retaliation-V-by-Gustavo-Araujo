@@ -72,6 +72,7 @@ struct Hunter {
     int onPlayer = -1;        // v11: na Desordem, 1 = atacando o jogador, 0 = outros alvos
     int nextChase = 0;        // v11: motorista na Desordem renova o destino
     Ped calmTarget = -1;      // v11.1: policial que ele esta atacando na Desordem (0 = nenhum)
+    int zoneIn = -1;          // v11.2: dentro da zona de combate (1) ou vindo ate ela (0)
 };
 struct SquadVeh { Vehicle veh; int born; bool roadblock; bool scored = false; Blip blip = 0; int lastHp = -1; };
 enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK, P_HELI, P_TANK, P_JET, P_KHAN, P_AIR, P_PARA };
@@ -96,16 +97,23 @@ static bool Calm() { return DisorderCalm(); }
 static bool NearPlayer(Ped p) { return D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) < g_cfg.disNearDist; }
 // v11.1: na Desordem calma, vai para cima do policial mais perto. Sem policial por perto, vai para o ponto de
 // encontro (perto do jogador) e luta com quem estiver em volta; nunca mira no jogador de longe.
+// v11.2: so luta dentro da zona de combate (FightRadius m do jogador). A lista de alvos (NearestCopTo) ja so tem
+// policiais e civis armados dentro da zona.
+static bool InZone(Ped p) { return D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) <= g_cfg.disFightRadius; }
 static Ped CalmTarget(Ped p) {
+    if (!InZone(p)) return 0;
     return NearestCopTo(ENTITY::GET_ENTITY_COORDS(p, TRUE), 300.f);
 }
 static void Engage(Ped p) {
     if (!Calm() || NearPlayer(p)) { AI::TASK_COMBAT_PED(p, s_player, 0, 16); return; }
+    bool inVeh = PED::IS_PED_IN_ANY_VEHICLE(p, FALSE) != 0;
+    if (!InZone(p)) { // fora da zona: vem ate o jogador sem lutar (no veiculo, o motorista traz)
+        if (!inVeh) AI::TASK_GO_TO_ENTITY(p, s_player, -1, g_cfg.disFightRadius * 0.5f, 2.0f, 0, 0);
+        return;
+    }
     Ped cop = CalmTarget(p);
     if (cop) AI::TASK_COMBAT_PED(p, cop, 0, 16);
-    else if (D2(ENTITY::GET_ENTITY_COORDS(p, TRUE), s_ppos) > 45.f && !PED::IS_PED_IN_ANY_VEHICLE(p, FALSE))
-        AI::TASK_GO_TO_ENTITY(p, s_player, -1, 30.f, 2.0f, 0, 0); // ponto de encontro: perto do jogador
-    else AI::TASK_COMBAT_HATED_TARGETS_AROUND_PED(p, 120.f, 0);
+    else AI::TASK_COMBAT_HATED_TARGETS_AROUND_PED(p, g_cfg.disFightRadius, 0);
 }
 // motorista: persegue o jogador; na Desordem calma, so dirige ate a area dele (e desce para lutar)
 static void Chase(Ped p) {
@@ -135,11 +143,13 @@ static int VehBlipSprite(Vehicle v) {
 
 int HuntersAlive() { return (int)s_h.size(); }
 // v11.1: Desordem - o retaliador vivo mais perto de um ponto (ate maxD m), para o policial ir atras dele
-Ped NearestHunterTo(const Vector3 &at, float maxD) {
+Ped NearestHunterTo(const Vector3 &at, float maxD, float zoneR) {
     Ped best = 0;
     for (const auto &h : s_h) {
         if (!ENTITY::DOES_ENTITY_EXIST(h.ped) || PED::IS_PED_DEAD_OR_DYING(h.ped, TRUE)) continue;
-        float d = D2(ENTITY::GET_ENTITY_COORDS(h.ped, TRUE), at);
+        Vector3 hp = ENTITY::GET_ENTITY_COORDS(h.ped, TRUE);
+        if (D2(hp, s_ppos) > zoneR) continue; // v11.2: fora da zona de combate
+        float d = D2(hp, at);
         if (d < maxD) { maxD = d; best = h.ped; }
     }
     return best;
@@ -2203,6 +2213,14 @@ static void UpdateHunters() {
             bool driver = hv0 && VEHICLE::GET_PED_IN_VEHICLE_SEAT(hv0, -1) == h.ped;
             int want = (!Calm() || d < g_cfg.disNearDist) ? 1 : 0;
             if (!(air0 && driver)) { // pilotos ficam com o controle do helicoptero
+                // v11.2: a pe, fora da zona de combate, ignora o que ve e vem ate o jogador; dentro, luta
+                bool onFoot0 = !hv0;
+                int zin = want ? -1 : (d <= g_cfg.disFightRadius ? 1 : 0);
+                if (onFoot0 && zin != h.zoneIn) {
+                    PED::SET_BLOCKING_OF_NON_TEMPORARY_EVENTS(h.ped, zin == 0);
+                    h.zoneIn = zin;
+                    if (want == h.onPlayer) { h.calmTarget = -1; h.nextChase = 0; } // escolhe o alvo de novo ja
+                }
                 if (want != h.onPlayer) {
                     h.onPlayer = want;
                     if (driver) Chase(h.ped); else Engage(h.ped);
