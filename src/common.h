@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define RETALIATION_VERSION "0.2"
+#define RETALIATION_VERSION "0.3"
 
 // ---------- log ----------
 void LogOpen(const std::string &path);
@@ -26,10 +26,10 @@ struct Config {
     int maxHeatPoints = 95, maxHeatSeconds = 120, maxHeatWanted = 5, maxHeatCooldown = 60;
     // [Hud]
     bool hudEnabled = true;
-    float hudOffsetX = 0.0f, hudOffsetY = 0.0115f, hudHeight = 0.0055f;
+    float hudOffsetX = 0.0f, hudOffsetY = 0.0085f, hudHeight = 0.0055f;
     float hudStart = 0.75f, hudEnd = 1.0f; // trecho da largura do minimapa (barra do especial = ultimo quarto)
     int hudR = 200, hudG = 25, hudB = 25;
-    bool hudShowLevel = true;
+    bool hudShowLevel = false;
     // [Spawn]
     int maxAlive = 16;
     float footMin = 60, footMax = 100, vehMin = 170, vehMax = 240, despawnDist = 350;
@@ -48,6 +48,8 @@ struct Config {
     int jugMinLevel = 7, jugChance = 20, jugHealth = 3000;
     // [TopBonus] % extra por ponto acima do inicio do ultimo nivel
     float topBonusPerPoint = 1.5f;
+    // [Gear] a partir desses pontos aumenta a chance de colete, capacete e armas melhores
+    int gearStart = 40;
 };
 extern Config g_cfg;
 extern std::string g_dir; // pasta do .asi (raiz do jogo)

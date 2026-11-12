@@ -77,35 +77,60 @@ static const int kLevelFaction[8][2] = {
     {12, 12}, // 8: Merryweather
 };
 
-// arsenal por nivel (1..8); cada unidade tambem pode puxar armas do nivel anterior
+// Arsenal por nivel (1..8), v3: o maximo de variedade, sem mosquete e sem Marksman Pistol ("trabuco").
+// Corpo a corpo so nos niveis 1 e 2 (faca, taco, cacetete). Armas que o jogo nao conhece sao descartadas.
 static const std::vector<const char *> kWeapons[8] = {
-    {"WEAPON_SNSPISTOL", "WEAPON_VINTAGEPISTOL", "WEAPON_PISTOL", "WEAPON_PISTOL", "WEAPON_KNIFE", "WEAPON_BAT",
-     "WEAPON_MACHETE"},
-    {"WEAPON_COMBATPISTOL", "WEAPON_MICROSMG", "WEAPON_SAWNOFFSHOTGUN", "WEAPON_DBSHOTGUN", "WEAPON_MUSKET",
-     "WEAPON_PISTOL"},
-    {"WEAPON_SMG", "WEAPON_MACHINEPISTOL", "WEAPON_PUMPSHOTGUN", "WEAPON_BULLPUPSHOTGUN", "WEAPON_PISTOL50",
-     "WEAPON_REVOLVER"},
+    {"WEAPON_SNSPISTOL", "WEAPON_VINTAGEPISTOL", "WEAPON_PISTOL", "WEAPON_PISTOL", "WEAPON_CERAMICPISTOL",
+     "WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK"},
+    {"WEAPON_COMBATPISTOL", "WEAPON_PISTOL", "WEAPON_MICROSMG", "WEAPON_MINISMG", "WEAPON_SAWNOFFSHOTGUN",
+     "WEAPON_DBSHOTGUN", "WEAPON_KNIFE", "WEAPON_BAT"},
+    {"WEAPON_SMG", "WEAPON_MACHINEPISTOL", "WEAPON_MINISMG", "WEAPON_PUMPSHOTGUN", "WEAPON_BULLPUPSHOTGUN",
+     "WEAPON_PISTOL50", "WEAPON_REVOLVER", "WEAPON_HEAVYPISTOL", "WEAPON_DOUBLEACTION", "WEAPON_NAVYREVOLVER"},
     {"WEAPON_COMPACTRIFLE", "WEAPON_ASSAULTRIFLE", "WEAPON_GUSENBERG", "WEAPON_ASSAULTSMG", "WEAPON_HEAVYSHOTGUN",
-     "WEAPON_SMG"},
-    {"WEAPON_ASSAULTRIFLE", "WEAPON_CARBINERIFLE", "WEAPON_BULLPUPRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_MG"},
-    {"WEAPON_ADVANCEDRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_MARKSMANRIFLE",
-     "WEAPON_CARBINERIFLE"},
-    {"WEAPON_SPECIALCARBINE", "WEAPON_ADVANCEDRIFLE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_COMBATMG",
-     "WEAPON_CARBINERIFLE"},
-    {"WEAPON_SPECIALCARBINE", "WEAPON_ADVANCEDRIFLE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_COMBATMG",
-     "WEAPON_CARBINERIFLE"},
+     "WEAPON_SMG", "WEAPON_COMBATPDW", "WEAPON_AUTOSHOTGUN", "WEAPON_PISTOL_MK2"},
+    {"WEAPON_ASSAULTRIFLE", "WEAPON_CARBINERIFLE", "WEAPON_BULLPUPRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_MG",
+     "WEAPON_COMBATPDW", "WEAPON_COMBATSHOTGUN", "WEAPON_SMG_MK2", "WEAPON_MILITARYRIFLE"},
+    {"WEAPON_ADVANCEDRIFLE", "WEAPON_SPECIALCARBINE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_CARBINERIFLE",
+     "WEAPON_MILITARYRIFLE", "WEAPON_TACTICALRIFLE", "WEAPON_HEAVYRIFLE", "WEAPON_COMBATMG",
+     "WEAPON_PUMPSHOTGUN_MK2"},
+    {"WEAPON_SPECIALCARBINE_MK2", "WEAPON_CARBINERIFLE_MK2", "WEAPON_ASSAULTRIFLE_MK2", "WEAPON_BULLPUPRIFLE_MK2",
+     "WEAPON_ADVANCEDRIFLE", "WEAPON_ASSAULTSHOTGUN", "WEAPON_COMBATMG", "WEAPON_HEAVYRIFLE", "WEAPON_MG"},
+    {"WEAPON_CARBINERIFLE_MK2", "WEAPON_SPECIALCARBINE_MK2", "WEAPON_ASSAULTRIFLE_MK2", "WEAPON_COMBATMG_MK2",
+     "WEAPON_ASSAULTSHOTGUN", "WEAPON_HEAVYRIFLE", "WEAPON_TACTICALRIFLE", "WEAPON_COMBATSHOTGUN"},
 };
-// papeis especiais: sniper (nivel 6+) e explosivos (nivel 8)
-static const char *kSniper[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, "WEAPON_SNIPERRIFLE",
-                                 "WEAPON_HEAVYSNIPER", "WEAPON_HEAVYSNIPER"};
-static const std::vector<const char *> kHeavy = {"WEAPON_RPG", "WEAPON_GRENADELAUNCHER"};
+// papeis especiais: sniper (nivel 6+) e armas pesadas (nivel 7+)
+static const std::vector<const char *> kSniper[8] = {
+    {}, {}, {}, {}, {},
+    {"WEAPON_SNIPERRIFLE", "WEAPON_MARKSMANRIFLE"},
+    {"WEAPON_HEAVYSNIPER", "WEAPON_MARKSMANRIFLE_MK2", "WEAPON_PRECISIONRIFLE"},
+    {"WEAPON_HEAVYSNIPER_MK2", "WEAPON_HEAVYSNIPER", "WEAPON_MARKSMANRIFLE_MK2"},
+};
+static const std::vector<const char *> kHeavy[8] = {
+    {}, {}, {}, {}, {}, {},
+    {"WEAPON_GRENADELAUNCHER", "WEAPON_COMPACTLAUNCHER", "WEAPON_COMBATMG_MK2"},
+    {"WEAPON_RPG", "WEAPON_RPG", "WEAPON_GRENADELAUNCHER", "WEAPON_COMPACTLAUNCHER", "WEAPON_MINIGUN"},
+};
+static const char *kMelee[] = {"WEAPON_KNIFE", "WEAPON_BAT", "WEAPON_NIGHTSTICK"};
 
 // ---------- estado resolvido ----------
 std::vector<Faction> g_factions;
-static std::vector<Hash> s_weap[8];
-static Hash s_sniper[8];
-static std::vector<Hash> s_heavy;
+static std::vector<Hash> s_weap[8], s_sniper[8], s_heavy[8];
+static std::vector<Hash> s_melee;
 static Hash s_player, s_cop, s_army;
+
+static std::vector<Hash> ResolveWeapons(const std::vector<const char *> &names) {
+    std::vector<Hash> out;
+    for (const char *n : names) {
+        Hash h = H(n);
+        if (WEAPON::IS_WEAPON_VALID(h)) out.push_back(h);
+        else Log("  arma nao encontrada no jogo: %s", n);
+    }
+    return out;
+}
+static bool IsMelee(Hash w) {
+    for (Hash m : s_melee) if (m == w) return true;
+    return false;
+}
 
 static std::vector<Hash> Resolve(const std::vector<const char *> &names, const char *fac, bool vehicle) {
     std::vector<Hash> out;
@@ -140,12 +165,12 @@ void FactionsInit() {
         g_factions.push_back(f);
     }
     for (int i = 0; i < 8; ++i) {
-        s_weap[i].clear();
-        for (const char *w : kWeapons[i]) s_weap[i].push_back(H(w));
-        s_sniper[i] = kSniper[i] ? H(kSniper[i]) : 0;
+        s_weap[i] = ResolveWeapons(kWeapons[i]);
+        s_sniper[i] = ResolveWeapons(kSniper[i]);
+        s_heavy[i] = ResolveWeapons(kHeavy[i]);
     }
-    s_heavy.clear();
-    for (const char *w : kHeavy) s_heavy.push_back(H(w));
+    s_melee.clear();
+    for (const char *m : kMelee) s_melee.push_back(H(m));
     RelationsApply();
     Log("Faccoes carregadas: %d.", (int)g_factions.size());
 }
@@ -182,13 +207,22 @@ Faction *FactionFor(int level, Region r) {
     return idx < (int)g_factions.size() ? &g_factions[idx] : nullptr;
 }
 
-Hash WeaponFor(int level) {
+static Hash Pick(const std::vector<Hash> &v) { return v.empty() ? 0 : v[Rand((int)v.size())]; }
+
+// betterPct: chance de puxar uma arma do nivel seguinte (inimigos melhor equipados no alto).
+Hash WeaponFor(int level, int betterPct) {
     if (level < 1) level = 1;
     if (level > 8) level = 8;
     int li = level - 1;
-    if (li > 0 && Rand(100) < 30) li -= 1; // 30%: arma do nivel anterior
-    const auto &pool = s_weap[li];
-    return pool[Rand((int)pool.size())];
+    if (li < 7 && Rand(100) < betterPct) li += 1;
+    else if (li > 0 && Rand(100) < 25) li -= 1; // 25%: arma do nivel anterior
+    for (int tries = 0; tries < 6; ++tries) {
+        Hash w = Pick(s_weap[li]);
+        if (!w) break;
+        if (level >= 3 && IsMelee(w)) continue; // corpo a corpo so nas primeiras waves
+        return w;
+    }
+    return Pick(s_weap[level - 1]);
 }
-Hash SniperFor(int level) { return level >= 1 && level <= 8 ? s_sniper[level - 1] : 0; }
-Hash HeavyWeapon() { return s_heavy[Rand((int)s_heavy.size())]; }
+Hash SniperFor(int level) { return level >= 1 && level <= 8 ? Pick(s_sniper[level - 1]) : 0; }
+Hash HeavyFor(int level) { return level >= 1 && level <= 8 ? Pick(s_heavy[level - 1]) : 0; }

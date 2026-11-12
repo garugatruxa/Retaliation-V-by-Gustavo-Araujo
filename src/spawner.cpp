@@ -51,7 +51,10 @@ struct Hunter {
     Ped ped;
     Blip blip = 0;
     int born = 0, leftAt = 0;
-    bool reached = false, stayInVeh = false, leaving = false, juggernaut = false, roadblock = false;
+    bool reached = false, stayInVeh = false, leaving = false, juggernaut = false, roadblock = false, sniper = false;
+    bool tactical = false; // IA estilo NOOSE (so Merryweather e Cacadores)
+    int nextArea = 0, nextGesture = 0;
+    float areaRadius = 30.f;
 };
 struct SquadVeh { Vehicle veh; int born; bool roadblock; };
 enum PKind { P_FOOT, P_VEH, P_BOAT, P_JUGG, P_ROADBLOCK };
@@ -87,6 +90,41 @@ static float TopBonus() {
 }
 
 // ---------- criacao de NPCs ----------
+static bool IsPro() {
+    return s_fac && (!strcmp(s_fac->id, "FIB") || !strcmp(s_fac->id, "CACADORES") || !strcmp(s_fac->id, "MERRYWEATHER"));
+}
+// IA tatica (estilo NOOSE) so para a elite: Merryweather e Cacadores de recompensa.
+static bool IsTactical() {
+    return s_fac && (!strcmp(s_fac->id, "CACADORES") || !strcmp(s_fac->id, "MERRYWEATHER"));
+}
+// Dos 40 pontos para cima, mais colete, capacete e armas melhores (v3).
+static int GearPct(int base, float perPoint, int cap) {
+    int pts = g_st.Pts();
+    if (pts < g_cfg.gearStart) return 0;
+    int v = base + (int)((pts - g_cfg.gearStart) * perPoint);
+    return v > cap ? cap : v;
+}
+static int BetterPct() { return GearPct(5, 0.5f, 35); }
+
+static void ApplyGear(Ped ped, int level) {
+    int vest = GearPct(15, 1.4f, 90), helmet = GearPct(5, 1.3f, 80) + (IsPro() ? 20 : 0);
+    if (Rand(100) < vest) {
+        PED::SET_PED_ARMOUR(ped, 100);
+        // colete visivel, se o modelo tiver (componente 9 = equipamento/colete)
+        int n = PED::GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS(ped, 9);
+        if (n > 1) {
+            int d = 1 + Rand(n - 1);
+            if (PED::IS_PED_COMPONENT_VARIATION_VALID(ped, 9, d, 0)) PED::SET_PED_COMPONENT_VARIATION(ped, 9, d, 0, 0);
+        }
+    }
+    if (Rand(100) < helmet) {
+        int n = PED::GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS(ped, 0); // prop 0 = cabeca
+        if (n > 0) PED::SET_PED_PROP_INDEX(ped, 0, Rand(n), 0, TRUE);
+    }
+}
+
+// Gangues e FIB: comportamento da v2. Elite (IsTactical): IA no estilo da NOOSE, a media distancia,
+// com cobertura, flanqueando e sem correr de cara no jogador.
 static void SetupPed(Ped ped, int level, Hash weapon) {
     const Config::Lv &L = g_cfg.lv[level - 1];
     PED::SET_PED_RELATIONSHIP_GROUP_HASH(ped, s_fac->group);
@@ -102,15 +140,30 @@ static void SetupPed(Ped ped, int level, Hash weapon) {
     PED::SET_PED_COMBAT_ATTRIBUTES(ped, 2, TRUE);  // atirar de dentro do veiculo
     PED::SET_PED_COMBAT_ATTRIBUTES(ped, 1, TRUE);  // usar veiculos
     PED::SET_PED_COMBAT_ATTRIBUTES(ped, 3, TRUE);  // pode sair do veiculo
+    if (IsTactical()) {
+        PED::SET_PED_COMBAT_ABILITY(ped, 2);
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 12, TRUE); // atirar as cegas da cobertura
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 42, TRUE); // flanquear
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 22, TRUE); // arrastar feridos para a cobertura
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 28, TRUE); // avancar quando nao consegue acertar
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 13, FALSE); // nao ser agressivo demais
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 50, FALSE); // nao fazer "carga" de frente
+        PED::SET_PED_COMBAT_ATTRIBUTES(ped, 58, TRUE);  // nao fugir do combate
+        PED::SET_PED_COMBAT_MOVEMENT(ped, Rand(100) < 70 ? 1 : 2); // maioria defensiva, alguns avancam
+        PED::SET_PED_COMBAT_RANGE(ped, 1);
+    }
     PED::SET_PED_FLEE_ATTRIBUTES(ped, 0, FALSE);
     PED::SET_PED_SEEING_RANGE(ped, 250.f);
     PED::SET_PED_KEEP_TASK(ped, TRUE);
+    ApplyGear(ped, level);
 }
-
 static Hunter &AddHunter(Ped ped) {
     Hunter h;
     h.ped = ped;
     h.born = g_st.now;
+    h.tactical = IsTactical();
+    h.areaRadius = RandF(18.f, 34.f);
+    h.nextGesture = g_st.now + 6000 + Rand(8000);
     s_h.push_back(h);
     return s_h.back();
 }
@@ -206,13 +259,14 @@ static void SpawnFoot(int n, int role) {
         Vector3 q = V3(p.x + RandF(-2.f, 2.f), p.y + RandF(-2.f, 2.f), p.z);
         Ped ped = NewPedAt(RandomPed(), q, HeadingTo(q, s_ppos));
         if (!ped) continue;
-        Hash w = WeaponFor(s_level);
-        if (i == 0 && role == 1 && SniperFor(s_level)) w = SniperFor(s_level);
-        if (i == 0 && role == 2) w = HeavyWeapon();
+        Hash w = WeaponFor(s_level, BetterPct());
+        if (i == 0 && role == 1) { Hash sw = SniperFor(s_level); if (sw) w = sw; }
+        if (i == 0 && role == 2) { Hash hw = HeavyFor(s_level); if (hw) w = hw; }
         SetupPed(ped, s_level, w);
-        if (i == 0 && role == 1) { PED::SET_PED_COMBAT_MOVEMENT(ped, 0); PED::SET_PED_COMBAT_RANGE(ped, 2); }
+        bool sn = i == 0 && role == 1;
+        if (sn) { PED::SET_PED_COMBAT_MOVEMENT(ped, 0); PED::SET_PED_COMBAT_RANGE(ped, 2); }
         AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
-        AddHunter(ped);
+        AddHunter(ped).sniper = sn;
     }
     Log("  a pe: %d (%s)%s a %.0fm", n, s_fac->name, role == 1 ? " com sniper" : role == 2 ? " com explosivo" : "",
         D2(p, s_ppos));
@@ -222,7 +276,7 @@ static void FillVehicle(Vehicle v, int seats) {
     for (int s = -1; s < seats - 1 && Budget() > 0; ++s) {
         Ped ped = NewPedIn(v, RandomPed(), s);
         if (!ped) continue;
-        SetupPed(ped, s_level, WeaponFor(s_level));
+        SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
         if (s == -1) {
             PED::SET_DRIVER_ABILITY(ped, 1.0f);
             PED::SET_DRIVER_AGGRESSIVENESS(ped, 0.75f);
@@ -303,7 +357,7 @@ static void SpawnJuggernaut() {
         if (s == -2 || Budget() <= 0) continue;
         Ped ped = NewPedIn(v, RandomPed(), s);
         if (!ped) continue;
-        SetupPed(ped, s_level, WeaponFor(s_level));
+        SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
         if (s == -1) {
             PED::SET_DRIVER_ABILITY(ped, 1.0f);
             PED::SET_DRIVER_AGGRESSIVENESS(ped, 0.8f);
@@ -347,7 +401,7 @@ static void SpawnJuggernaut() {
         if (s >= 3) break; // ate 3 passageiros alem do Juggernaut e da torreta
         Ped ped = NewPedIn(v, RandomPed(), s);
         if (!ped) continue;
-        SetupPed(ped, s_level, WeaponFor(s_level));
+        SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
         AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
         AddHunter(ped);
     }
@@ -405,7 +459,7 @@ static bool SpawnRoadblock() {
             Vector3 q = V3(x, y, gz + 0.5f);
             Ped ped = NewPedAt(RandomPed(), q, HeadingTo(q, s_ppos));
             if (!ped) continue;
-            SetupPed(ped, s_level, WeaponFor(s_level));
+            SetupPed(ped, s_level, WeaponFor(s_level, BetterPct()));
             PED::SET_PED_COMBAT_MOVEMENT(ped, 1); // defensivo
             PED::SET_PED_SPHERE_DEFENSIVE_AREA(ped, node.x, node.y, node.z, 18.f, FALSE, FALSE);
             AI::TASK_COMBAT_PED(ped, s_player, 0, 16);
@@ -460,7 +514,7 @@ static void BuildWave() {
     // a pe: duplas chegando aos poucos, depois os veiculos de longe
     int foot = L.foot < free ? L.foot : free;
     bool sniper = s_level >= 6 && SniperFor(s_level);
-    bool heavy = s_level >= 8;
+    bool heavy = HeavyFor(s_level) != 0; // nivel 7+
     for (int i = 0, k = 0; i < foot; i += 2, ++k) {
         int n = foot - i >= 2 ? 2 : 1;
         int role = k == 0 && sniper ? 1 : k == 1 && heavy ? 2 : 0;
@@ -487,6 +541,38 @@ static void RunQueue() {
         }
         return; // uma unidade por frame
     }
+}
+
+// ---------- sinais de mao ----------
+// Gestos de combate do proprio jogo (os mesmos da NOOSE e das gangues), tocados so na parte de cima do corpo,
+// sem interromper o combate. So os dicionarios que existirem no jogo sao usados.
+static std::vector<const char *> s_gestRifle, s_gestGang;
+
+static void GesturesInit() {
+    static const char *rifle[] = {"combat@gestures@rifle@beckon", "combat@gestures@rifle@halt",
+                                  "combat@gestures@rifle@over_there", "combat@gestures@rifle@pile_up",
+                                  "combat@gestures@rifle@come_here"};
+    static const char *gang[] = {"combat@gestures@gang@pistol_1h@beckon", "combat@gestures@gang@pistol_1h@halt",
+                                 "combat@gestures@gang@pistol_1h@over_there", "combat@gestures@gang@pistol_1h@come_here",
+                                 "combat@gestures@gang@pistol_1h@hands_up"};
+    s_gestRifle.clear(); s_gestGang.clear();
+    for (const char *d : rifle) if (STREAMING::DOES_ANIM_DICT_EXIST((char *)d)) s_gestRifle.push_back(d);
+    for (const char *d : gang) if (STREAMING::DOES_ANIM_DICT_EXIST((char *)d)) s_gestGang.push_back(d);
+    Log("Sinais de mao: %d de rifle, %d de gangue.", (int)s_gestRifle.size(), (int)s_gestGang.size());
+}
+
+static void TryGesture(Ped ped, const Vector3 &hp) {
+    // so faz sentido com um companheiro por perto para "receber" o sinal
+    bool mate = false;
+    for (Hunter &o : s_h)
+        if (o.ped != ped && D2(ENTITY::GET_ENTITY_COORDS(o.ped, TRUE), hp) < 30.f) { mate = true; break; }
+    if (!mate) return;
+    const auto &pool = !s_gestRifle.empty() ? s_gestRifle : s_gestGang;
+    if (pool.empty()) return;
+    const char *dict = pool[Rand((int)pool.size())];
+    STREAMING::REQUEST_ANIM_DICT((char *)dict);
+    if (!STREAMING::HAS_ANIM_DICT_LOADED((char *)dict)) return; // carrega e tenta no proximo ciclo
+    AI::TASK_PLAY_ANIM(ped, (char *)dict, (char *)"0", 4.f, -4.f, 1800, 48, 0.f, FALSE, FALSE, FALSE);
 }
 
 // ---------- atualizacao e limpeza ----------
@@ -566,6 +652,16 @@ static void UpdateHunters() {
             if (h.juggernaut) ApplyJuggernautWalk(h.ped);
             AI::TASK_COMBAT_PED(h.ped, s_player, 0, 16);
         }
+
+        // posicionamento tatico: area defensiva em volta do jogador, a media distancia, com cobertura
+        if (h.tactical && !inVeh && !h.roadblock && !h.sniper && !h.juggernaut && g_st.now >= h.nextArea) {
+            h.nextArea = g_st.now + 4000;
+            PED::SET_PED_SPHERE_DEFENSIVE_AREA(h.ped, s_ppos.x, s_ppos.y, s_ppos.z, h.areaRadius, FALSE, FALSE);
+        }
+        if (h.tactical && !inVeh && !h.juggernaut && g_st.now >= h.nextGesture) {
+            h.nextGesture = g_st.now + 9000 + Rand(10000);
+            if (d > 12.f && d < 80.f && !PED::IS_PED_SHOOTING(h.ped)) TryGesture(h.ped, hp);
+        }
         ++i;
     }
 
@@ -594,6 +690,7 @@ void SpawnerInit() {
     s_h.clear(); s_v.clear(); s_q.clear();
     s_nextWave = 0;
     FactionsInit();
+    GesturesInit();
 }
 
 void SpawnerTick(Ped player) {

@@ -1,4 +1,4 @@
-﻿#include "common.h"
+#include "common.h"
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -65,13 +65,14 @@ static const char *kDefaultIni =
     "Enabled=1\r\n"
     "; ajuste fino da posicao da barra (fracao da tela)\r\n"
     "OffsetX=0.0\r\n"
-    "OffsetY=0.0115\r\n"
+    "OffsetY=0.0085\r\n"
     "Height=0.0055\r\n"
     "; inicio e fim da barra, em fracao da largura do minimapa (barra do especial = 0.75 a 1.0)\r\n"
     "BarStart=0.75\r\n"
     "BarEnd=1.0\r\n"
     "Color=200,25,25\r\n"
-    "ShowLevel=1\r\n"
+    "; 1 = mostra o numero do nivel ao lado da barra\r\n"
+    "ShowLevel=0\r\n"
 #ifdef RET_SPAWN
     "\r\n"
     "[Spawn]\r\n"
@@ -117,6 +118,10 @@ static const char *kDefaultIni =
     "[TopBonus]\r\n"
     "; % extra de chance dos especiais por ponto acima do inicio do ultimo nivel\r\n"
     "PerPoint=1.5\r\n"
+    "\r\n"
+    "[Gear]\r\n"
+    "; a partir desses pontos aumenta a chance de colete, capacete e armas melhores\r\n"
+    "Start=40\r\n"
 #endif
     ;
 
@@ -185,7 +190,7 @@ void ConfigLoad() {
     c.hudEnd = IniFloat("Hud", "BarEnd", c.hudEnd);
     std::vector<int> col = IniInts("Hud", "Color", {c.hudR, c.hudG, c.hudB});
     if (col.size() >= 3) { c.hudR = col[0]; c.hudG = col[1]; c.hudB = col[2]; }
-    c.hudShowLevel = IniInt("Hud", "ShowLevel", 1);
+    c.hudShowLevel = IniInt("Hud", "ShowLevel", 0);
     c.maxAlive = IniInt("Spawn", "MaxAlive", c.maxAlive);
     c.footMin = IniFloat("Spawn", "FootMin", c.footMin);
     c.footMax = IniFloat("Spawn", "FootMax", c.footMax);
@@ -214,6 +219,7 @@ void ConfigLoad() {
     c.jugChance = IniInt("Juggernaut", "Chance", c.jugChance);
     c.jugHealth = IniInt("Juggernaut", "Health", c.jugHealth);
     c.topBonusPerPoint = IniFloat("TopBonus", "PerPoint", c.topBonusPerPoint);
+    c.gearStart = IniInt("Gear", "Start", c.gearStart);
     g_cfg = c;
 
     std::string lv;

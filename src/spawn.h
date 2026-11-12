@@ -16,9 +16,9 @@ void FactionsInit();
 void RelationsApply();
 Region RegionAt(float x, float y);
 Faction *FactionFor(int level, Region r);
-Hash WeaponFor(int level);
+Hash WeaponFor(int level, int betterPct = 0);
 Hash SniperFor(int level);
-Hash HeavyWeapon();
+Hash HeavyFor(int level);
 
 int Rand(int n);          // 0..n-1
 float RandF(float a, float b);
